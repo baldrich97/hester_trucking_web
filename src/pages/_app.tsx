@@ -7,6 +7,11 @@ import type { AppType } from "next/dist/shared/lib/utils";
 import superjson from "superjson";
 import type { AppRouter } from "../server/router";
 import "../styles/globals.css";
+import '@fontsource/roboto/300.css';
+import '@fontsource/roboto/400.css';
+import '@fontsource/roboto/500.css';
+import '@fontsource/roboto/700.css';
+import Sidenav from "../components/Sidenav";
 
 const MyApp: AppType = ({
   Component,
@@ -14,7 +19,18 @@ const MyApp: AppType = ({
 }) => {
   return (
     <SessionProvider session={session}>
-      <Component {...pageProps} />
+      <div className='container'>
+        <div className='flex flex-row'>
+          <aside className='w-60'>
+            <div className='sticky left-0 w-full'>
+              <Sidenav/>
+            </div>
+          </aside>
+          <div className='w-full'>
+            <Component {...pageProps} />
+          </div>
+        </div>
+      </div>
     </SessionProvider>
   );
 };
