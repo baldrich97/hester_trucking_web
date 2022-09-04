@@ -1,23 +1,142 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "mysql"
-    // NOTE: When using postgresql, mysql or sqlserver, uncomment the @db.text annotations in model Account below
-    // Further reading: 
-    // https://next-auth.js.org/adapters/prisma#create-the-prisma-schema
-    // https://www.prisma.io/docs/reference/api-reference/prisma-schema-reference#string
-    url      = env("DATABASE_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
 model User {
-    id            String    @id @default(cuid())
-    password      String
-    username      String
-    email         String   @unique
-    organization  String
+  id           String @id @default(cuid())
+  email        String @unique
+  organization String
+  password     String
+  username     String
+}
+
+model CustomerLoadTypes {
+  ID            Int       @id @default(autoincrement())
+  CustomerID    Int
+  LoadTypeID    Int
+  DateDelivered DateTime  @db.Date
+  Customers     Customers @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_CustomerLoadTypes_Customer")
+  LoadTypes     LoadTypes @relation(fields: [LoadTypeID], references: [ID], onUpdate: Restrict, map: "FK_CustomerLoadTypes_LoadType")
+
+  @@index([CustomerID], map: "FK_CustomerLoadTypes_Customer")
+  @@index([LoadTypeID], map: "FK_CustomerLoadTypes_LoadType")
+}
+
+model Customers {
+  ID                Int                 @id @default(autoincrement())
+  Name              String              @db.VarChar(255)
+  Address           String              @db.VarChar(255)
+  City              String              @db.VarChar(255)
+  State             Int                 @default(25)
+  ZIP               String              @db.VarChar(10)
+  Phone             String?             @db.VarChar(20)
+  Email             String?             @db.VarChar(255)
+  Notes             String?             @db.VarChar(255)
+  MainContact       String?             @db.VarChar(255)
+  Deleted           Boolean?
+  States            States              @relation(fields: [State], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Customers_States")
+  CustomerLoadTypes CustomerLoadTypes[]
+  DeliveryLocations DeliveryLocations[]
+  Invoices          Invoices[]
+
+  @@index([State], map: "FK_Customers_States")
+}
+
+model DeliveryLocations {
+  ID          Int        @id @default(autoincrement())
+  Description String     @db.VarChar(255)
+  Deleted     Boolean?
+  CustomerID  Int?
+  Customers   Customers? @relation(fields: [CustomerID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_DeliveryLocations_Customers")
+
+  @@index([CustomerID], map: "FK_DeliveryLocations_Customers")
+}
+
+model Drivers {
+  ID           Int            @id @default(autoincrement())
+  FirstName    String         @db.VarChar(255)
+  MiddleName   String?        @db.VarChar(255)
+  LastName     String         @db.VarChar(255)
+  Street       String?        @db.VarChar(255)
+  City         String?        @db.VarChar(255)
+  State        Int?
+  ZIP          String?        @db.VarChar(10)
+  DOB          DateTime?      @db.Date
+  License      String?        @db.VarChar(255)
+  Email        String?        @db.VarChar(255)
+  Phone        String?        @db.VarChar(20)
+  Notes        String?        @db.VarChar(255)
+  Deleted      Boolean?
+  HireDate     String?        @db.VarChar(255)
+  States       States?        @relation(fields: [State], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Drivers_States")
+  TrucksDriven TrucksDriven[]
+
+  @@index([State], map: "FK_Drivers_States")
+}
+
+model Invoices {
+  ID          Int                   @id @default(autoincrement())
+  InvoiceDate DateTime              @db.Date
+  Number      Int?
+  CustomerID  Int
+  TotalAmount Float
+  PaidDate    DateTime?             @db.Date
+  CheckNumber String?               @db.VarChar(255)
+  Paid        Boolean?
+  Printed     Boolean?
+  Deleted     Boolean?
+  PaymentType Invoices_PaymentType?
+  Customers   Customers             @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_Invoices_Customer")
+
+  @@index([CustomerID], map: "FK_Invoices_Customer")
+}
+
+model LoadTypes {
+  ID                Int                 @id @default(autoincrement())
+  Description       String              @db.VarChar(255)
+  Deleted           Boolean?
+  SourceID          Int?
+  Notes             String?             @db.VarChar(255)
+  CustomerLoadTypes CustomerLoadTypes[]
+}
+
+model States {
+  ID           Int         @id @default(autoincrement())
+  Name         String      @db.VarChar(15)
+  Abbreviation String      @db.VarChar(2)
+  Customers    Customers[]
+  Drivers      Drivers[]
+}
+
+model Trucks {
+  ID           Int            @id @default(autoincrement())
+  Name         String         @db.VarChar(255)
+  VIN          String?        @db.VarChar(255)
+  Deleted      Boolean?
+  Notes        String?        @db.VarChar(255)
+  TrucksDriven TrucksDriven[]
+}
+
+model TrucksDriven {
+  ID         Int      @id @default(autoincrement())
+  TruckID    Int
+  DriverID   Int
+  DateDriven DateTime @db.Date
+  Drivers    Drivers  @relation(fields: [DriverID], references: [ID], onUpdate: Restrict, map: "FK_TrucksDriven_Driver")
+  Trucks     Trucks   @relation(fields: [TruckID], references: [ID], onUpdate: Restrict, map: "FK_TrucksDriven_Truck")
+
+  @@index([DriverID], map: "FK_TrucksDriven_Driver")
+  @@index([TruckID], map: "FK_TrucksDriven_Truck")
+}
+
+enum Invoices_PaymentType {
+  Cash
+  Credit_Card      @map("Credit Card")
+  Check
+  EMPTY_ENUM_VALUE @map("")
 }
