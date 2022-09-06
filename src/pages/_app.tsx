@@ -19,6 +19,7 @@ import Sidenav from "../components/Sidenav";
 import AppBar from "../components/AppBar";
 import CssBaseline from "@mui/material/CssBaseline";
 import {createTheme, ThemeProvider} from '@mui/material/styles';
+import Copyright from "../components/Copyright";
 
 const mdTheme = createTheme();
 
@@ -53,6 +54,15 @@ const MyApp: AppType = ({
                         <Container maxWidth="lg" sx={{mt: 4, mb: 4}}>
                             <Component {...pageProps}/>
                         </Container>
+                        <Copyright sx={{
+                            pt: 4,
+                            position: 'fixed',
+                            bottom: 0,
+                            width: '100%',
+                            height: 60,
+                            textAlign: 'right',
+                            right: 5
+                        }}/>
                     </Box>
                 </Box>
             </ThemeProvider>

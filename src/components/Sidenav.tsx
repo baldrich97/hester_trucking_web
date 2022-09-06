@@ -132,15 +132,6 @@ function Sidenav(props: any) {
                     </ListItemButton>
                 </NextLink>
             </List>
-            <Copyright sx={{
-                pt: 4,
-                position: 'fixed',
-                bottom: 0,
-                width: '100%',
-                height: 60,
-                textAlign: 'left',
-                paddingLeft: '7px'
-            }}/>
         </Drawer>
     )
 }

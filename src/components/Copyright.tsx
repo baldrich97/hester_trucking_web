@@ -3,7 +3,7 @@ import Typography from "@mui/material/Typography";
 
 function Copyright(props: any) {
     return (
-        <Typography variant="body2" color="text.secondary" align="center" className={{}} {...props}>
+        <Typography variant="body2" color="text.secondary" align="right" className={{}} {...props}>
             {'Copyright © '}
             {'AldrichSoftware '}
             {new Date().getFullYear()}
