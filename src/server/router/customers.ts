@@ -1,49 +1,44 @@
 import {createRouter} from "./context";
 import {z} from "zod";
+import { CustomersModel } from '../../../prisma/zod';
 
-export const loadtypesRouter = createRouter()
+export const customersRouter = createRouter()
     .query("getAll", {
         async resolve({ctx}) {
-            return await ctx.prisma.loadTypes.findMany()
+            return ctx.prisma.customers.findMany();
         },
     })
     .query('get', {
         input: z.object({
-            id: z.string()
+            ID: z.number()
         }),
         async resolve({ctx, input}) {
-            return await ctx.prisma.load_Types.findUnique({
+            return ctx.prisma.customers.findUnique({
                 where: {
-                    id: input.id
+                    ID: input.ID
                 }
             })
 
         }
     }).mutation('put', {
         // validate input with Zod
-        input: z.object({
-            description: z.string()
-        }),
+        input: CustomersModel.omit({ID: true, Deleted: true}),
         async resolve({ctx, input}) {
             // use your ORM of choice
-            return await ctx.prisma.load_Types.create({
+            return ctx.prisma.customers.create({
                 data: input
             })
         },
     }).mutation('post', {
         // validate input with Zod
-        input: z.object({
-            id: z.string(),
-            description: z.string()
-        }),
+        input: CustomersModel,
         async resolve({ctx, input}) {
+            const {ID, ...data} = input;
             // use your ORM of choice
-            return await ctx.prisma.load_Type.update({
+            return ctx.prisma.customers.update({
                 where: {
-                    id: input.id
-                }, data: {
-                    description: input.description
-                }
+                    ID: ID
+                }, data: data
             })
         },
     });

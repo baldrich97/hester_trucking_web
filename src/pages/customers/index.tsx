@@ -1,35 +1,39 @@
 import React, { FunctionComponent } from 'react';
-import { trpc } from "../../utils/trpc"
+import Grid2 from "@mui/material/Unstable_Grid2";
+import Customer from "../../components/objects/customer";
+import {GetServerSideProps} from "next";
+import {PrismaClient} from "@prisma/client";
+import { CustomersModel, StatesModel } from '../../../prisma/zod';
+import {z} from "zod";
 
-type LoadType = {
-    id: string,
-    description: string,
-}
+type StatesType = z.infer<typeof StatesModel>;
 
-type Props = {
-    types: LoadType[]
-}
 
-const Customers: FunctionComponent<Props> = (props) => {
-
-    //const { types } = props;
+const Customers = ({states}: {states: StatesType[]}) => {
 
     return (
-        <div>
-            Customers will be here soon...
-        </div>
+        <Grid2 container>
+            <Grid2 xs={8}>
+                Customers will be here soon...
+            </Grid2>
+            <Grid2 xs={4}>
+                <Customer states={states}/>
+            </Grid2>
+        </Grid2>
     )
 };
 
 export default Customers;
 
-/*
-export async function getServerSideProps() {
-    const data = trpc.useQuery(['loadtypes.getAll']);
+export const getServerSideProps: GetServerSideProps = async (context) => {
+
+    const prisma = new PrismaClient();
+
+    const states = await prisma.states.findMany({});
 
     return {
         props: {
-            types: data
-        }, // will be passed to the page component as props
+            states
+        }
     }
-}*/
+}

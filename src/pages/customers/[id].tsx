@@ -1,41 +1,55 @@
-import React, {FunctionComponent} from 'react';
-import {GetServerSideProps} from "next";
-import {trpc} from "../../utils/trpc";
+import React from 'react';
+import CustomerObject from '../../components/objects/customer';
+import { GetServerSideProps } from 'next'
+import {PrismaClient} from "@prisma/client";
+import { CustomersModel, StatesModel } from '../../../prisma/zod';
+import {z} from "zod";
 
-type LoadType = {
-    id: string,
-    description: string
-}
+type StatesType = z.infer<typeof StatesModel>;
+type CustomersType = z.infer<typeof CustomersModel>;
 
-type Props = {
-    data: LoadType | null
-}
 
-const LoadType: FunctionComponent<Props> = (props) => {
-
-    const {data} = props;
+const Customer = ({states, initialCustomer}: {states: StatesType[], initialCustomer: CustomersType}) => {
 
     return (
-        <form action={}></form>
-    )
-
-
+        <CustomerObject states={states} initialCustomer={initialCustomer}/>
+    );
 };
 
-export default LoadType;
+
+
+export default Customer;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    let data;
+    const id = context.params?.id;
 
-    if (!context || !context.params || !context.params.id || typeof (context.params.id) !== 'string') {
-        data = null;
-    } else {
-        data = trpc.useQuery(['loadtypes.get', {id: context.params.id}]);
+    let initialCustomer;
+
+    const prisma = new PrismaClient();
+
+    if (id && typeof(id) === "string") {
+        initialCustomer = await prisma.customers.findFirst({
+            where: {
+                ID: parseInt(id)
+            }
+        })
     }
+
+    if(!initialCustomer) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: "/customers"
+            }
+        }
+    }
+
+    const states = await prisma.states.findMany({});
 
     return {
         props: {
-            data
-        }, // will be passed to the page component as props
+            states,
+            initialCustomer: initialCustomer
+        }
     }
 }

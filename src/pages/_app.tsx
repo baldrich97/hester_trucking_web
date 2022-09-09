@@ -15,11 +15,11 @@ import Toolbar from "@mui/material/Toolbar";
 import Container from "@mui/material/Container";
 import Box from "@mui/material/Box";
 import * as React from "react";
-import Sidenav from "../components/Sidenav";
-import AppBar from "../components/AppBar";
+import Sidenav from "../components/layout/Sidenav";
+import AppBar from "../components/layout/AppBar";
 import CssBaseline from "@mui/material/CssBaseline";
 import {createTheme, ThemeProvider} from '@mui/material/styles';
-import Copyright from "../components/Copyright";
+import Copyright from "../components/layout/Copyright";
 
 const mdTheme = createTheme();
 
@@ -51,7 +51,7 @@ const MyApp: AppType = ({
                         }}
                     >
                         <Toolbar/>
-                        <Container maxWidth="lg" sx={{mt: 4, mb: 4}}>
+                        <Container maxWidth={false} sx={{mt: 4, mb: 4}}>
                             <Component {...pageProps}/>
                         </Container>
                         <Copyright sx={{
@@ -70,19 +70,24 @@ const MyApp: AppType = ({
     );
 };
 
-const getBaseUrl = () => {
-    if (typeof window !== "undefined") return ""; // browser should use relative url
-    if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`; // SSR should use vercel url
-    return `http://localhost:${process.env.PORT ?? 3000}`; // dev SSR should use localhost
-};
-
 export default withTRPC<AppRouter>({
     config() {
+
+      /*  if (typeof window !== 'undefined') {
+            // during client requests
+            return {
+                transformer: superjson, // optional - adds superjson serialization
+                url: '/api/trpc',
+            };
+        }
+*/
         /**
          * If you want to use SSR, you need to use the server's full URL
          * @link https://trpc.io/docs/ssr
          */
-        const url = `${getBaseUrl()}/api/trpc`;
+        const url = process.env.VERCEL_URL
+            ? `https://${process.env.VERCEL_URL}/api/trpc`
+            : 'http://localhost:3000/api/trpc';
 
         return {
             links: [
@@ -95,6 +100,10 @@ export default withTRPC<AppRouter>({
             ],
             url,
             transformer: superjson,
+            headers: {
+                // optional - inform server that it's an ssr request
+                'x-ssr': '1',
+            },
             /**
              * @link https://react-query.tanstack.com/reference/QueryClient
              */
@@ -104,5 +113,5 @@ export default withTRPC<AppRouter>({
     /**
      * @link https://trpc.io/docs/ssr
      */
-    ssr: false,
+    ssr: false, //setting this to true breaks basic trpc queries for some reason
 })(MyApp);
