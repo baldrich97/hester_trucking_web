@@ -29,11 +29,16 @@ export default function GenericTable({data = [], columns = [], overrides = []}: 
                                 sx={{ '&:last-child td, &:last-child th': { border: 0 } }}
                             >
                                 {columns.map((column, colindex) => {
+                                    let realData = null;
+                                    if(column.name.includes('.')) {
+                                        realData = column.name.split('.').reduce((o,i) => o[i], row)
+                                    }
+                                    const data = realData ?? row[column.name];
                                     const isOverrided = overrides.filter((item) => item.name === column.name);
                                     if (colindex === 0) {
                                         return (
                                             <TableCell component="th" scope="row" align={column.align ? column.align : 'left'} key={'row-' + rowindex.toString() + '-' + column.name}>
-                                                {row[column.name] ?? 'N/A'}
+                                                {data ?? 'N/A'}
                                             </TableCell>
                                         )
                                     } else if (isOverrided && typeof(isOverrided[0]) !== 'undefined') {
@@ -52,14 +57,14 @@ export default function GenericTable({data = [], columns = [], overrides = []}: 
                                             case "checkbox":
                                                 return (
                                                     <TableCell align={column.align ? column.align : 'center'} key={'row-' + rowindex.toString() + '-' + column.name}>
-                                                        <Checkbox value={!!row[column.name]} disabled={true}/>
+                                                        <Checkbox value={!!data} disabled={true}/>
                                                     </TableCell>
                                                 )
                                         }
                                     } else {
                                         return (
                                             <TableCell align={column.align ? column.align : 'left'} key={'row-' + rowindex.toString() + '-' + column.name}>
-                                                {row[column.name] ?? 'N/A'}
+                                                {data ?? 'N/A'}
                                             </TableCell>
                                         )
                                     }
