@@ -20,8 +20,6 @@ const columns: {name: string, as?: string, align?: 'left' | 'right' | 'center' |
     {name: 'States.Abbreviation', as: 'State'},
     {name: 'ZIP'},
     {name: 'Phone'},
-    {name: 'Email'},
-    {name: 'MainContact', as: 'Main Contact'},
     {name: 'Notes'},
     {name: 'ID', as: '', navigateTo: '/customers/'}
 ];
