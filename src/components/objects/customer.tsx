@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { CustomersModel, StatesModel } from '../../../prisma/zod';
 import {trpc} from "../../utils/trpc";
 import Button from '@mui/material/Button'
+import { useRouter } from 'next/router';
 
 type StatesType = z.infer<typeof StatesModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
@@ -28,6 +29,8 @@ const defaultValues = {
 
 const Customer = ({states, initialCustomer = null}: {states: StatesType[], initialCustomer?: null | CustomersType}) => {
 
+    const router = useRouter();
+
     const validationSchema = initialCustomer ? CustomersModel : CustomersModel.omit({ ID: true})
 
     type ValidationSchema = z.infer<typeof validationSchema>;
@@ -46,6 +49,9 @@ const Customer = ({states, initialCustomer = null}: {states: StatesType[], initi
 
     const onSubmit = async (data: ValidationSchema) => {
         await addOrUpdateCustomer.mutateAsync(data)
+        if (key === 'customers.put') {
+            await router.replace(router.asPath);
+        }
     }
 
     return (
@@ -54,8 +60,11 @@ const Customer = ({states, initialCustomer = null}: {states: StatesType[], initi
             autoComplete='off'
             noValidate
             onSubmit={handleSubmit(onSubmit)}
+            sx={{
+                paddingLeft: 2.5
+            }}
         >
-            <Grid2 container spacing={2} columnSpacing={2} rowSpacing={2}>
+            <Grid2 container columnSpacing={2} rowSpacing={2}>
                 <Grid2 xs={6}>
                     <RHTextfield name={'Name'} control={control} required={true}
                                  shouldError={errors.Name?.type === 'required' || errors.Name?.type === 'too_small'}

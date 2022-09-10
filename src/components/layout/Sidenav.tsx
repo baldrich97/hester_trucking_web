@@ -15,7 +15,6 @@ import LayersIcon from "@mui/icons-material/Layers";
 import * as React from "react";
 import {styled} from "@mui/material/styles";
 import MuiDrawer from "@mui/material/Drawer";
-import Copyright from "./Copyright";
 import { useRouter } from 'next/router'
 
 const drawerWidth = 240;

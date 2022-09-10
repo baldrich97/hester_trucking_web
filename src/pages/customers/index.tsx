@@ -5,17 +5,39 @@ import {GetServerSideProps} from "next";
 import {PrismaClient} from "@prisma/client";
 import { CustomersModel, StatesModel } from '../../../prisma/zod';
 import {z} from "zod";
+import GenericTable from '../../elements/GenericTable';
+import Divider from '@mui/material/Divider'
 
 type StatesType = z.infer<typeof StatesModel>;
+type CustomersType = z.infer<typeof CustomersModel>;
 
+//TODO abstract types out to a utils file or something
 
-const Customers = ({states}: {states: StatesType[]}) => {
+const columns: {name: string, as?: string, align?: 'left' | 'right' | 'center' | 'justify' | 'inherit' | undefined, navigateTo?: string}[] = [
+    {name: 'Name'},
+    {name: 'Street'},
+    {name: 'City'},
+    {name: 'States.Abbreviation', as: 'State'},
+    {name: 'ZIP'},
+    {name: 'Phone'},
+    {name: 'Email'},
+    {name: 'MainContact', as: 'Main Contact'},
+    {name: 'Notes'},
+    {name: 'ID', as: '', navigateTo: '/customers/'}
+];
+
+const overrides: {name: string, type: 'checkbox' | 'button'}[] = [
+    {name: 'ID', type: 'button'}
+]
+
+const Customers = ({states, customers}: {states: StatesType[], customers: CustomersType[]}) => {
 
     return (
         <Grid2 container>
-            <Grid2 xs={8}>
-                Customers will be here soon...
+            <Grid2 xs={8} sx={{paddingRight: 2.5}}>
+                <GenericTable data={customers} columns={columns} overrides={overrides}/>
             </Grid2>
+            <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }}/>
             <Grid2 xs={4}>
                 <Customer states={states}/>
             </Grid2>
@@ -30,10 +52,16 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const prisma = new PrismaClient();
 
     const states = await prisma.states.findMany({});
+    const customers = await prisma.customers.findMany({
+        include: {
+            States: true
+        }
+    });
 
     return {
         props: {
-            states
+            states,
+            customers
         }
     }
 }
