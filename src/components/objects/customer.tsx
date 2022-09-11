@@ -1,15 +1,12 @@
-import React, { useState } from 'react';
-import Grid2 from "@mui/material/Unstable_Grid2";
-import RHTextfield from "../../elements/RHTextfield";
-import RHSelect from "../../elements/RHSelect";
+import React  from 'react';
 import Box from "@mui/material/Box";
 import {useForm} from "react-hook-form";
 import {z} from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod'
 import { CustomersModel, StatesModel } from '../../../prisma/zod';
 import {trpc} from "../../utils/trpc";
-import Button from '@mui/material/Button'
 import { useRouter } from 'next/router';
+import GenericForm from '../../elements/GenericForm'
 
 type StatesType = z.infer<typeof StatesModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
@@ -54,6 +51,22 @@ const Customer = ({states, initialCustomer = null}: {states: StatesType[], initi
         }
     }
 
+    const fields: { name: string, size: number, label?: string, required: boolean, errorMessage?: string, type: 'textfield' | 'select' | 'checkbox', shouldErrorOn?: string[], multiline?: boolean, maxRows?: number, number?: boolean }[] = [
+        {name: 'Name', size: 7, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'Customer name is required.', type: 'textfield'},
+        {name: 'Street', size: 5, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'Street address is required.', type: 'textfield'},
+        {name: 'City', size: 5, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'City is required.', type: 'textfield'},
+        {name: 'State', size: 4,  required: false, type: 'select'},
+        {name: 'ZIP', size: 3, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'ZIP code is required.', type: 'textfield', number: true},
+        {name: 'Email', size: 12, required: false, type: 'textfield', shouldErrorOn: ['invalid_string'], errorMessage: 'Please enter a valid email.'},
+        {name: 'Phone', size: 6, required: false, type: 'textfield'},
+        {name: 'MainContact', size: 6, label: 'Main Contact', required: false, type: 'textfield'},
+        {name: 'Notes', size: 12, required: false, type: 'textfield', multiline: true},
+    ]
+
+    const selectData: { key: string, data: Record<string, unknown>[], optionValue: string, optionLabel: string, defaultValue?: number }[] = [
+        {key: 'State', data: states, defaultValue: 25, optionValue: 'ID', optionLabel: 'Name'}
+    ]
+
     return (
         <Box
             component='form'
@@ -64,57 +77,7 @@ const Customer = ({states, initialCustomer = null}: {states: StatesType[], initi
                 paddingLeft: 2.5
             }}
         >
-            <Grid2 container columnSpacing={2} rowSpacing={2}>
-                <Grid2 xs={6}>
-                    <RHTextfield name={'Name'} control={control} required={true}
-                                 shouldError={errors.Name?.type === 'required' || errors.Name?.type === 'too_small'}
-                                 errorMessage={'Customer name is required.'}/>
-                </Grid2>
-
-                <Grid2 xs={6}>
-                    <RHTextfield name={'MainContact'} control={control} label={'Main Contact'}/>
-                </Grid2>
-
-                <Grid2 xs={12}>
-                    <RHTextfield name={'Street'} control={control} required={true}
-                                 shouldError={errors.Street?.type === 'required' || errors.Street?.type === 'too_small'}
-                                 errorMessage={'Street address is required.'}/>
-                </Grid2>
-
-                <Grid2 xs={6}>
-                    <RHTextfield name={'City'} control={control} required={true}
-                                 shouldError={errors.City?.type === 'required' || errors.City?.type === 'too_small'}
-                                 errorMessage={'City is required.'}/>
-                </Grid2>
-
-                <Grid2 xs={3}>
-                    <RHSelect name={'State'} control={control} data={states} optionLabel={'Name'} optionValue={'ID'} defaultValue={25}/>
-                </Grid2>
-
-                <Grid2 xs={3}>
-                    <RHTextfield name={'ZIP'} control={control} required={true}
-                                 shouldError={errors.ZIP?.type === 'required' || errors.ZIP?.type === 'too_small'}
-                                 errorMessage={'ZIP code is required.'} type={'number'}/>
-                </Grid2>
-
-                <Grid2 xs={12}>
-                    <RHTextfield name={'Phone'} control={control}/>
-                </Grid2>
-
-                <Grid2 xs={12}>
-                    <RHTextfield name={'Email'} control={control}
-                                 shouldError={errors.Email?.type === 'invalid_string'}
-                                 errorMessage={'Please enter a valid email.'}/>
-                </Grid2>
-
-                <Grid2 xs={12}>
-                    <RHTextfield name={'Notes'} control={control} multiline={true}/>
-                </Grid2>
-
-                <Grid2 xs={12}>
-                    <input type={'submit'}/>
-                </Grid2>
-            </Grid2>
+            <GenericForm errors={errors} control={control} fields={fields} selectData={selectData}/>
         </Box>
     )
 }

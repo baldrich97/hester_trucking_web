@@ -35,7 +35,7 @@ const Customers = ({states, customers}: {states: StatesType[], customers: Custom
             <Grid2 xs={8} sx={{paddingRight: 2.5}}>
                 <GenericTable data={customers} columns={columns} overrides={overrides}/>
             </Grid2>
-            <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }}/>
+            <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
                 <Customer states={states}/>
             </Grid2>
