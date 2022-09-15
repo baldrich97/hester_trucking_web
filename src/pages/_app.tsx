@@ -73,21 +73,25 @@ const MyApp: AppType = ({
 export default withTRPC<AppRouter>({
     config() {
 
-      /*  if (typeof window !== 'undefined') {
-            // during client requests
+        if (typeof window !== 'undefined') {
             return {
                 transformer: superjson, // optional - adds superjson serialization
                 url: '/api/trpc',
             };
         }
-*/
+
         /**
          * If you want to use SSR, you need to use the server's full URL
          * @link https://trpc.io/docs/ssr
          */
-        const url = process.env.NEXTAUTH_URL
-            ? `https://${process.env.NEXTAUTH_URL}/api/trpc`
-            : 'http://localhost:3000/api/trpc';
+
+        function getBaseUrl() {
+            if (process.env.NEXT_PUBLIC_VERCEL_URL) return `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`;
+
+            return `http://localhost:3000`;
+        }
+
+        const url = `${getBaseUrl()}/api/trpc`
 
         return {
             links: [
