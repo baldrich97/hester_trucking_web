@@ -28,12 +28,12 @@ const overrides: {name: string, type: 'checkbox' | 'button'}[] = [
     {name: 'ID', type: 'button'}
 ]
 
-const Customers = ({states, customers}: {states: StatesType[], customers: CustomersType[]}) => {
+const Customers = ({states, customers, count}: {states: StatesType[], customers: CustomersType[], count: number}) => {
 
     return (
         <Grid2 container>
             <Grid2 xs={8} sx={{paddingRight: 2.5}}>
-                <GenericTable data={customers} columns={columns} overrides={overrides}/>
+                <GenericTable data={customers} columns={columns} overrides={overrides} count={count}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
@@ -49,6 +49,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     const prisma = new PrismaClient();
 
+    const count = await prisma.customers.count();
+
     const states = await prisma.states.findMany({});
     const customers = await prisma.customers.findMany({
         include: {
@@ -59,7 +61,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return {
         props: {
             states,
-            customers
+            customers,
+            count: count
         }
     }
 }

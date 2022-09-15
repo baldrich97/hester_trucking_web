@@ -9,7 +9,7 @@ const RHTextfield = ({ name, control, required = false, defaultValue = '', shoul
             control={control}
             rules={{required: required}}
             defaultValue={defaultValue}
-            render={({ field }) => <TextField {...field} label={label} error={shouldError} helperText={shouldError ? errorMessage : ''} multiline={multiline} rows={4} maxRows={maxRows} fullWidth type={type} size={'small'}/>}
+            render={({ field }) => <TextField {...field} label={label} error={shouldError} helperText={shouldError ? errorMessage : ''} multiline={multiline} rows={4} fullWidth type={type} size={'small'}/>}
         />
     )
 }
