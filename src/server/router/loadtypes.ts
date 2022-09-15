@@ -7,12 +7,12 @@ export const loadtypesRouter = createRouter()
             return await ctx.prisma.loadTypes.findMany()
         },
     })
-    .query('get', {
+    /*.query('get', {
         input: z.object({
             id: z.string()
         }),
         async resolve({ctx, input}) {
-            return await ctx.prisma.load_Types.findUnique({
+            return await ctx.prisma.loadTypes.findUnique({
                 where: {
                     id: input.id
                 }
@@ -26,7 +26,7 @@ export const loadtypesRouter = createRouter()
         }),
         async resolve({ctx, input}) {
             // use your ORM of choice
-            return await ctx.prisma.load_Types.create({
+            return await ctx.prisma.loadTypes.create({
                 data: input
             })
         },
@@ -38,7 +38,7 @@ export const loadtypesRouter = createRouter()
         }),
         async resolve({ctx, input}) {
             // use your ORM of choice
-            return await ctx.prisma.load_Type.update({
+            return await ctx.prisma.loadTypes.update({
                 where: {
                     id: input.id
                 }, data: {
@@ -46,5 +46,5 @@ export const loadtypesRouter = createRouter()
                 }
             })
         },
-    });
+    });*/
 

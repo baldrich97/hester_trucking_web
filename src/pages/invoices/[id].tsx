@@ -16,13 +16,14 @@ const LoadType: FunctionComponent<Props> = (props) => {
     const {data} = props;
 
     return (
-        <form action={}></form>
+        <>Nothing yet...</>
     )
 
 
 };
 
 export default LoadType;
+/*
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
     let data;
@@ -38,4 +39,4 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             data
         }, // will be passed to the page component as props
     }
-}
+}*/

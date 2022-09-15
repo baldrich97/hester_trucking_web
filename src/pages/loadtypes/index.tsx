@@ -12,13 +12,11 @@ type Props = {
 
 const LoadTypes: FunctionComponent<Props> = (props) => {
 
-    const { types } = props;
+    //const { types } = props;
 
     return (
         <div>
-            {types.map((loadtype: LoadType) => {
-                return (<>{loadtype.id} | {loadtype.description}</>)
-            })}
+            Load Types will be here shortly...
         </div>
     )
 };
