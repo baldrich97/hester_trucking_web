@@ -1,5 +1,6 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["fullTextSearch", "fullTextIndex"]
 }
 
 generator zod {
@@ -17,7 +18,7 @@ generator zod {
   // useDecimalJs          = false // (default) represent the prisma Decimal type using as a JS number
   useDecimalJs             = true // represent the prisma Decimal type using Decimal.js (as Prisma does)
 
-  imports                  = null // (default) will import the referenced file in generated schemas to be used via imports.someExportedVariable
+  // imports                  = null // (default) will import the referenced file in generated schemas to be used via imports.someExportedVariable
 
   prismaJsonNullability    = true // (default) uses prisma's scheme for JSON field nullability
   // prismaJsonNullability = false // allows null assignment to optional JSON fields
@@ -66,6 +67,8 @@ model Customers {
   Invoices          Invoices[]
 
   @@index([State], map: "FK_Customers_States")
+
+  @@fulltext([Name, Street, City, ZIP, Phone, Email, Notes, MainContact])
 }
 
 model DeliveryLocations {
@@ -76,6 +79,8 @@ model DeliveryLocations {
   Customers   Customers? @relation(fields: [CustomerID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_DeliveryLocations_Customers")
 
   @@index([CustomerID], map: "FK_DeliveryLocations_Customers")
+
+  @@fulltext([Description])
 }
 
 model Drivers {
@@ -98,6 +103,8 @@ model Drivers {
   TrucksDriven TrucksDriven[]
 
   @@index([State], map: "FK_Drivers_States")
+
+  @@fulltext([FirstName, MiddleName, LastName, Street, City, ZIP, License, Email, Phone, Notes, HireDate])
 }
 
 model Invoices {
@@ -124,6 +131,8 @@ model LoadTypes {
   SourceID          Int?
   Notes             String?             @db.VarChar(255)
   CustomerLoadTypes CustomerLoadTypes[]
+
+  @@fulltext([Description, Notes])
 }
 
 model States {
@@ -141,6 +150,8 @@ model Trucks {
   Deleted      Boolean?
   Notes        String?        @db.VarChar(255)
   TrucksDriven TrucksDriven[]
+
+  @@fulltext([Name, VIN, Notes])
 }
 
 model TrucksDriven {
