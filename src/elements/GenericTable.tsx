@@ -19,6 +19,8 @@ import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
 import LastPageIcon from '@mui/icons-material/LastPage';
 
+import {TableColumnsType, TableColumnOverridesType} from "../utils/types";
+
 
 interface TablePaginationActionsProps {
     count: number;
@@ -110,7 +112,7 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
 
 
 
-export default function GenericTable({data = [], columns = [], overrides = [], count}: {data: any[], columns: {name: string, as?: string, align?: 'left' | 'right' | 'center' | 'justify' | 'inherit' | undefined, navigateTo?: string}[], overrides: {name: string, type: 'checkbox' | 'button'}[], count: number}) {
+export default function GenericTable({data = [], columns = [], overrides = [], count}: {data: any[], columns: TableColumnsType, overrides: TableColumnOverridesType, count: number}) {
 
     const [page, setPage] = React.useState(0);
 
@@ -120,10 +122,6 @@ export default function GenericTable({data = [], columns = [], overrides = [], c
     ) => {
         setPage(newPage);
     };
-
-    // Avoid a layout jump when reaching the last page with empty rows.
-    const emptyRows =
-        page > 0 ? Math.max(0, (1 + page) * 10 - data.length) : 0;
 
     return (
         <TableContainer component={Paper}>

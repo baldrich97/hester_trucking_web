@@ -7,13 +7,14 @@ import { CustomersModel, StatesModel } from '../../../prisma/zod';
 import {z} from "zod";
 import GenericTable from '../../elements/GenericTable';
 import Divider from '@mui/material/Divider'
+import {TableColumnsType, TableColumnOverridesType} from "../../utils/types";
 
 type StatesType = z.infer<typeof StatesModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
 
 //TODO abstract types out to a utils file or something
 
-const columns: {name: string, as?: string, align?: 'left' | 'right' | 'center' | 'justify' | 'inherit' | undefined, navigateTo?: string}[] = [
+const columns: TableColumnsType = [
     {name: 'Name'},
     {name: 'Street'},
     {name: 'City'},
@@ -24,7 +25,7 @@ const columns: {name: string, as?: string, align?: 'left' | 'right' | 'center' |
     {name: 'ID', as: '', navigateTo: '/customers/'}
 ];
 
-const overrides: {name: string, type: 'checkbox' | 'button'}[] = [
+const overrides: TableColumnOverridesType = [
     {name: 'ID', type: 'button'}
 ]
 

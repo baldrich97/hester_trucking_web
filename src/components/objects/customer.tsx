@@ -10,6 +10,7 @@ import GenericForm from '../../elements/GenericForm'
 
 type StatesType = z.infer<typeof StatesModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
+import {FormFieldsType, SelectDataType} from "../../utils/types";
 
 const defaultValues = {
     Name: '',
@@ -51,7 +52,7 @@ const Customer = ({states, initialCustomer = null}: {states: StatesType[], initi
         }
     }
 
-    const fields: { name: string, size: number, label?: string, required: boolean, errorMessage?: string, type: 'textfield' | 'select' | 'checkbox', shouldErrorOn?: string[], multiline?: boolean, maxRows?: number, number?: boolean }[] = [
+    const fields: FormFieldsType = [
         {name: 'Name', size: 7, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'Customer name is required.', type: 'textfield'},
         {name: 'Street', size: 5, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'Street address is required.', type: 'textfield'},
         {name: 'City', size: 5, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'City is required.', type: 'textfield'},
@@ -63,7 +64,7 @@ const Customer = ({states, initialCustomer = null}: {states: StatesType[], initi
         {name: 'Notes', size: 12, required: false, type: 'textfield', multiline: true},
     ]
 
-    const selectData: { key: string, data: Record<string, unknown>[], optionValue: string, optionLabel: string, defaultValue?: number }[] = [
+    const selectData: SelectDataType = [
         {key: 'State', data: states, defaultValue: 25, optionValue: 'ID', optionLabel: 'Name'}
     ]
 

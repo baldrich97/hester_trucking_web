@@ -4,13 +4,14 @@ import RHTextfield from "./RHTextfield";
 import RHSelect from "./RHSelect";
 import {Control} from "react-hook-form";
 import Button from "@mui/material/Button";
+import {FormFieldsType, SelectDataType} from "../utils/types";
 
 const GenericForm = ({
                          errors = [],
                          control,
                          fields = [],
                          selectData = []
-                     }: { errors: any, control: Control<any>, fields: { name: string, size: number, label?: string, required: boolean, errorMessage?: string, type: 'textfield' | 'select' | 'checkbox', shouldErrorOn?: string[], multiline?: boolean, maxRows?: number, number?: boolean }[], selectData?: { key: string, data: Record<string, unknown>[], optionValue: string, optionLabel: string, defaultValue?: number }[] }) => {
+                     }: { errors: any, control: Control<any>, fields: FormFieldsType, selectData?: SelectDataType }) => {
 
     return (
         <Grid2 container columnSpacing={2} rowSpacing={2}>
