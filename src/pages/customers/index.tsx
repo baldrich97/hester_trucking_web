@@ -1,4 +1,4 @@
-import React, { FunctionComponent } from 'react';
+import React, {FunctionComponent, useState} from 'react';
 import Grid2 from "@mui/material/Unstable_Grid2";
 import Customer from "../../components/objects/customer";
 import {GetServerSideProps} from "next";
@@ -6,8 +6,10 @@ import {PrismaClient} from "@prisma/client";
 import { CustomersModel, StatesModel } from '../../../prisma/zod';
 import {z} from "zod";
 import GenericTable from '../../elements/GenericTable';
+import SearchBar from '../../elements/SearchBar';
 import Divider from '@mui/material/Divider'
 import {TableColumnsType, TableColumnOverridesType} from "../../utils/types";
+import {trpc} from "../../utils/trpc";
 
 type StatesType = z.infer<typeof StatesModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
@@ -31,10 +33,36 @@ const overrides: TableColumnOverridesType = [
 
 const Customers = ({states, customers, count}: {states: StatesType[], customers: CustomersType[], count: number}) => {
 
+    //searchbar passes search back up into here use trpc to handle querying. getserversideprops should only run on refresh so it wont override the data
+
+    const [search, setSearch] = useState('');
+
+    const [trpcData, setData] = useState<CustomersType[]>([]);
+
+    const [trpcCount, setCount] = useState(0);
+
+    const [shouldSearch, setShouldSearch] = useState(false);
+
+    trpc.useQuery(['customers.search', {search}], {
+        enabled: shouldSearch,
+        onSuccess(data) {
+            setData(data);
+            setCount(data.length)
+            setShouldSearch(false);
+        },
+        onError(error) {
+            console.warn(error.message)
+            setShouldSearch(false)
+        }
+    })
+
     return (
         <Grid2 container>
             <Grid2 xs={8} sx={{paddingRight: 2.5}}>
-                <GenericTable data={customers} columns={columns} overrides={overrides} count={count}/>
+                <Grid2 xs={4}>
+                    <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Customers'}/>
+                </Grid2>
+                <GenericTable data={search ? trpcData : customers} columns={columns} overrides={overrides} count={search ? trpcCount : count}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>

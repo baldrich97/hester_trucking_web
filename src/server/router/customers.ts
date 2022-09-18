@@ -20,7 +20,48 @@ export const customersRouter = createRouter()
             })
 
         }
-    }).mutation('put', {
+    })
+    .query('search', {
+        input: z.object({
+            search: z.string()
+        }),
+        async resolve({ctx, input}) {
+            const formattedSearch = `${input.search}*`;
+            return ctx.prisma.customers.findMany({
+                where: {
+                    Name: {
+                        search: formattedSearch
+                    },
+                    Street: {
+                        search: formattedSearch
+                    },
+                    City: {
+                        search: formattedSearch
+                    },
+                    ZIP: {
+                        search: formattedSearch
+                    },
+                    Email: {
+                        search: formattedSearch
+                    },
+                    Phone: {
+                        search: formattedSearch
+                    },
+                    MainContact: {
+                        search: formattedSearch
+                    },
+                    Notes: {
+                        search: formattedSearch
+                    },
+                },
+                include: {
+                    States: true
+                }
+            })
+
+        }
+    })
+    .mutation('put', {
         // validate input with Zod
         input: CustomersModel.omit({ID: true, Deleted: true}),
         async resolve({ctx, input}) {
@@ -29,7 +70,8 @@ export const customersRouter = createRouter()
                 data: input
             })
         },
-    }).mutation('post', {
+    })
+    .mutation('post', {
         // validate input with Zod
         input: CustomersModel,
         async resolve({ctx, input}) {
