@@ -1,42 +1,51 @@
-import React, {FunctionComponent} from 'react';
-import {GetServerSideProps} from "next";
-import {trpc} from "../../utils/trpc";
+import React from 'react';
+import TruckObject from '../../components/objects/Truck';
+import { GetServerSideProps } from 'next'
+import {PrismaClient} from "@prisma/client";
+import { TrucksModel } from '../../../prisma/zod';
+import {z} from "zod";
 
-type LoadType = {
-    id: string,
-    description: string
-}
+type TrucksType = z.infer<typeof TrucksModel>;
 
-type Props = {
-    data: LoadType | null
-}
 
-const LoadType: FunctionComponent<Props> = (props) => {
-
-    const {data} = props;
+const Truck = ({initialTruck}: {initialTruck: TrucksType}) => {
 
     return (
-        <>Nothing yet...</>
-    )
-
-
+        <TruckObject initialTruck={initialTruck}/>
+    );
 };
 
-export default LoadType;
 
-/*
+
+export default Truck;
+
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    let data;
+    const id = context.params?.id;
 
-    if (!context || !context.params || !context.params.id || typeof (context.params.id) !== 'string') {
-        data = null;
-    } else {
-        data = trpc.useQuery(['loadtypes.get', {id: context.params.id}]);
+    let initialTruck;
+
+    const prisma = new PrismaClient();
+
+    if (id && typeof(id) === "string") {
+        initialTruck = await prisma.trucks.findFirst({
+            where: {
+                ID: parseInt(id)
+            }
+        })
+    }
+
+    if(!initialTruck) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: "/trucks"
+            }
+        }
     }
 
     return {
         props: {
-            data
-        }, // will be passed to the page component as props
+            initialTruck
+        }
     }
-}*/
+}

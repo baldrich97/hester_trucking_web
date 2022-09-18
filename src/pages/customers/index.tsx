@@ -1,6 +1,6 @@
-import React, {FunctionComponent, useState} from 'react';
+import React, {useState} from 'react';
 import Grid2 from "@mui/material/Unstable_Grid2";
-import Customer from "../../components/objects/customer";
+import Customer from "../../components/objects/Customer";
 import {GetServerSideProps} from "next";
 import {PrismaClient} from "@prisma/client";
 import { CustomersModel, StatesModel } from '../../../prisma/zod';
@@ -91,7 +91,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         props: {
             states,
             customers,
-            count: count
+            count
         }
     }
 }

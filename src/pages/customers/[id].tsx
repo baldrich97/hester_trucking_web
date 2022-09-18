@@ -1,5 +1,5 @@
 import React from 'react';
-import CustomerObject from '../../components/objects/customer';
+import CustomerObject from '../../components/objects/Customer';
 import { GetServerSideProps } from 'next'
 import {PrismaClient} from "@prisma/client";
 import { CustomersModel, StatesModel } from '../../../prisma/zod';
@@ -49,7 +49,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     return {
         props: {
             states,
-            initialCustomer: initialCustomer
+            initialCustomer
         }
     }
 }
