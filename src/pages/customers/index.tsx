@@ -14,8 +14,6 @@ import {trpc} from "../../utils/trpc";
 type StatesType = z.infer<typeof StatesModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
 
-//TODO abstract types out to a utils file or something
-
 const columns: TableColumnsType = [
     {name: 'Name'},
     {name: 'Street'},
@@ -32,8 +30,6 @@ const overrides: TableColumnOverridesType = [
 ]
 
 const Customers = ({states, customers, count}: {states: StatesType[], customers: CustomersType[], count: number}) => {
-
-    //searchbar passes search back up into here use trpc to handle querying. getserversideprops should only run on refresh so it wont override the data
 
     const [search, setSearch] = useState('');
 

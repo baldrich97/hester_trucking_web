@@ -1,27 +1,15 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["fullTextSearch", "fullTextIndex"]
 }
 
 generator zod {
-  provider                 = "zod-prisma"
-
-  relationModel            = true // (default) Create and export both plain and related models.
-  // relationModel         = "default" // Do not export model without relations.
-  // relationModel         = false // Do not generate related model
-
-  modelCase                = "PascalCase" // (default) Output models using pascal case (ex. UserModel, PostModel)
-  // modelCase             = "camelCase" // Output models using camel case (ex. userModel, postModel)
-
-  modelSuffix              = "Model" // (default) Suffix to apply to your prisma models when naming Zod schemas
-
-  // useDecimalJs          = false // (default) represent the prisma Decimal type using as a JS number
-  useDecimalJs             = true // represent the prisma Decimal type using Decimal.js (as Prisma does)
-
-  // imports                  = null // (default) will import the referenced file in generated schemas to be used via imports.someExportedVariable
-
-  prismaJsonNullability    = true // (default) uses prisma's scheme for JSON field nullability
-  // prismaJsonNullability = false // allows null assignment to optional JSON fields
+  provider              = "zod-prisma"
+  prismaJsonNullability = "true"
+  relationModel         = "true"
+  modelCase             = "PascalCase"
+  modelSuffix           = "Model"
+  useDecimalJs          = "true"
 }
 
 datasource db {
@@ -51,11 +39,16 @@ model CustomerLoadTypes {
 
 model Customers {
   ID                Int                 @id @default(autoincrement())
-  Name              String              @db.VarChar(255) /// @zod.min(1)
-  Street            String              @db.VarChar(255) /// @zod.min(1)
-  City              String              @db.VarChar(255) /// @zod.min(1)
-  State             Int                 @default(25) /// @zod.min(1)
-  ZIP               String              @db.VarChar(10) /// @zod.min(1)
+  /// @zod.min(1)
+  Name              String              @db.VarChar(255)
+  /// @zod.min(1)
+  Street            String              @db.VarChar(255)
+  /// @zod.min(1)
+  City              String              @db.VarChar(255)
+  /// @zod.min(1)
+  State             Int                 @default(25)
+  /// @zod.min(1)
+  ZIP               String              @db.VarChar(10)
   Phone             String?             @db.VarChar(20)
   Email             String?             @db.VarChar(255)
   Notes             String?             @db.VarChar(255)
@@ -65,9 +58,9 @@ model Customers {
   CustomerLoadTypes CustomerLoadTypes[]
   DeliveryLocations DeliveryLocations[]
   Invoices          Invoices[]
+  Loads             Loads[]
 
   @@index([State], map: "FK_Customers_States")
-
   @@fulltext([Name, Street, City, ZIP, Phone, Email, Notes, MainContact])
 }
 
@@ -77,17 +70,19 @@ model DeliveryLocations {
   Deleted     Boolean?
   CustomerID  Int?
   Customers   Customers? @relation(fields: [CustomerID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_DeliveryLocations_Customers")
+  Loads       Loads[]
 
   @@index([CustomerID], map: "FK_DeliveryLocations_Customers")
-
   @@fulltext([Description])
 }
 
 model Drivers {
   ID           Int            @id @default(autoincrement())
-  FirstName    String         @db.VarChar(255)  /// @zod.min(1)
+  /// @zod.min(1)
+  FirstName    String         @db.VarChar(255)
   MiddleName   String?        @db.VarChar(255)
-  LastName     String         @db.VarChar(255)  /// @zod.min(1)
+  /// @zod.min(1)
+  LastName     String         @db.VarChar(255)
   Street       String?        @db.VarChar(255)
   City         String?        @db.VarChar(255)
   State        Int?
@@ -100,10 +95,10 @@ model Drivers {
   Deleted      Boolean?
   HireDate     String?        @db.VarChar(255)
   States       States?        @relation(fields: [State], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Drivers_States")
+  Loads        Loads[]
   TrucksDriven TrucksDriven[]
 
   @@index([State], map: "FK_Drivers_States")
-
   @@fulltext([FirstName, MiddleName, LastName, Street, City, ZIP, License, Email, Phone, Notes, HireDate])
 }
 
@@ -111,8 +106,10 @@ model Invoices {
   ID          Int                   @id @default(autoincrement())
   InvoiceDate DateTime              @db.Date
   Number      Int?
-  CustomerID  Int  /// @zod.min(1)
-  TotalAmount Float  /// @zod.min(1)
+  /// @zod.min(1)
+  CustomerID  Int
+  /// @zod.min(1)
+  TotalAmount Float
   PaidDate    DateTime?             @db.Date
   CheckNumber String?               @db.VarChar(255)
   Paid        Boolean?
@@ -120,17 +117,20 @@ model Invoices {
   Deleted     Boolean?
   PaymentType Invoices_PaymentType?
   Customers   Customers             @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_Invoices_Customer")
+  Loads       Loads[]
 
   @@index([CustomerID], map: "FK_Invoices_Customer")
 }
 
 model LoadTypes {
   ID                Int                 @id @default(autoincrement())
-  Description       String              @db.VarChar(255)  /// @zod.min(1)
+  /// @zod.min(1)
+  Description       String              @db.VarChar(255)
   Deleted           Boolean?
   SourceID          Int?
   Notes             String?             @db.VarChar(255)
   CustomerLoadTypes CustomerLoadTypes[]
+  Loads             Loads[]
 
   @@fulltext([Description, Notes])
 }
@@ -145,10 +145,12 @@ model States {
 
 model Trucks {
   ID           Int            @id @default(autoincrement())
-  Name         String         @db.VarChar(255)  /// @zod.min(1)
+  /// @zod.min(1)
+  Name         String         @db.VarChar(255)
   VIN          String?        @db.VarChar(255)
   Deleted      Boolean?
   Notes        String?        @db.VarChar(255)
+  Loads        Loads[]
   TrucksDriven TrucksDriven[]
 
   @@fulltext([Name, VIN, Notes])
@@ -164,6 +166,44 @@ model TrucksDriven {
 
   @@index([DriverID], map: "FK_TrucksDriven_Driver")
   @@index([TruckID], map: "FK_TrucksDriven_Truck")
+}
+
+model Loads {
+  ID                 Int                @id @default(autoincrement())
+  StartDate          DateTime           @db.Date
+  EndDate            DateTime           @db.Date
+  Weight             Float?
+  Hours              Float?
+  TotalRate          Float?
+  TotalAmount        Float?
+  TruckRate          Float?
+  MaterialRate       Float?
+  Received           String?            @db.VarChar(50)
+  Notes              String?            @db.VarChar(255)
+  TicketNumber       Int?
+  Invoiced           Boolean?
+  CustomerID         Int?
+  InvoiceID          Int?
+  LoadTypeID         Int?
+  DeliveryLocationID Int?
+  TruckID            Int?
+  DriverID           Int?
+  Deleted            Boolean?
+  Customers          Customers?         @relation(fields: [CustomerID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Customer")
+  DeliveryLocations  DeliveryLocations? @relation(fields: [DeliveryLocationID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_DeliveryLocation")
+  Drivers            Drivers?           @relation(fields: [DriverID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Driver")
+  Invoices           Invoices?          @relation(fields: [InvoiceID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Invoice")
+  LoadTypes          LoadTypes?         @relation(fields: [LoadTypeID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_LoadType")
+  Trucks             Trucks?            @relation(fields: [TruckID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Truck")
+
+  @@index([CustomerID], map: "FK_Loads_Customer")
+  @@index([DeliveryLocationID], map: "FK_Loads_DeliveryLocation")
+  @@index([DriverID], map: "FK_Loads_Driver")
+  @@index([InvoiceID], map: "FK_Loads_Invoice")
+  @@index([LoadTypeID], map: "FK_Loads_LoadType")
+  @@index([TruckID], map: "FK_Loads_Truck")
+
+  @@fulltext([Received, Notes])
 }
 
 enum Invoices_PaymentType {

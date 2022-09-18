@@ -1,5 +1,5 @@
 import * as z from "zod"
-import { CompleteStates, RelatedStatesModel, CompleteCustomerLoadTypes, RelatedCustomerLoadTypesModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteInvoices, RelatedInvoicesModel } from "./index"
+import { CompleteStates, RelatedStatesModel, CompleteCustomerLoadTypes, RelatedCustomerLoadTypesModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteInvoices, RelatedInvoicesModel, CompleteLoads, RelatedLoadsModel } from "./index"
 
 export const CustomersModel = z.object({
   ID: z.number().int(),
@@ -9,7 +9,7 @@ export const CustomersModel = z.object({
   State: z.number().int().min(1),
   ZIP: z.string().min(1),
   Phone: z.string().nullish(),
-  Email: z.string().nullish(),
+  Email: z.string().email().nullish(),
   Notes: z.string().nullish(),
   MainContact: z.string().nullish(),
   Deleted: z.boolean().nullish(),
@@ -20,6 +20,7 @@ export interface CompleteCustomers extends z.infer<typeof CustomersModel> {
   CustomerLoadTypes: CompleteCustomerLoadTypes[]
   DeliveryLocations: CompleteDeliveryLocations[]
   Invoices: CompleteInvoices[]
+  Loads: CompleteLoads[]
 }
 
 /**
@@ -32,4 +33,5 @@ export const RelatedCustomersModel: z.ZodSchema<CompleteCustomers> = z.lazy(() =
   CustomerLoadTypes: RelatedCustomerLoadTypesModel.array(),
   DeliveryLocations: RelatedDeliveryLocationsModel.array(),
   Invoices: RelatedInvoicesModel.array(),
+  Loads: RelatedLoadsModel.array(),
 }))

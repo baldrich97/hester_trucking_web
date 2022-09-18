@@ -1,42 +1,55 @@
-import React, {FunctionComponent} from 'react';
-import {GetServerSideProps} from "next";
-import {trpc} from "../../utils/trpc";
+import React from 'react';
+import DriverObject from '../../components/objects/Driver';
+import { GetServerSideProps } from 'next'
+import {PrismaClient} from "@prisma/client";
+import { DriversModel, StatesModel } from '../../../prisma/zod';
+import {z} from "zod";
 
-type LoadType = {
-    id: string,
-    description: string
-}
+type StatesType = z.infer<typeof StatesModel>;
+type DriversType = z.infer<typeof DriversModel>;
 
-type Props = {
-    data: LoadType | null
-}
 
-const LoadType: FunctionComponent<Props> = (props) => {
-
-    const {data} = props;
+const Driver = ({states, initialDriver}: {states: StatesType[], initialDriver: DriversType}) => {
 
     return (
-        <>Nothing yet...</>
-    )
-
-
+        <DriverObject states={states} initialDriver={initialDriver}/>
+    );
 };
 
-export default LoadType;
 
-/*
+
+export default Driver;
+
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    let data;
+    const id = context.params?.id;
 
-    if (!context || !context.params || !context.params.id || typeof (context.params.id) !== 'string') {
-        data = null;
-    } else {
-        data = trpc.useQuery(['loadtypes.get', {id: context.params.id}]);
+    let initialDriver;
+
+    const prisma = new PrismaClient();
+
+    if (id && typeof(id) === "string") {
+        initialDriver = await prisma.drivers.findFirst({
+            where: {
+                ID: parseInt(id)
+            }
+        })
     }
+
+    if(!initialDriver) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: "/drivers"
+            }
+        }
+    }
+
+    const states = await prisma.states.findMany({});
 
     return {
         props: {
-            data
-        }, // will be passed to the page component as props
+            states,
+            initialDriver: JSON.parse(JSON.stringify(initialDriver))
+        }
     }
-}*/
+}

@@ -1,6 +1,6 @@
 import * as z from "zod"
 import { Invoices_PaymentType } from "@prisma/client"
-import { CompleteCustomers, RelatedCustomersModel } from "./index"
+import { CompleteCustomers, RelatedCustomersModel, CompleteLoads, RelatedLoadsModel } from "./index"
 
 export const InvoicesModel = z.object({
   ID: z.number().int(),
@@ -18,6 +18,7 @@ export const InvoicesModel = z.object({
 
 export interface CompleteInvoices extends z.infer<typeof InvoicesModel> {
   Customers: CompleteCustomers
+  Loads: CompleteLoads[]
 }
 
 /**
@@ -27,4 +28,5 @@ export interface CompleteInvoices extends z.infer<typeof InvoicesModel> {
  */
 export const RelatedInvoicesModel: z.ZodSchema<CompleteInvoices> = z.lazy(() => InvoicesModel.extend({
   Customers: RelatedCustomersModel,
+  Loads: RelatedLoadsModel.array(),
 }))

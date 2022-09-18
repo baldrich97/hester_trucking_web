@@ -2,6 +2,7 @@ import React from 'react';
 import Grid2 from "@mui/material/Unstable_Grid2";
 import RHTextfield from "./RHTextfield";
 import RHSelect from "./RHSelect";
+import RHDatePicker from "./RHDatePicker";
 import {Control} from "react-hook-form";
 import Button from "@mui/material/Button";
 import {FormFieldsType, SelectDataType} from "../utils/types";
@@ -22,7 +23,7 @@ const GenericForm = ({
                             <Grid2 xs={field.size} key={'form-' + index.toString() + '-' + field.name + '-grid'}>
                                 <RHTextfield name={field.name} control={control} required={field.required}
                                              label={field.label ?? field.name} type={field.number ? 'number' : 'text'}
-                                             shouldError={field.shouldErrorOn?.includes(errors.Name?.type)}
+                                             shouldError={field.shouldErrorOn?.includes(errors[field.name]?.type)}
                                              errorMessage={field.errorMessage ?? ''} multiline={!!field.multiline}
                                              maxRows={field.maxRows ?? 1} key={'form-' + index.toString() + '-' + field.name + '-field'}/>
                             </Grid2>
@@ -41,6 +42,13 @@ const GenericForm = ({
                             <Grid2 xs={field.size} key={'form-' + index.toString() + '-' + field.name + '-grid'}>
                                 <RHSelect name={field.name} control={control} data={data} optionLabel={optionLabel}
                                           optionValue={optionValue} defaultValue={defaultValue ?? 4} key={'form-' + index.toString() + '-' + field.name + '-field'}/>
+                            </Grid2>
+                        )
+                    }
+                    case "date": {
+                        return (
+                            <Grid2 xs={field.size} key={'form-' + index.toString() + '-' + field.name + '-grid'}>
+                                <RHDatePicker name={field.name} control={control} required={field.required} shouldError={field.shouldErrorOn?.includes(errors[field.name]?.type)} errorMessage={field.errorMessage} label={field.label}/>
                             </Grid2>
                         )
                     }

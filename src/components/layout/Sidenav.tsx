@@ -8,9 +8,12 @@ import ListItemText from "@mui/material/ListItemText";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import NextLink from "next/link";
-import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import MapsHomeWorkIcon from '@mui/icons-material/MapsHomeWork';
 import PeopleIcon from "@mui/icons-material/People";
-import BarChartIcon from "@mui/icons-material/BarChart";
+import EngineeringIcon from '@mui/icons-material/Engineering';
+import CategoryIcon from '@mui/icons-material/Category';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 import LayersIcon from "@mui/icons-material/Layers";
 import * as React from "react";
 import {styled} from "@mui/material/styles";
@@ -53,12 +56,18 @@ function Sidenav(props: any) {
 
     if (currentPath.includes('/customers')) {
         selectedLink = 2;
-    } else if (currentPath.includes('/invoices')) {
+    } else if (currentPath.includes('/deliverylocations')) {
         selectedLink = 3;
-    } else if (currentPath.includes('/trucks')) {
-        selectedLink = 4;
     } else if (currentPath.includes('/drivers')) {
+        selectedLink = 4;
+    } else if (currentPath.includes('/invoices')) {
         selectedLink = 5;
+    } else if (currentPath.includes('/loads')) {
+        selectedLink = 6;
+    } else if (currentPath.includes('/loadtypes')) {
+        selectedLink = 7;
+    } else if (currentPath.includes('/trucks')) {
+        selectedLink = 8;
     }
 
     const [selectedIndex, setSelectedIndex] = React.useState(selectedLink);
@@ -95,39 +104,69 @@ function Sidenav(props: any) {
                         selected={selectedIndex === 2}
                         onClick={() => setSelectedIndex(2)}>
                         <ListItemIcon>
-                            <ShoppingCartIcon/>
+                            <PeopleIcon/>
                         </ListItemIcon>
                         <ListItemText primary="Customers"/>
                     </ListItemButton>
                 </NextLink>
-                <NextLink href='/invoices' passHref>
+                <NextLink href='/deliverylocations' passHref>
                     <ListItemButton
                         selected={selectedIndex === 3}
                         onClick={() => setSelectedIndex(3)}>
                         <ListItemIcon>
-                            <PeopleIcon/>
+                            <MapsHomeWorkIcon/>
                         </ListItemIcon>
-                        <ListItemText primary="Invoices"/>
-                    </ListItemButton>
-                </NextLink>
-                <NextLink href='/trucks' passHref>
-                    <ListItemButton
-                        selected={selectedIndex === 4}
-                        onClick={() => setSelectedIndex(4)}>
-                        <ListItemIcon>
-                            <BarChartIcon/>
-                        </ListItemIcon>
-                        <ListItemText primary="Trucks"/>
+                        <ListItemText primary="Delivery Locations"/>
                     </ListItemButton>
                 </NextLink>
                 <NextLink href='/drivers' passHref>
                     <ListItemButton
+                        selected={selectedIndex === 4}
+                        onClick={() => setSelectedIndex(4)}>
+                        <ListItemIcon>
+                            <EngineeringIcon/>
+                        </ListItemIcon>
+                        <ListItemText primary="Drivers"/>
+                    </ListItemButton>
+                </NextLink>
+                <NextLink href='/invoices' passHref>
+                    <ListItemButton
                         selected={selectedIndex === 5}
                         onClick={() => setSelectedIndex(5)}>
                         <ListItemIcon>
+                            <AttachMoneyIcon/>
+                        </ListItemIcon>
+                        <ListItemText primary="Invoices"/>
+                    </ListItemButton>
+                </NextLink>
+                <NextLink href='/loads' passHref>
+                    <ListItemButton
+                        selected={selectedIndex === 6}
+                        onClick={() => setSelectedIndex(6)}>
+                        <ListItemIcon>
+                            <CategoryIcon/>
+                        </ListItemIcon>
+                        <ListItemText primary="Loads"/>
+                    </ListItemButton>
+                </NextLink>
+                <NextLink href='/loadtypes' passHref>
+                    <ListItemButton
+                        selected={selectedIndex === 7}
+                        onClick={() => setSelectedIndex(7)}>
+                        <ListItemIcon>
                             <LayersIcon/>
                         </ListItemIcon>
-                        <ListItemText primary="Drivers"/>
+                        <ListItemText primary="Load Types"/>
+                    </ListItemButton>
+                </NextLink>
+                <NextLink href='/trucks' passHref>
+                    <ListItemButton
+                        selected={selectedIndex === 8}
+                        onClick={() => setSelectedIndex(8)}>
+                        <ListItemIcon>
+                            <LocalShippingIcon/>
+                        </ListItemIcon>
+                        <ListItemText primary="Trucks"/>
                     </ListItemButton>
                 </NextLink>
             </List>

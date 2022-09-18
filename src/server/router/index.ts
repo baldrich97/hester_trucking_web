@@ -4,6 +4,7 @@ import superjson from "superjson";
 
 import {trucksRouter} from "./trucks";
 import {customersRouter} from './customers';
+import {driversRouter} from './drivers';
 import {statesRouter} from './states';
 import {protectedExampleRouter} from "./protected-example-router";
 
@@ -11,6 +12,7 @@ export const appRouter = createRouter()
     .transformer(superjson)
     .merge("customers.", customersRouter)
     .merge('trucks.', trucksRouter)
+    .merge('drivers.', driversRouter)
     .merge("states.", statesRouter)
     .merge("auth.", protectedExampleRouter);
 
