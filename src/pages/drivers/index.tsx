@@ -15,8 +15,8 @@ type StatesType = z.infer<typeof StatesModel>;
 type DriversType = z.infer<typeof DriversModel>;
 
 const columns: TableColumnsType = [
-    {name: 'FirstName'},
-    {name: 'LastName'},
+    {name: 'FirstName', as: 'First Name'},
+    {name: 'LastName', as: 'Last Name'},
     {name: 'Street'},
     {name: 'City'},
     {name: 'States.Abbreviation', as: 'State'},

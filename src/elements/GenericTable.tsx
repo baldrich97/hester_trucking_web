@@ -169,6 +169,22 @@ export default function GenericTable({data = [], columns = [], overrides = [], c
                                                         <Checkbox value={!!data} disabled={true}/>
                                                     </StyledTableCell>
                                                 )
+
+                                            case "link":
+                                                let link = null;
+                                                if (column.navigateTo?.includes('[ID]')) {
+                                                    const linkRoot = column.name.split('.')[0];
+                                                    const linkID = linkRoot && row[linkRoot]['ID'];
+                                                    link = column.navigateTo?.replace('[ID]', linkID.toString())
+                                                }
+                                                link = link ?? column.navigateTo ?? '';
+                                                return (
+                                                    <StyledTableCell align={column.align ? column.align : 'right'} key={'row-' + rowindex.toString() + '-' + column.name}>
+                                                        <NextLink href={link} passHref>
+                                                            {data}
+                                                        </NextLink>
+                                                    </StyledTableCell>
+                                                )
                                         }
                                     } else {
                                         return (

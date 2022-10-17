@@ -1,11 +1,11 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import { LoadTypesModel } from '../../../prisma/zod';
+import { DeliveryLocationsModel } from '../../../prisma/zod';
 
-export const loadTypesRouter = createRouter()
+export const deliveryLocationsRouter = createRouter()
     .query("getAll", {
         async resolve({ctx}) {
-            return ctx.prisma.loadTypes.findMany();
+            return ctx.prisma.deliveryLocations.findMany();
         },
     })
     .query('get', {
@@ -13,7 +13,7 @@ export const loadTypesRouter = createRouter()
             ID: z.number()
         }),
         async resolve({ctx, input}) {
-            return ctx.prisma.loadTypes.findUnique({
+            return ctx.prisma.deliveryLocations.findUnique({
                 where: {
                     ID: input.ID
                 }
@@ -27,11 +27,8 @@ export const loadTypesRouter = createRouter()
         }),
         async resolve({ctx, input}) {
             const formattedSearch = `${input.search}*`;
-            return ctx.prisma.loadTypes.findMany({
+            return ctx.prisma.deliveryLocations.findMany({
                 where: {
-                    Notes: {
-                        search: formattedSearch
-                    },
                     Description: {
                         search: formattedSearch
                     },
@@ -42,21 +39,21 @@ export const loadTypesRouter = createRouter()
     })
     .mutation('put', {
         // validate input with Zod
-        input: LoadTypesModel.omit({ID: true, Deleted: true}),
+        input: DeliveryLocationsModel.omit({ID: true, Deleted: true}),
         async resolve({ctx, input}) {
             // use your ORM of choice
-            return ctx.prisma.loadTypes.create({
+            return ctx.prisma.deliveryLocations.create({
                 data: input
             })
         },
     })
     .mutation('post', {
         // validate input with Zod
-        input: LoadTypesModel,
+        input: DeliveryLocationsModel,
         async resolve({ctx, input}) {
             const {ID, ...data} = input;
             // use your ORM of choice
-            return ctx.prisma.loadTypes.update({
+            return ctx.prisma.deliveryLocations.update({
                 where: {
                     ID: ID
                 }, data: data

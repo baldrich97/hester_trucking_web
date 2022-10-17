@@ -1,42 +1,63 @@
-import React, {FunctionComponent} from 'react';
-import {GetServerSideProps} from "next";
-import {trpc} from "../../utils/trpc";
+import React from 'react';
+import InvoiceObject from '../../components/objects/Invoice';
+import { GetServerSideProps } from 'next'
+import {PrismaClient} from "@prisma/client";
+import { InvoicesModel, CustomersModel, LoadsModel } from '../../../prisma/zod';
+import {z} from "zod";
 
-type LoadType = {
-    id: string,
-    description: string
-}
+type InvoicesType = z.infer<typeof InvoicesModel>;
+type LoadsType = z.infer<typeof LoadsModel>;
+type CustomersType = z.infer<typeof CustomersModel>;
 
-type Props = {
-    data: LoadType | null
-}
 
-const LoadType: FunctionComponent<Props> = (props) => {
-
-    const {data} = props;
+const Invoice = ({initialInvoice, loads, customers}: {initialInvoice: InvoicesType, loads: LoadsType[], customers: CustomersType[]}) => {
 
     return (
-        <>Nothing yet...</>
-    )
-
-
+        <InvoiceObject initialInvoice={initialInvoice} customers={customers} loads={loads}/>
+    );
 };
 
-export default LoadType;
-/*
+
+
+export default Invoice;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    let data;
+    const id = context.params?.id;
 
-    if (!context || !context.params || !context.params.id || typeof (context.params.id) !== 'string') {
-        data = null;
-    } else {
-        data = trpc.useQuery(['loadtypes.get', {id: context.params.id}]);
+    let initialInvoice;
+
+    const prisma = new PrismaClient();
+
+    if (id && typeof(id) === "string") {
+        initialInvoice = await prisma.invoices.findFirst({
+            where: {
+                ID: parseInt(id)
+            },
+            include: {
+                Customers: true,
+                Loads: true
+            }
+        })
     }
+
+    if(!initialInvoice) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: "/invoices"
+            }
+        }
+    }
+
+    const customers = await prisma.customers.findMany({});
+
+    const loads = await prisma.loads.findMany({});
 
     return {
         props: {
-            data
-        }, // will be passed to the page component as props
+            initialInvoice,
+            customers,
+            loads
+        }
     }
-}*/
+}

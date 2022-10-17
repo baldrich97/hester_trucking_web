@@ -1,9 +1,9 @@
 import React, {useState} from 'react';
 import Grid2 from "@mui/material/Unstable_Grid2";
-import LoadType from "../../components/objects/LoadType";
+import DeliveryLocation from "../../components/objects/DeliveryLocation";
 import {GetServerSideProps} from "next";
 import {PrismaClient} from "@prisma/client";
-import { LoadTypesModel  } from '../../../prisma/zod';
+import { DeliveryLocationsModel  } from '../../../prisma/zod';
 import {z} from "zod";
 import GenericTable from '../../elements/GenericTable';
 import SearchBar from '../../elements/SearchBar';
@@ -11,29 +11,28 @@ import Divider from '@mui/material/Divider'
 import {TableColumnsType, TableColumnOverridesType} from "../../utils/types";
 import {trpc} from "../../utils/trpc";
 
-type LoadTypesType = z.infer<typeof LoadTypesModel>;
+type DeliveryLocationsType = z.infer<typeof DeliveryLocationsModel>;
 
 const columns: TableColumnsType = [
     {name: 'Description'},
-    {name: 'Notes'},
-    {name: 'ID', as: '', navigateTo: '/loadtypes/'}
+    {name: 'ID', as: '', navigateTo: '/deliverylocations/'}
 ];
 
 const overrides: TableColumnOverridesType = [
     {name: 'ID', type: 'button'}
 ]
 
-const DeliveryLocations = ({loadtypes, count}: {loadtypes: LoadTypesType[], count: number}) => {
+const DeliveryLocations = ({deliverylocations, count}: {deliverylocations: DeliveryLocationsType[], count: number}) => {
 
     const [search, setSearch] = useState('');
 
-    const [trpcData, setData] = useState<LoadTypesType[]>([]);
+    const [trpcData, setData] = useState<DeliveryLocationsType[]>([]);
 
     const [trpcCount, setCount] = useState(0);
 
     const [shouldSearch, setShouldSearch] = useState(false);
 
-    trpc.useQuery(['loadtypes.search', {search}], {
+    trpc.useQuery(['deliverylocations.search', {search}], {
         enabled: shouldSearch,
         onSuccess(data) {
             setData(data);
@@ -50,13 +49,13 @@ const DeliveryLocations = ({loadtypes, count}: {loadtypes: LoadTypesType[], coun
         <Grid2 container>
             <Grid2 xs={8} sx={{paddingRight: 2.5}}>
                 <Grid2 xs={4}>
-                    <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Load Types'}/>
+                    <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Delivery Locations'}/>
                 </Grid2>
-                <GenericTable data={search ? trpcData : loadtypes} columns={columns} overrides={overrides} count={search ? trpcCount : count}/>
+                <GenericTable data={search ? trpcData : deliverylocations} columns={columns} overrides={overrides} count={search ? trpcCount : count}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
-                <LoadType/>
+                <DeliveryLocation/>
             </Grid2>
         </Grid2>
     )
@@ -68,9 +67,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     const prisma = new PrismaClient();
 
-    const count = await prisma.loadTypes.count();
+    const count = await prisma.deliveryLocations.count();
 
-    const loadtypes = await prisma.loadTypes.findMany({
+    const deliverylocations = await prisma.deliveryLocations.findMany({
         /*include: {
             States: true MAYBE PUT CUSTOMERS HERE AT SOME POINT
         }*/
@@ -78,7 +77,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     return {
         props: {
-            loadtypes: JSON.parse(JSON.stringify(loadtypes)),
+            deliverylocations: JSON.parse(JSON.stringify(deliverylocations)),
             count
         }
     }

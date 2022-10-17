@@ -1,42 +1,51 @@
-import React, {FunctionComponent} from 'react';
-import {GetServerSideProps} from "next";
-import {trpc} from "../../utils/trpc";
+import React from 'react';
+import LoadTypeObject from '../../components/objects/LoadType';
+import { GetServerSideProps } from 'next'
+import {PrismaClient} from "@prisma/client";
+import { LoadTypesModel } from '../../../prisma/zod';
+import {z} from "zod";
 
-type LoadType = {
-    id: string,
-    description: string
-}
+type LoadTypesType = z.infer<typeof LoadTypesModel>;
 
-type Props = {
-    data: LoadType | null
-}
 
-const LoadType: FunctionComponent<Props> = (props) => {
-
-    const {data} = props;
+const LoadType = ({initialLoadType}: {initialLoadType: LoadTypesType}) => {
 
     return (
-        <>Nothing yet...</>
-    )
-
-
+        <LoadTypeObject initialLoadType={initialLoadType}/>
+    );
 };
+
+
 
 export default LoadType;
 
-/*
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    let data;
+    const id = context.params?.id;
 
-    if (!context || !context.params || !context.params.id || typeof (context.params.id) !== 'string') {
-        data = null;
-    } else {
-        data = trpc.useQuery(['loadtypes.get', {id: context.params.id}]);
+    let initialLoadType;
+
+    const prisma = new PrismaClient();
+
+    if (id && typeof(id) === "string") {
+        initialLoadType = await prisma.loadTypes.findFirst({
+            where: {
+                ID: parseInt(id)
+            }
+        })
+    }
+
+    if(!initialLoadType) {
+        return {
+            redirect: {
+                permanent: false,
+                destination: "/loadtypes"
+            }
+        }
     }
 
     return {
         props: {
-            data
-        }, // will be passed to the page component as props
+            initialLoadType: JSON.parse(JSON.stringify(initialLoadType))
+        }
     }
-}*/
+}
