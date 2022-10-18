@@ -1,4 +1,5 @@
 import * as z from "zod"
+import * as imports from "../../src/utils/zodParsers"
 import { CompleteCustomerLoadTypes, RelatedCustomerLoadTypesModel, CompleteLoads, RelatedLoadsModel } from "./index"
 
 export const LoadTypesModel = z.object({

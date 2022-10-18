@@ -54,7 +54,7 @@ const Invoice = ({customers, loads, initialInvoice = null}: {customers: Customer
 
     const fields: FormFieldsType = [
         {name: 'InvoiceDate', size: 4, required: true, shouldErrorOn: ['required', 'invalid_type'], errorMessage: 'Invoice date is required.', type: 'date', label: 'Invoice Date'},
-        {name: 'CustomerID', size: 5,  required: true, type: 'select', label: 'Customer'},
+        {name: 'CustomerID', size: 5,  required: true, shouldErrorOn: ['invalid_type'], errorMessage: 'Customer is required.', type: 'select', label: 'Customer'},
         {name: 'Number', size: 3, required: false, type: 'textfield', number: true},
         {name: 'TotalAmount', size: 3, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'Total amount is required.', type: 'textfield', number: true, label: 'Total Amount'},
         {name: 'PaidDate', size: 12, required: false, type: 'date', label: 'Paid Date'},

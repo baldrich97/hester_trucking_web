@@ -1,4 +1,5 @@
 import * as z from "zod"
+import * as imports from "../../src/utils/zodParsers"
 import { CompleteStates, RelatedStatesModel, CompleteLoads, RelatedLoadsModel, CompleteTrucksDriven, RelatedTrucksDrivenModel } from "./index"
 
 export const DriversModel = z.object({
@@ -12,7 +13,7 @@ export const DriversModel = z.object({
   ZIP: z.string().nullish(),
   DOB: z.date().nullish(),
   License: z.string().nullish(),
-  Email: z.string().email().nullish(),
+  Email: z.string().nullish(),
   Phone: z.string().nullish(),
   Notes: z.string().nullish(),
   Deleted: z.boolean().nullish(),

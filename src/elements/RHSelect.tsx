@@ -14,8 +14,8 @@ const RHSelect = ({ name, control, required = false, defaultValue = '', shouldEr
                 control={control}
                 rules={{required: required}}
                 defaultValue={defaultValue}
-                render={({ field }) => <FormControl fullWidth={true} error={shouldError}>
-                    <InputLabel id={label + "-label"}>{label}</InputLabel><Select {...field} label={label} size={'small'}>{data.map((item, key) => {return <MenuItem key={name + 'SelectOption-' + (key + Math.random()).toString()} value={item[optionValue]}>{item[optionLabel]}</MenuItem>})}</Select>  {shouldError && <FormHelperText>{errorMessage}</FormHelperText>}
+                render={({ field }) => <FormControl fullWidth={true} error={shouldError} size={'small'}>
+                    <InputLabel id={label + "-label"}>{label}</InputLabel><Select {...field} label={label}>{data.map((item, key) => {return <MenuItem key={name + 'SelectOption-' + (key + Math.random()).toString()} value={item[optionValue]}>{optionLabel.split('+').length > 1 ? item[optionLabel.split('+')[0] ?? ''] + ' ' + item[optionLabel.split('+')[1] ?? ''] : item[optionLabel]}</MenuItem>})}</Select>  {shouldError && <FormHelperText>{errorMessage}</FormHelperText>}
                 </FormControl>}
             />
 

@@ -1,10 +1,11 @@
 import * as z from "zod"
+import * as imports from "../../src/utils/zodParsers"
 import { Invoices_PaymentType } from "@prisma/client"
 import { CompleteCustomers, RelatedCustomersModel, CompleteLoads, RelatedLoadsModel } from "./index"
 
 export const InvoicesModel = z.object({
   ID: z.number().int(),
-  InvoiceDate: z.date(),
+  InvoiceDate: imports.parseDate,
   Number: z.number().int().nullish(),
   CustomerID: z.number().int().min(1),
   TotalAmount: z.number().min(1),

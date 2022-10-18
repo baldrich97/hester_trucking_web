@@ -7,6 +7,7 @@ import {customersRouter} from './customers';
 import {driversRouter} from './drivers';
 import {deliveryLocationsRouter} from './deliverylocations';
 import {loadTypesRouter} from './loadtypes';
+import {loadsRouter} from './loads';
 import {invoicesRouter} from './invoices';
 import {statesRouter} from './states';
 import {protectedExampleRouter} from "./protected-example-router";
@@ -19,6 +20,7 @@ export const appRouter = createRouter()
     .merge("deliverylocations.", deliveryLocationsRouter)
     .merge("loadtypes.", loadTypesRouter)
     .merge("invoices.", invoicesRouter)
+    .merge("loads.", loadsRouter)
     .merge("states.", statesRouter)
     .merge("auth.", protectedExampleRouter);
 

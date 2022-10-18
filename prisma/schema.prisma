@@ -10,6 +10,7 @@ generator zod {
   modelCase             = "PascalCase"
   modelSuffix           = "Model"
   useDecimalJs          = "true"
+  imports               = "../src/utils/zodParsers"
 }
 
 datasource db {
@@ -29,7 +30,7 @@ model CustomerLoadTypes {
   ID            Int       @id @default(autoincrement())
   CustomerID    Int
   LoadTypeID    Int
-  DateDelivered DateTime  @db.Date
+  DateDelivered DateTime  @db.Date /// @zod.custom(imports.parseDate)
   Customers     Customers @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_CustomerLoadTypes_Customer")
   LoadTypes     LoadTypes @relation(fields: [LoadTypeID], references: [ID], onUpdate: Restrict, map: "FK_CustomerLoadTypes_LoadType")
 
@@ -104,7 +105,7 @@ model Drivers {
 
 model Invoices {
   ID          Int                   @id @default(autoincrement())
-  InvoiceDate DateTime              @db.Date
+  InvoiceDate DateTime              @db.Date /// @zod.custom(imports.parseDate)
   Number      Int?
   /// @zod.min(1)
   CustomerID  Int
@@ -170,24 +171,24 @@ model TrucksDriven {
 
 model Loads {
   ID                 Int                @id @default(autoincrement())
-  StartDate          DateTime           @db.Date
-  EndDate            DateTime           @db.Date
-  Weight             Float?
-  Hours              Float?
-  TotalRate          Float?
-  TotalAmount        Float?
-  TruckRate          Float?
-  MaterialRate       Float?
+  StartDate          DateTime           @db.Date /// @zod.custom(imports.parseDate)
+  EndDate            DateTime           @db.Date /// @zod.custom(imports.parseDate)
+  Weight             Float?   /// @zod.custom(imports.isNumber)
+  Hours              Float? /// @zod.custom(imports.isNumber)
+  TotalRate          Float? /// @zod.custom(imports.isNumber)
+  TotalAmount        Float? /// @zod.custom(imports.isNumber)
+  TruckRate          Float? /// @zod.custom(imports.isNumber)
+  MaterialRate       Float? /// @zod.custom(imports.isNumber)
   Received           String?            @db.VarChar(50)
   Notes              String?            @db.VarChar(255)
   TicketNumber       Int?
   Invoiced           Boolean?
-  CustomerID         Int?
-  InvoiceID          Int?
-  LoadTypeID         Int?
-  DeliveryLocationID Int?
-  TruckID            Int?
-  DriverID           Int?
+  CustomerID         Int?     /// @zod.min(1)
+  InvoiceID          Int?     /// @zod.min(1)
+  LoadTypeID         Int?     /// @zod.min(1)
+  DeliveryLocationID Int?     /// @zod.min(1)
+  TruckID            Int?     /// @zod.min(1)
+  DriverID           Int?     /// @zod.min(1)
   Deleted            Boolean?
   Customers          Customers?         @relation(fields: [CustomerID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Customer")
   DeliveryLocations  DeliveryLocations? @relation(fields: [DeliveryLocationID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_DeliveryLocation")

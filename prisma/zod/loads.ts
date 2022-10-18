@@ -1,26 +1,27 @@
 import * as z from "zod"
+import * as imports from "../../src/utils/zodParsers"
 import { CompleteCustomers, RelatedCustomersModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteDrivers, RelatedDriversModel, CompleteInvoices, RelatedInvoicesModel, CompleteLoadTypes, RelatedLoadTypesModel, CompleteTrucks, RelatedTrucksModel } from "./index"
 
 export const LoadsModel = z.object({
   ID: z.number().int(),
-  StartDate: z.date(),
-  EndDate: z.date(),
-  Weight: z.number().nullish(),
-  Hours: z.number().nullish(),
-  TotalRate: z.number().nullish(),
-  TotalAmount: z.number().nullish(),
-  TruckRate: z.number().nullish(),
-  MaterialRate: z.number().nullish(),
+  StartDate: imports.parseDate,
+  EndDate: imports.parseDate,
+  Weight: imports.isNumber.nullish(),
+  Hours: imports.isNumber.nullish(),
+  TotalRate: imports.isNumber.nullish(),
+  TotalAmount: imports.isNumber.nullish(),
+  TruckRate: imports.isNumber.nullish(),
+  MaterialRate: imports.isNumber.nullish(),
   Received: z.string().nullish(),
   Notes: z.string().nullish(),
   TicketNumber: z.number().int().nullish(),
   Invoiced: z.boolean().nullish(),
-  CustomerID: z.number().int().nullish(),
-  InvoiceID: z.number().int().nullish(),
-  LoadTypeID: z.number().int().nullish(),
-  DeliveryLocationID: z.number().int().nullish(),
-  TruckID: z.number().int().nullish(),
-  DriverID: z.number().int().nullish(),
+  CustomerID: z.number().int().min(1).nullish(),
+  InvoiceID: z.number().int().min(1).nullish(),
+  LoadTypeID: z.number().int().min(1).nullish(),
+  DeliveryLocationID: z.number().int().min(1).nullish(),
+  TruckID: z.number().int().min(1).nullish(),
+  DriverID: z.number().int().min(1).nullish(),
   Deleted: z.boolean().nullish(),
 })
 

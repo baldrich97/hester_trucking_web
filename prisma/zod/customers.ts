@@ -1,4 +1,5 @@
 import * as z from "zod"
+import * as imports from "../../src/utils/zodParsers"
 import { CompleteStates, RelatedStatesModel, CompleteCustomerLoadTypes, RelatedCustomerLoadTypesModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteInvoices, RelatedInvoicesModel, CompleteLoads, RelatedLoadsModel } from "./index"
 
 export const CustomersModel = z.object({
@@ -9,7 +10,7 @@ export const CustomersModel = z.object({
   State: z.number().int().min(1),
   ZIP: z.string().min(1),
   Phone: z.string().nullish(),
-  Email: z.string().email().nullish(),
+  Email: z.string().nullish(),
   Notes: z.string().nullish(),
   MainContact: z.string().nullish(),
   Deleted: z.boolean().nullish(),

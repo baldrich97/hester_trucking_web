@@ -4,12 +4,10 @@ import {DesktopDatePicker} from "@mui/x-date-pickers";
 import TextField from "@mui/material/TextField";
 import FormHelperText from "@mui/material/FormHelperText"
 import FormControl from "@mui/material/FormControl"
-import dayjs, { Dayjs } from 'dayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 
 const RHDatePicker = ({ name, control, required = false, defaultValue = '', shouldError = false, errorMessage = '', label = name}: {name: string, control: Control<any>, required?: boolean, defaultValue?: string, shouldError?: boolean, errorMessage?: string, label?: string}) => {
-
     return (
         <Controller
             name={name}

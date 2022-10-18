@@ -157,7 +157,7 @@ export default function GenericTable({data = [], columns = [], overrides = [], c
                                                     <StyledTableCell align={column.align ? column.align : 'right'} key={'row-' + rowindex.toString() + '-' + column.name}>
                                                         <NextLink href={column.navigateTo + row[column.name].toString()} passHref>
                                                             <Button color={'primary'} variant={'contained'}>
-                                                                View
+                                                                Edit
                                                             </Button>
                                                         </NextLink>
                                                     </StyledTableCell>
