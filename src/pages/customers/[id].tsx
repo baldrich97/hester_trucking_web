@@ -1,7 +1,7 @@
 import React from 'react';
 import CustomerObject from '../../components/objects/Customer';
 import { GetServerSideProps } from 'next'
-import {PrismaClient} from "@prisma/client";
+import { prisma } from 'server/db/client'
 import { CustomersModel, StatesModel } from '../../../prisma/zod';
 import {z} from "zod";
 
@@ -25,7 +25,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     let initialCustomer;
 
-    const prisma = new PrismaClient();
+    
 
     if (id && typeof(id) === "string") {
         initialCustomer = await prisma.customers.findFirst({

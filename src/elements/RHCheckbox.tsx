@@ -12,8 +12,8 @@ const RHCheckbox = ({ name, control, required = false, defaultValue = false, sho
             control={control}
             rules={{required: required}}
             defaultValue={defaultValue}
-            render={({ field }) =>  <FormControl fullWidth={true} error={shouldError}>
-                <InputLabel id={label + "-label"}>{label}</InputLabel><Checkbox {...field} checked={field.value} size={'small'}/>{shouldError && <FormHelperText>{errorMessage}</FormHelperText>}
+            render={({ field }) =>  <FormControl fullWidth={true} error={shouldError} size={'small'}>
+                <InputLabel id={label + "-label"}>{label}</InputLabel><Checkbox {...field} checked={field.value}/>{shouldError && <FormHelperText>{errorMessage}</FormHelperText>}
             </FormControl>}
         />
     )

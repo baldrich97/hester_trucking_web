@@ -78,6 +78,10 @@ const Load = ({
     }
 
     const watchTicketNumber = watch('TicketNumber');
+    const watchCustomerSelected = watch('CustomerID');
+    const watchDriverSelected = watch('DriverID');
+
+    const fetchCustomerLoadTypes = trpc.useQuery(['customerloadtypes.getAll', {CustomerID: watchCustomerSelected ?? 0}])
 
     React.useEffect(() => {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -91,65 +95,38 @@ const Load = ({
             setValue('TicketNumber', parseInt(watchTicketNumber))
 
         }
-    }, [watchTicketNumber])
+    }, [setValue, watchTicketNumber])
+    
+    // React.useEffect(() => {
+    //     if (initialLoad) {
+    //         if (watchCustomerSelected !== initialLoad.CustomerID) {
+    //             const customerLoadTypes = getCustomerLoadTypes(watchCustomerSelected)
+    //             console.log(customerLoadTypes)
+    //         }
+    //     } else {
+    //         //query here and change
+    //     }
+    //
+    //     setValue('LoadTypeID', undefined)
+    // }, [setValue, watchCustomerSelected])
 
     const fields: FormFieldsType = [
-        {name: 'StartDate', size: 12, required: false, type: 'date', label: 'Start Date'},
-        {name: 'EndDate', size: 12, required: false, type: 'date', label: 'End Date'},
+        {name: 'CustomerID', size: 12, required: true, shouldErrorOn: ['invalid_type'], errorMessage: 'Customer is required.', type: 'select', label: 'Customer'},
+        {name: 'StartDate', size: 4, required: false, type: 'date', label: 'Start Date'},
+        {name: 'EndDate', size: 4, required: false, type: 'date', label: 'End Date'},
+        {name: 'TicketNumber', required: false, type: 'textfield', size: 4, number: true, label: 'Ticket Number'},
+        {name: 'DriverID', size: 6, required: true, shouldErrorOn: ['invalid_type'], errorMessage: 'Driver is required.', type: 'select', label: 'Driver'},
+        {name: 'TruckID', size: 6, required: true, shouldErrorOn: ['invalid_type'], errorMessage: 'Truck is required.', type: 'select', label: 'Truck'},
+        {name: 'LoadTypeID', size: 6, required: true, shouldErrorOn: ['invalid_type'], errorMessage: 'Load type is required.', type: 'select', label: 'Load Type'},
+        {name: 'DeliveryLocationID', size: 6, required: true, shouldErrorOn: ['invalid_type'], errorMessage: 'Delivery location is required.', type: 'select', label: 'Delivery Location'},
+        {name: 'MaterialRate', required: false, type: 'textfield', size: 3, number: true, label: 'Material Rate'},
+        {name: 'TruckRate', required: false, type: 'textfield', size: 3, number: true, label: 'Truck Rate'},
         {name: 'Weight', required: false, type: 'textfield', size: 3, number: true},
         {name: 'Hours', required: false, type: 'textfield', size: 3, number: true},
+        {name: 'Received', size: 6, required: false, type: 'textfield'},
         {name: 'TotalRate', required: false, type: 'textfield', size: 3, number: true, label: 'Total Rate'},
         {name: 'TotalAmount', required: false, type: 'textfield', size: 3, number: true, label: 'Total Amount'},
-        {name: 'TruckRate', required: false, type: 'textfield', size: 3, number: true, label: 'Truck Rate'},
-        {name: 'MaterialRate', required: false, type: 'textfield', size: 3, number: true, label: 'Material Rate'},
-        {name: 'Received', size: 6, required: false, type: 'textfield'},
-        {name: 'Notes', size: 6, required: false, type: 'textfield'},
-        {name: 'TicketNumber', required: false, type: 'textfield', size: 3, number: true, label: 'Ticket Number'},
-        {
-            name: 'CustomerID',
-            size: 5,
-            required: true,
-            shouldErrorOn: ['invalid_type'],
-            errorMessage: 'Customer is required.',
-            type: 'select',
-            label: 'Customer'
-        },
-        {
-            name: 'LoadTypeID',
-            size: 5,
-            required: true,
-            shouldErrorOn: ['invalid_type'],
-            errorMessage: 'Load type is required.',
-            type: 'select',
-            label: 'Load Type'
-        },
-        {
-            name: 'DeliveryLocationID',
-            size: 5,
-            required: true,
-            shouldErrorOn: ['invalid_type'],
-            errorMessage: 'Delivery location is required.',
-            type: 'select',
-            label: 'Delivery Location'
-        },
-        {
-            name: 'TruckID',
-            size: 5,
-            required: true,
-            shouldErrorOn: ['invalid_type'],
-            errorMessage: 'Truck is required.',
-            type: 'select',
-            label: 'Truck'
-        },
-        {
-            name: 'DriverID',
-            size: 5,
-            required: true,
-            shouldErrorOn: ['invalid_type'],
-            errorMessage: 'Driver is required.',
-            type: 'select',
-            label: 'Driver'
-        },
+        {name: 'Notes', size: 12, required: false, type: 'textfield', multiline: true},
     ]
 
     if (initialLoad) {
@@ -157,7 +134,7 @@ const Load = ({
     }
 
     const selectData: SelectDataType = [
-        {key: 'CustomerID', data: customers, optionValue: 'ID', optionLabel: 'Name'},
+        {key: 'CustomerID', data: customers, optionValue: 'ID', optionLabel: 'Name+Street+,+City'},
         {key: 'LoadTypeID', data: loadTypes, optionValue: 'ID', optionLabel: 'Description'},
         {key: 'DeliveryLocationID', data: deliveryLocations, optionValue: 'ID', optionLabel: 'Description'},
         {key: 'TruckID', data: trucks, optionValue: 'ID', optionLabel: 'Name'},

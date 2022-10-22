@@ -1,7 +1,7 @@
 import React from 'react';
 import DriverObject from '../../components/objects/Driver';
 import { GetServerSideProps } from 'next'
-import {PrismaClient} from "@prisma/client";
+import { prisma } from 'server/db/client'
 import { DriversModel, StatesModel } from '../../../prisma/zod';
 import {z} from "zod";
 
@@ -25,7 +25,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     let initialDriver;
 
-    const prisma = new PrismaClient();
+    
 
     if (id && typeof(id) === "string") {
         initialDriver = await prisma.drivers.findFirst({

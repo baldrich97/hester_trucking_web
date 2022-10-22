@@ -1,7 +1,7 @@
 import React from 'react';
 import DeliveryLocationObject from '../../components/objects/DeliveryLocation';
 import { GetServerSideProps } from 'next'
-import {PrismaClient} from "@prisma/client";
+import { prisma } from 'server/db/client'
 import { DeliveryLocationsModel } from '../../../prisma/zod';
 import {z} from "zod";
 
@@ -24,7 +24,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     let initialDeliveryLocation;
 
-    const prisma = new PrismaClient();
+    
 
     if (id && typeof(id) === "string") {
         initialDeliveryLocation = await prisma.deliveryLocations.findFirst({

@@ -1,7 +1,7 @@
 import React from 'react';
 import LoadObject from '../../components/objects/Load';
 import { GetServerSideProps } from 'next'
-import {PrismaClient} from "@prisma/client";
+import { prisma } from 'server/db/client'
 import {
     CustomersModel,
     DeliveryLocationsModel,
@@ -35,7 +35,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     let initialLoad;
 
-    const prisma = new PrismaClient();
+    
 
     if (id && typeof(id) === "string") {
         initialLoad = await prisma.loads.findFirst({
@@ -66,6 +66,14 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     const loads = await prisma.loads.findMany({});
 
+    //const customerLoadTypes = initialLoad.CustomerID ? await prisma.customerLoadTypes.findMany({where: {CustomerID: initialLoad.CustomerID}, select: {LoadTypeID: true}}).then((data) => data.map((item) => item.LoadTypeID)) : null;
+
+    let foundLoadTypes: [] | LoadTypesType[] = [];
+
+    if (customerLoadTypes) {
+        foundLoadTypes = await prisma.loadTypes.findMany({where: {ID: {in: customerLoadTypes}}});
+    }
+
     const loadTypes = await prisma.loadTypes.findMany({});
 
     const trucks = await prisma.trucks.findMany({});
@@ -82,7 +90,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             trucks,
             drivers: JSON.parse(JSON.stringify(drivers)),
             deliveryLocations,
-            loadTypes
+            loadTypes: [...foundLoadTypes, ...loadTypes]
         }
     }
 }

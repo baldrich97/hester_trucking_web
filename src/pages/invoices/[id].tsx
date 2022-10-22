@@ -1,7 +1,7 @@
 import React from 'react';
 import InvoiceObject from '../../components/objects/Invoice';
 import { GetServerSideProps } from 'next'
-import {PrismaClient} from "@prisma/client";
+import { prisma } from 'server/db/client'
 import { InvoicesModel, CustomersModel, LoadsModel } from '../../../prisma/zod';
 import {z} from "zod";
 
@@ -26,7 +26,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     let initialInvoice;
 
-    const prisma = new PrismaClient();
+    
 
     if (id && typeof(id) === "string") {
         initialInvoice = await prisma.invoices.findFirst({

@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import Grid2 from "@mui/material/Unstable_Grid2";
 import Invoice from "../../components/objects/Invoice";
 import {GetServerSideProps} from "next";
-import {PrismaClient} from "@prisma/client";
+import { prisma } from 'server/db/client'
 import {CustomersModel, InvoicesModel, LoadsModel} from '../../../prisma/zod';
 import {z} from "zod";
 import GenericTable from '../../elements/GenericTable';
@@ -75,9 +75,6 @@ const Invoices = ({invoices, count, loads, customers}: {invoices: InvoicesType[]
 export default Invoices;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-
-    const prisma = new PrismaClient();
-
     const count = await prisma.invoices.count();
 
     const invoices = await prisma.invoices.findMany({
@@ -93,10 +90,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     return {
         props: {
-            invoices,
+            invoices: JSON.parse(JSON.stringify(invoices)),
             count,
             customers,
-            loads
+            loads: JSON.parse(JSON.stringify(loads))
         }
     }
 }

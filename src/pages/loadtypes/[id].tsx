@@ -1,7 +1,7 @@
 import React from 'react';
 import LoadTypeObject from '../../components/objects/LoadType';
 import { GetServerSideProps } from 'next'
-import {PrismaClient} from "@prisma/client";
+import { prisma } from 'server/db/client'
 import { LoadTypesModel } from '../../../prisma/zod';
 import {z} from "zod";
 
@@ -24,7 +24,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     let initialLoadType;
 
-    const prisma = new PrismaClient();
+    
 
     if (id && typeof(id) === "string") {
         initialLoadType = await prisma.loadTypes.findFirst({

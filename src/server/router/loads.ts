@@ -65,6 +65,21 @@ export const loadsRouter = createRouter()
         // validate input with Zod
         input: LoadsModel.omit({ID: true, Deleted: true}),
         async resolve({ctx, input}) {
+            const {DriverID, TruckID, StartDate, CustomerID, LoadTypeID} = input;
+            if (DriverID && TruckID) {
+                ctx.prisma.trucksDriven.create({
+                    data: {TruckID, DriverID, DateDriven: StartDate}
+                })
+            }
+
+            if (CustomerID && LoadTypeID) {
+                const test = await ctx.prisma.customerLoadTypes.create({
+                    data: {CustomerID, LoadTypeID, DateDelivered: StartDate}
+                })
+
+                console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", test)
+            }
+
             // use your ORM of choice
             return ctx.prisma.loads.create({
                 data: input

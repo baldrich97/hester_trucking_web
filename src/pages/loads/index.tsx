@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import Grid2 from "@mui/material/Unstable_Grid2";
 import Load from "../../components/objects/Load";
 import {GetServerSideProps} from "next";
-import {PrismaClient} from "@prisma/client";
+import { prisma } from 'server/db/client'
 import {
     CustomersModel,
     DeliveryLocationsModel,
@@ -81,7 +81,7 @@ export default Loads;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
 
-    const prisma = new PrismaClient();
+    
 
     const count = await prisma.loads.count();
 

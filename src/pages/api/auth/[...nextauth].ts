@@ -2,12 +2,12 @@ import NextAuth, {type NextAuthOptions} from "next-auth";
 
 // Prisma adapter for NextAuth, optional and can be removed
 import {PrismaAdapter} from "@next-auth/prisma-adapter";
-import {PrismaClient} from "@prisma/client";
+import { prisma } from 'server/db/client'
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt, {genSaltSync} from "bcryptjs"
 import {Credentials, User} from "../../../types/types";
 
-const prisma = new PrismaClient();
+
 
 export const authOptions: NextAuthOptions = {
     callbacks: {
