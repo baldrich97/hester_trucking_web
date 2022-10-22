@@ -186,9 +186,9 @@ model Loads {
   CustomerID         Int?     /// @zod.min(1)
   InvoiceID          Int?     /// @zod.min(1)
   LoadTypeID         Int?     /// @zod.min(1)
-  DeliveryLocationID Int?     /// @zod.min(1)
-  TruckID            Int?     /// @zod.min(1)
-  DriverID           Int?     /// @zod.min(1)
+  DeliveryLocationID Int?
+  TruckID            Int?
+  DriverID           Int?
   Deleted            Boolean?
   Customers          Customers?         @relation(fields: [CustomerID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Customer")
   DeliveryLocations  DeliveryLocations? @relation(fields: [DeliveryLocationID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_DeliveryLocation")

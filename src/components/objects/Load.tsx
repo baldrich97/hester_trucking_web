@@ -30,9 +30,9 @@ const defaultValues = {
     EndDate: new Date(),
     CustomerID: undefined,
     LoadTypeID: undefined,
-    DeliveryDescriptionID: undefined,
-    DriverID: undefined,
-    TruckID: undefined,
+    DeliveryDescriptionID: 0,
+    DriverID: 0,
+    TruckID: 0,
     Hours: 0,
     TotalAmount: 0,
     TotalRate: 0,
@@ -49,8 +49,9 @@ const Load = ({
                   deliveryLocations,
                   trucks,
                   drivers,
-                  initialLoad = null
-              }: { customers: CustomersType[], loadTypes: LoadTypesType[], deliveryLocations: DeliveryLocationsType[], trucks: TrucksType[], drivers: DriversType[], initialLoad?: null | LoadsType }) => {
+                  initialLoad = null,
+                  refreshData
+              }: { customers: CustomersType[], loadTypes: LoadTypesType[], deliveryLocations: DeliveryLocationsType[], trucks: TrucksType[], drivers: DriversType[], initialLoad?: null | LoadsType, refreshData?: any}) => {
 
     const router = useRouter();
 
@@ -66,14 +67,14 @@ const Load = ({
 
     const addOrUpdateLoad = trpc.useMutation(key, {
         async onSuccess(data) {
-            reset(initialLoad ? data : defaultValues)
+           initialLoad && reset(data)
         }
     })
 
     const onSubmit = async (data: ValidationSchema) => {
         await addOrUpdateLoad.mutateAsync(data)
         if (key === 'loads.put') {
-            await router.replace(router.asPath);
+            refreshData();
         }
     }
 
@@ -81,22 +82,16 @@ const Load = ({
     const watchCustomerSelected = watch('CustomerID');
     const watchDriverSelected = watch('DriverID');
 
-    const fetchCustomerLoadTypes = trpc.useQuery(['customerloadtypes.getAll', {CustomerID: watchCustomerSelected ?? 0}])
+    //const fetchCustomerLoadTypes = trpc.useQuery(['customerloadtypes.getAll', {CustomerID: watchCustomerSelected ?? 0}])
 
     React.useEffect(() => {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        if (watchTicketNumber === '') setValue('TicketNumber', 0);
+        if (watchTicketNumber?.toString() === '' || watchTicketNumber === null || typeof (watchTicketNumber) === 'undefined') setValue('TicketNumber', 0);
 
         else if (typeof (watchTicketNumber) === 'string') {
-
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
             setValue('TicketNumber', parseInt(watchTicketNumber))
-
         }
     }, [setValue, watchTicketNumber])
-    
+
     // React.useEffect(() => {
     //     if (initialLoad) {
     //         if (watchCustomerSelected !== initialLoad.CustomerID) {
@@ -111,14 +106,48 @@ const Load = ({
     // }, [setValue, watchCustomerSelected])
 
     const fields: FormFieldsType = [
-        {name: 'CustomerID', size: 12, required: true, shouldErrorOn: ['invalid_type'], errorMessage: 'Customer is required.', type: 'select', label: 'Customer'},
+        {
+            name: 'CustomerID',
+            size: initialLoad ? 10 : 12,
+            required: true,
+            shouldErrorOn: ['invalid_type'],
+            errorMessage: 'Customer is required.',
+            type: 'select',
+            label: 'Customer'
+        },
         {name: 'StartDate', size: 4, required: false, type: 'date', label: 'Start Date'},
         {name: 'EndDate', size: 4, required: false, type: 'date', label: 'End Date'},
         {name: 'TicketNumber', required: false, type: 'textfield', size: 4, number: true, label: 'Ticket Number'},
-        {name: 'DriverID', size: 6, required: true, shouldErrorOn: ['invalid_type'], errorMessage: 'Driver is required.', type: 'select', label: 'Driver'},
-        {name: 'TruckID', size: 6, required: true, shouldErrorOn: ['invalid_type'], errorMessage: 'Truck is required.', type: 'select', label: 'Truck'},
-        {name: 'LoadTypeID', size: 6, required: true, shouldErrorOn: ['invalid_type'], errorMessage: 'Load type is required.', type: 'select', label: 'Load Type'},
-        {name: 'DeliveryLocationID', size: 6, required: true, shouldErrorOn: ['invalid_type'], errorMessage: 'Delivery location is required.', type: 'select', label: 'Delivery Location'},
+        {
+            name: 'DriverID',
+            size: 6,
+            required: false,
+            type: 'select',
+            label: 'Driver'
+        },
+        {
+            name: 'TruckID',
+            size: 6,
+            required: false,
+            type: 'select',
+            label: 'Truck'
+        },
+        {
+            name: 'LoadTypeID',
+            size: 6,
+            required: true,
+            shouldErrorOn: ['invalid_type'],
+            errorMessage: 'Load type is required.',
+            type: 'select',
+            label: 'Load Type'
+        },
+        {
+            name: 'DeliveryLocationID',
+            size: 6,
+            required: false,
+            type: 'select',
+            label: 'Delivery Location'
+        },
         {name: 'MaterialRate', required: false, type: 'textfield', size: 3, number: true, label: 'Material Rate'},
         {name: 'TruckRate', required: false, type: 'textfield', size: 3, number: true, label: 'Truck Rate'},
         {name: 'Weight', required: false, type: 'textfield', size: 3, number: true},
@@ -130,21 +159,20 @@ const Load = ({
     ]
 
     if (initialLoad) {
-        fields.push({name: 'Invoiced', size: 6, required: false, type: 'checkbox'});
+        fields.splice(1, 0, {name: 'Invoiced', size: 2, required: false, type: 'checkbox', disabled: true});
     }
 
     const selectData: SelectDataType = [
-        {key: 'CustomerID', data: customers, optionValue: 'ID', optionLabel: 'Name+Street+,+City'},
+        {key: 'CustomerID', data: customers, optionValue: 'ID', optionLabel: 'Name+|+Street+,+City'},
         {key: 'LoadTypeID', data: loadTypes, optionValue: 'ID', optionLabel: 'Description'},
-        {key: 'DeliveryLocationID', data: deliveryLocations, optionValue: 'ID', optionLabel: 'Description'},
-        {key: 'TruckID', data: trucks, optionValue: 'ID', optionLabel: 'Name'},
-        {key: 'DriverID', data: drivers, optionValue: 'ID', optionLabel: 'FirstName+LastName'},
+        {key: 'DeliveryLocationID', data: deliveryLocations, optionValue: 'ID', optionLabel: 'Description', defaultValue: 0},
+        {key: 'TruckID', data: trucks, optionValue: 'ID', optionLabel: 'Name', defaultValue: 0},
+        {key: 'DriverID', data: drivers, optionValue: 'ID', optionLabel: 'FirstName+LastName', defaultValue: 0},
     ]
 
     return (
         <>
             {console.log(errors)}
-            {console.log(initialLoad)}
             <Box
                 component='form'
                 autoComplete='off'

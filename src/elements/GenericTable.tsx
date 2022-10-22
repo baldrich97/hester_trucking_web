@@ -137,20 +137,14 @@ export default function GenericTable({data = [], columns = [], overrides = [], c
                     {data.slice(page * 10, page * 10 + 10).map((row, rowindex) => {
                         return (
                             <StyledTableRow key={'row-' + rowindex.toString()}>
-                                {columns.map((column, colindex) => {
+                                {columns.map((column) => {
                                     let realData = null;
                                     if(column.name.includes('.')) {
                                         realData = column.name.split('.').reduce((o,i) => o[i], row)
                                     }
                                     const data = realData ?? row[column.name];
                                     const isOverrided = overrides.filter((item) => item.name === column.name);
-                                    if (colindex === 0) {
-                                        return (
-                                            <StyledTableCell component="th" scope="row" align={column.align ? column.align : 'left'} key={'row-' + rowindex.toString() + '-' + column.name}>
-                                                {data ?? 'N/A'}
-                                            </StyledTableCell>
-                                        )
-                                    } else if (isOverrided && typeof(isOverrided[0]) !== 'undefined') {
+                                    if (isOverrided && typeof(isOverrided[0]) !== 'undefined') {
                                         switch (isOverrided[0].type) {
                                             case "button":
                                                 return (
@@ -179,10 +173,17 @@ export default function GenericTable({data = [], columns = [], overrides = [], c
                                                 }
                                                 link = link ?? column.navigateTo ?? '';
                                                 return (
-                                                    <StyledTableCell align={column.align ? column.align : 'right'} key={'row-' + rowindex.toString() + '-' + column.name}>
+                                                    <StyledTableCell align={column.align ? column.align : 'left'} key={'row-' + rowindex.toString() + '-' + column.name}>
                                                         <NextLink href={link} passHref>
-                                                            {data}
+                                                            <a target={"_blank"} style={{textDecoration: 'underline'}}>{data}</a>
                                                         </NextLink>
+                                                    </StyledTableCell>
+                                                )
+                                            case "date":
+                                                const displayDate = data ? new Date(data).toLocaleDateString() : 'N/A';
+                                                return (
+                                                    <StyledTableCell align={column.align ? column.align : 'left'} key={'row-' + rowindex.toString() + '-' + column.name}>
+                                                        {displayDate}
                                                     </StyledTableCell>
                                                 )
                                         }

@@ -57,7 +57,7 @@ const GenericForm = ({
                     case "checkbox": {
                         return (
                             <Grid2 xs={field.size} key={'form-' + index.toString() + '-' + field.name + '-grid'}>
-                                <RHCheckbox name={field.name} control={control} key={'form-' + index.toString() + '-' + field.name + '-field'} label={field.label}  shouldError={field.shouldErrorOn?.includes(errors[field.name]?.type)} errorMessage={field.errorMessage ?? ''}/>
+                                <RHCheckbox name={field.name} control={control} key={'form-' + index.toString() + '-' + field.name + '-field'} label={field.label}  shouldError={field.shouldErrorOn?.includes(errors[field.name]?.type)} errorMessage={field.errorMessage ?? ''} disabled={field.disabled}/>
                             </Grid2>
                         )
                     }

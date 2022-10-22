@@ -30,12 +30,18 @@ const columns: TableColumnsType = [
     {name: 'Customers.Name', as: 'Customer', navigateTo: 'customers/[ID]'},
     {name: 'StartDate', as: 'Start Date'},
     {name: 'TotalAmount', as: 'Total Amount'},
+    {name: 'LoadTypes.Description', as: 'Load Type'},
+    {name: 'DeliveryLocations.Description', as: 'Delivery Notes'},
+    {name: 'TicketNumber', as: 'Ticket #'},
+    {name: 'Invoiced'},
     {name: 'ID', as: '', navigateTo: '/loads/'}
 ];
 
 const overrides: TableColumnOverridesType = [
     {name: 'ID', type: 'button'},
     {name: 'Customers.Name', type: 'link'},
+    {name: 'StartDate', type: 'date'},
+    {name: 'Invoiced', type: 'checkbox'}
 ]
 
 const Loads = ({loads, count, customers, loadTypes, deliveryLocations, trucks, drivers}: {loads: LoadsType[], loadTypes: LoadTypesType[], deliveryLocations: DeliveryLocationsType[], trucks: TrucksType[], drivers: DriversType[], count: number, customers: CustomersType[]}) => {
@@ -44,9 +50,15 @@ const Loads = ({loads, count, customers, loadTypes, deliveryLocations, trucks, d
 
     const [trpcData, setData] = useState<LoadsType[]>([]);
 
+    const [newData, setNewData] = useState<LoadsType[]>([]);
+
     const [trpcCount, setCount] = useState(0);
 
+    const [newCount, setNewCount] = useState(0);
+
     const [shouldSearch, setShouldSearch] = useState(false);
+
+    const [shouldRefresh, setShouldRefresh] = useState(false);
 
    /* trpc.useQuery(['loads.search', {search}], {
         enabled: shouldSearch,
@@ -61,17 +73,32 @@ const Loads = ({loads, count, customers, loadTypes, deliveryLocations, trucks, d
         }
     })*/
 
+     trpc.useQuery(['loads.getAll'], {
+        enabled: shouldRefresh,
+        onSuccess(data) {
+            setNewData(JSON.parse(JSON.stringify(data)));
+            setNewCount(data.length)
+            setShouldRefresh(false);
+        },
+        onError(error) {
+            console.warn(error.message)
+            setShouldRefresh(false)
+        }
+    })
+
     return (
         <Grid2 container>
             <Grid2 xs={8} sx={{paddingRight: 2.5}}>
                 {/*<Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Loads'}/>
                 </Grid2>*/}
-                <GenericTable data={search ? trpcData : loads} columns={columns} overrides={overrides} count={search ? trpcCount : count}/>
+                <GenericTable data={search ? trpcData : newData.length > 1 ? newData : loads} columns={columns} overrides={overrides} count={search ? trpcCount : newCount > 0 ? newCount : count}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
-                <Load customers={customers} loadTypes={loadTypes} deliveryLocations={deliveryLocations} trucks={trucks} drivers={drivers}/>
+                <Load customers={customers} loadTypes={loadTypes} deliveryLocations={deliveryLocations} trucks={trucks} drivers={drivers} refreshData={() => {
+                    setShouldRefresh(true)
+                }}/>
             </Grid2>
         </Grid2>
     )

@@ -5,7 +5,15 @@ import { LoadsModel } from '../../../prisma/zod';
 export const loadsRouter = createRouter()
     .query("getAll", {
         async resolve({ctx}) {
-            return ctx.prisma.loads.findMany();
+            return ctx.prisma.loads.findMany({
+                include: {
+                    Customers: true,
+                    Trucks: true,
+                    Drivers: true,
+                    LoadTypes: true,
+                    DeliveryLocations: true
+                }
+            });
         },
     })
     .query('get', {

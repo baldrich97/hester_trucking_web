@@ -68,11 +68,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     //const customerLoadTypes = initialLoad.CustomerID ? await prisma.customerLoadTypes.findMany({where: {CustomerID: initialLoad.CustomerID}, select: {LoadTypeID: true}}).then((data) => data.map((item) => item.LoadTypeID)) : null;
 
-    let foundLoadTypes: [] | LoadTypesType[] = [];
+   /* let foundLoadTypes: [] | LoadTypesType[] = [];*/
 
-    if (customerLoadTypes) {
+   /* if (customerLoadTypes) {
         foundLoadTypes = await prisma.loadTypes.findMany({where: {ID: {in: customerLoadTypes}}});
-    }
+    }*/
 
     const loadTypes = await prisma.loadTypes.findMany({});
 
@@ -90,7 +90,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             trucks,
             drivers: JSON.parse(JSON.stringify(drivers)),
             deliveryLocations,
-            loadTypes: [...foundLoadTypes, ...loadTypes]
+            //loadTypes: [...foundLoadTypes, ...loadTypes]
+            loadTypes: loadTypes
         }
     }
 }

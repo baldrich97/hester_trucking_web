@@ -11,6 +11,9 @@ const RHSelect = ({ name, control, required = false, defaultValue = '', shouldEr
     const formatOptionLabel = (optionLabel: string, item: any): string => {
         let returnable = '';
         if (optionLabel.split('+').length > 1) {
+            if (defaultValue === 0) {
+                return item[optionLabel.split('+')[0] ?? '']
+            }
             optionLabel.split('+').forEach((labelPart, index) => {
                 if (Object.keys(item).includes(labelPart)) {
                     returnable += item[labelPart] ?? '';
