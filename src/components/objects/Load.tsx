@@ -33,12 +33,12 @@ const defaultValues = {
     DeliveryDescriptionID: 0,
     DriverID: 0,
     TruckID: 0,
-    Hours: 0,
-    TotalAmount: 0,
-    TotalRate: 0,
-    TruckRate: 0,
-    Weight: 0,
-    MaterialRate: 0,
+    Hours: undefined,
+    TotalAmount: undefined,
+    TotalRate: undefined,
+    TruckRate: undefined,
+    Weight: undefined,
+    MaterialRate: undefined,
     TicketNumber: 0
 };
 
@@ -59,7 +59,7 @@ const Load = ({
 
     type ValidationSchema = z.infer<typeof validationSchema>;
 
-    const {handleSubmit, formState: {errors}, control, reset, watch, setValue} = useForm<ValidationSchema>({
+    const {handleSubmit, formState: {errors}, control, resetField, reset, watch, setValue} = useForm<ValidationSchema>({
         resolver: zodResolver(validationSchema),
         defaultValues: initialLoad ?? defaultValues
     });
@@ -74,23 +74,30 @@ const Load = ({
     const onSubmit = async (data: ValidationSchema) => {
         await addOrUpdateLoad.mutateAsync(data)
         if (key === 'loads.put') {
+            resetField('Weight')
+            resetField('Hours')
+            resetField('TotalAmount')
+            resetField('TicketNumber')
             refreshData();
         }
     }
 
-    const watchTicketNumber = watch('TicketNumber');
-    const watchCustomerSelected = watch('CustomerID');
-    const watchDriverSelected = watch('DriverID');
+    React.useEffect(() => {
+        const subscription = watch((value, { name, type }) => {
+            if (['MaterialRate', 'TruckRate', 'Hours', 'Weight'].includes(name ?? '') && type === 'change') {
+                const hours = value.Hours ?? 0;
+                const weight = value.Weight ?? 0;
+                setValue('TotalRate', (value.MaterialRate ?? 0) + (value.TruckRate ?? 0))
+                setValue('TotalAmount', (value.TotalRate ?? 0) * (hours > 0 ? hours : weight))
+            }
+        });
+        return () => subscription.unsubscribe();
+    }, [watch]);
 
     //const fetchCustomerLoadTypes = trpc.useQuery(['customerloadtypes.getAll', {CustomerID: watchCustomerSelected ?? 0}])
 
-    React.useEffect(() => {
-        if (watchTicketNumber?.toString() === '' || watchTicketNumber === null || typeof (watchTicketNumber) === 'undefined') setValue('TicketNumber', 0);
-
-        else if (typeof (watchTicketNumber) === 'string') {
-            setValue('TicketNumber', parseInt(watchTicketNumber))
-        }
-    }, [setValue, watchTicketNumber])
+    const watchHours = watch('Hours');
+    const watchWeight = watch('Weight')
 
     // React.useEffect(() => {
     //     if (initialLoad) {
@@ -150,8 +157,8 @@ const Load = ({
         },
         {name: 'MaterialRate', required: false, type: 'textfield', size: 3, number: true, label: 'Material Rate'},
         {name: 'TruckRate', required: false, type: 'textfield', size: 3, number: true, label: 'Truck Rate'},
-        {name: 'Weight', required: false, type: 'textfield', size: 3, number: true},
-        {name: 'Hours', required: false, type: 'textfield', size: 3, number: true},
+        {name: 'Weight', required: false, type: 'textfield', size: 3, number: true, disabled: !!(watchHours && watchHours > 0)},
+        {name: 'Hours', required: false, type: 'textfield', size: 3, number: true, disabled: !!(watchWeight && watchWeight > 0)},
         {name: 'Received', size: 6, required: false, type: 'textfield'},
         {name: 'TotalRate', required: false, type: 'textfield', size: 3, number: true, label: 'Total Rate'},
         {name: 'TotalAmount', required: false, type: 'textfield', size: 3, number: true, label: 'Total Amount'},
@@ -172,7 +179,6 @@ const Load = ({
 
     return (
         <>
-            {console.log(errors)}
             <Box
                 component='form'
                 autoComplete='off'

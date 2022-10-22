@@ -2,14 +2,16 @@ import React from "react";
 import {Control, Controller} from "react-hook-form";
 import TextField from "@mui/material/TextField";
 
-const RHTextfield = ({ name, control, required = false, defaultValue = '', shouldError = false, errorMessage = '', label = name, multiline = false, type = 'text'}: {name: string, control: Control<any>, required?: boolean, defaultValue?: string, shouldError?: boolean, errorMessage?: string, label?: string, multiline?: boolean, maxRows?: number, type?: string}) => {
+const RHTextfield = ({ name, control, required = false, defaultValue = '', shouldError = false, errorMessage = '', label = name, multiline = false, type = 'text', disabled = false}: {name: string, control: Control<any>, required?: boolean, defaultValue?: string, shouldError?: boolean, errorMessage?: string, label?: string, multiline?: boolean, maxRows?: number, type?: string, disabled?: boolean}) => {
     return (
         <Controller
             name={name}
             control={control}
             rules={{required: required}}
             defaultValue={defaultValue}
-            render={({ field }) => <TextField {...field} label={label} error={shouldError} helperText={shouldError ? errorMessage : ''} multiline={multiline} rows={4} fullWidth type={type} size={'small'}/>}
+            render={({ field }) => <TextField {...field} label={label} error={shouldError} helperText={shouldError ? errorMessage : ''} multiline={multiline} rows={4} fullWidth type={type} size={'small'} disabled={disabled} onChange={(e) => {
+                field.onChange(type === 'number' ? e.currentTarget.value === "" ? 0 : parseInt(e.currentTarget.value, 10) : e.currentTarget.value)
+            }}/>}
         />
     )
 }

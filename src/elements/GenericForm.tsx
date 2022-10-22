@@ -26,7 +26,7 @@ const GenericForm = ({
                                              label={field.label ?? field.name} type={field.number ? 'number' : 'text'}
                                              shouldError={field.shouldErrorOn?.includes(errors[field.name]?.type)}
                                              errorMessage={field.errorMessage ?? ''} multiline={!!field.multiline}
-                                             maxRows={field.maxRows ?? 1} key={'form-' + index.toString() + '-' + field.name + '-field'}/>
+                                             maxRows={field.maxRows ?? 1} key={'form-' + index.toString() + '-' + field.name + '-field'} disabled={field.disabled}/>
                             </Grid2>
                         )
                     }
