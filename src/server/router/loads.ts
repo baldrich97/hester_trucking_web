@@ -12,6 +12,16 @@ export const loadsRouter = createRouter()
                     Drivers: true,
                     LoadTypes: true,
                     DeliveryLocations: true
+                },
+                where: {
+                    OR: [
+                        {
+                            Deleted: false
+                        },
+                        {
+                            Deleted: null
+                        }
+                    ],
                 }
             });
         },
@@ -69,6 +79,39 @@ export const loadsRouter = createRouter()
     //
     //     }
     // })
+    .query('getByCustomer', {
+        input: z.object({
+            customer: z.number()
+        }),
+        async resolve({ctx, input}) {
+            return ctx.prisma.loads.findMany({
+                where: {
+                    CustomerID: input.customer,
+                    OR: [
+                        {
+                            Invoiced: false
+                        },
+                        {
+                            Invoiced: null
+                        },
+                        {
+                            Deleted: false
+                        },
+                        {
+                            Deleted: null
+                        }
+                    ],
+                },
+                include: {
+                    LoadTypes: true,
+                    DeliveryLocations: true,
+                    Drivers: true,
+                    Trucks: true
+                }
+            })
+
+        }
+    })
     .mutation('put', {
         // validate input with Zod
         input: LoadsModel.omit({ID: true, Deleted: true}),
@@ -84,8 +127,6 @@ export const loadsRouter = createRouter()
                 const test = await ctx.prisma.customerLoadTypes.create({
                     data: {CustomerID, LoadTypeID, DateDelivered: StartDate}
                 })
-
-                console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~", test)
             }
 
             // use your ORM of choice

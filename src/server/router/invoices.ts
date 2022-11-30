@@ -5,7 +5,18 @@ import { InvoicesModel } from '../../../prisma/zod';
 export const invoicesRouter = createRouter()
     .query("getAll", {
         async resolve({ctx}) {
-            return ctx.prisma.invoices.findMany();
+            return ctx.prisma.invoices.findMany({
+                where: {
+                    OR: [
+                        {
+                            Deleted: false
+                        },
+                        {
+                            Deleted: null
+                        }
+                    ],
+                }
+            });
         },
     })
     .query('get', {

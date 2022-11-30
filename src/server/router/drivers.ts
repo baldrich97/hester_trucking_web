@@ -5,7 +5,18 @@ import { DriversModel } from '../../../prisma/zod';
 export const driversRouter = createRouter()
     .query("getAll", {
         async resolve({ctx}) {
-            return ctx.prisma.drivers.findMany();
+            return ctx.prisma.drivers.findMany({
+                where: {
+                    OR: [
+                        {
+                            Deleted: false
+                        },
+                        {
+                            Deleted: null
+                        }
+                    ],
+                }
+            });
         },
     })
     .query('get', {

@@ -140,7 +140,12 @@ export default function GenericTable({data = [], columns = [], overrides = [], c
                                 {columns.map((column) => {
                                     let realData = null;
                                     if(column.name.includes('.')) {
-                                        realData = column.name.split('.').reduce((o,i) => o[i], row)
+                                        realData = column.name.split('.').reduce((o,i) => {
+                                            if (!o) {
+                                                return
+                                            }
+                                            return o[i];
+                                        }, row)
                                     }
                                     const data = realData ?? row[column.name];
                                     const isOverrided = overrides.filter((item) => item.name === column.name);

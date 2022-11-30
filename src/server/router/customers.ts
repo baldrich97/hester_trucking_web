@@ -5,7 +5,18 @@ import { CustomersModel } from '../../../prisma/zod';
 export const customersRouter = createRouter()
     .query("getAll", {
         async resolve({ctx}) {
-            return ctx.prisma.customers.findMany();
+            return ctx.prisma.customers.findMany({
+                where: {
+                    OR: [
+                        {
+                            Deleted: false
+                        },
+                        {
+                            Deleted: null
+                        }
+                    ],
+                }
+            });
         },
     })
     .query('get', {

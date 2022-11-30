@@ -5,7 +5,18 @@ import { LoadTypesModel } from '../../../prisma/zod';
 export const loadTypesRouter = createRouter()
     .query("getAll", {
         async resolve({ctx}) {
-            return ctx.prisma.loadTypes.findMany();
+            return ctx.prisma.loadTypes.findMany({
+                where: {
+                    OR: [
+                        {
+                            Deleted: false
+                        },
+                        {
+                            Deleted: null
+                        }
+                    ],
+                }
+            });
         },
     })
     .query('get', {

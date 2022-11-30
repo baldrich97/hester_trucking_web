@@ -5,7 +5,18 @@ import { TrucksModel } from '../../../prisma/zod';
 export const trucksRouter = createRouter()
     .query("getAll", {
         async resolve({ctx}) {
-            return ctx.prisma.trucks.findMany();
+            return ctx.prisma.trucks.findMany({
+                where: {
+                    OR: [
+                        {
+                            Deleted: false
+                        },
+                        {
+                            Deleted: null
+                        }
+                    ],
+                }
+            });
         },
     })
     .query('get', {

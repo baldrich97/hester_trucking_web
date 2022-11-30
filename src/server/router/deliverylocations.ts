@@ -5,7 +5,18 @@ import { DeliveryLocationsModel } from '../../../prisma/zod';
 export const deliveryLocationsRouter = createRouter()
     .query("getAll", {
         async resolve({ctx}) {
-            return ctx.prisma.deliveryLocations.findMany();
+            return ctx.prisma.deliveryLocations.findMany({
+                where: {
+                    OR: [
+                        {
+                            Deleted: false
+                        },
+                        {
+                            Deleted: null
+                        }
+                    ],
+                }
+            });
         },
     })
     .query('get', {
