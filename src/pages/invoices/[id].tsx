@@ -51,13 +51,23 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     const customers = await prisma.customers.findMany({});
 
-    const loads = await prisma.loads.findMany({});
+    const loads = await prisma.loads.findMany({
+        where: {
+            InvoiceID: initialInvoice.ID
+        },
+        include: {
+            LoadTypes: true,
+            DeliveryLocations: true,
+            Drivers: true,
+            Trucks: true
+        }
+    });
 
     return {
         props: {
-            initialInvoice,
+            initialInvoice: JSON.parse(JSON.stringify(initialInvoice)),
             customers,
-            loads
+            loads: JSON.parse(JSON.stringify(loads))
         }
     }
 }

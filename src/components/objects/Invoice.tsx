@@ -33,9 +33,9 @@ const defaultValues = {
 
 const Invoice = ({
                      customers,
-                     loads,
+                     loads = [],
                      initialInvoice = null
-                 }: { customers: CustomersType[], loads: LoadsType[], initialInvoice?: null | InvoicesType }) => {
+                 }: { customers: CustomersType[], loads?: LoadsType[], initialInvoice?: null | InvoicesType }) => {
 
     const [customer, setCustomer] = useState(0);
 
@@ -43,11 +43,15 @@ const Invoice = ({
 
     const [customerLoads, setCustomerLoads] = useState<any>([]);
 
-    const [selected, setSelected] = useState<any>([]);
+    const [selected, setSelected] = useState<any>(!initialInvoice ? [] : loads?.map((load) => load.ID.toString()));
 
     const router = useRouter();
 
-    const validationSchema = initialInvoice ? InvoicesModel : InvoicesModel.omit({ID: true})
+    let validationSchema = initialInvoice ? InvoicesModel : InvoicesModel.omit({ID: true})
+
+    validationSchema = validationSchema.extend({
+        selected: z.array(z.string())
+    })
 
     type ValidationSchema = z.infer<typeof validationSchema>;
 
@@ -55,6 +59,13 @@ const Invoice = ({
         resolver: zodResolver(validationSchema),
         defaultValues: initialInvoice ?? defaultValues
     });
+
+    if (initialInvoice) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        setValue('selected', selected);
+    }
+
     const key = initialInvoice ? 'invoices.post' : 'invoices.put';
 
     const addOrUpdateInvoice = trpc.useMutation(key, {
@@ -66,7 +77,6 @@ const Invoice = ({
     trpc.useQuery(['loads.getByCustomer', {customer}], {
         enabled: shouldFetchLoads,
         onSuccess(data) {
-            console.log(data)
             setCustomerLoads(data);
             setShouldFetchLoads(false);
         },
@@ -76,10 +86,13 @@ const Invoice = ({
     })
 
     const onSubmit = async (data: ValidationSchema) => {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         await addOrUpdateInvoice.mutateAsync(data)
         if (key === 'invoices.put') {
             await router.replace(router.asPath);
         }
+        setShouldFetchLoads(true);
     }
 
     React.useEffect(() => {
@@ -93,7 +106,7 @@ const Invoice = ({
         return () => subscription.unsubscribe();
     }, [watch]);
 
-    const fields1: FormFieldsType = [
+    const fields1: FormFieldsType = !initialInvoice ? [
         {
             name: 'CustomerID',
             size: 9,
@@ -103,12 +116,25 @@ const Invoice = ({
             type: 'select',
             label: 'Customer'
         },{name: 'Number', size: 3, required: false, type: 'textfield', number: true},
+    ] : [
+        {
+            name: 'CustomerID',
+            size: 6,
+            required: true,
+            shouldErrorOn: ['invalid_type'],
+            errorMessage: 'Customer is required.',
+            type: 'select',
+            label: 'Customer',
+            disabled: true
+        },
+        {name: 'Paid', size: 2, required: false, type: 'checkbox', disabled: true},
+        {name: 'Printed', size: 2, required: false, type: 'checkbox', disabled: true},{name: 'Number', size: 2, required: false, type: 'textfield', number: true},
     ];
 
     const fields2: FormFieldsType = [
         {
             name: 'TotalAmount',
-            size: 5,
+            size: !initialInvoice ? 5 : 2,
             required: true,
             shouldErrorOn: ['required', 'too_small'],
             errorMessage: 'Total amount is required.',
@@ -118,11 +144,12 @@ const Invoice = ({
         },
     ]
 
-    if (initialInvoice) {
-        fields2.push({name: 'PaidDate', size: 12, required: false, type: 'date', label: 'Paid Date'},
-            {name: 'CheckNumber', size: 6, required: false, type: 'textfield', label: 'Check Number'},
-            {name: 'PaymentType', size: 6, required: false, type: 'select', label: 'Payment Type'},{name: 'Paid', size: 6, required: false, type: 'checkbox'},
-            {name: 'Printed', size: 6, required: false, type: 'checkbox'})
+    if (initialInvoice && initialInvoice.Paid) {
+        fields2.push({name: 'PaidDate', size: 4, required: false, type: 'date', label: 'Paid Date'},
+            {name: 'CheckNumber', size: 3, required: false, type: 'textfield', label: 'Check Number'},
+            {name: 'PaymentType', size: 3, required: false, type: 'select', label: 'Payment Type'},)
+    } else {
+        fields2.push({name: '', size: 7, required: false, type: 'padding'})
     }
 
     const selectData: SelectDataType = [
@@ -167,6 +194,7 @@ const Invoice = ({
                         <RHSelect name={field.name} control={control} data={data} optionLabel={optionLabel}
                                   optionValue={optionValue} defaultValue={defaultValue ?? undefined}
                                   key={'form-' + index.toString() + '-' + field.name + '-field'} label={field.label}
+                                  disabled={field.disabled}
                             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                             // @ts-ignore
                                   shouldError={field.shouldErrorOn?.includes(errors[field.name]?.type)}
@@ -181,7 +209,7 @@ const Invoice = ({
                             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                             // @ts-ignore
                                       shouldError={field.shouldErrorOn?.includes(errors[field.name]?.type)}
-                                      errorMessage={field.errorMessage} label={field.label}/>
+                                      errorMessage={field.errorMessage} label={field.label} disabled={true}/>
                     </Grid2>
                 )
             }
@@ -197,6 +225,11 @@ const Invoice = ({
                     </Grid2>
                 )
             }
+            case "padding": {
+                return (
+                    <Grid2 xs={field.size} key={'form-' + index.toString() + '-padding'}></Grid2>
+                )
+            }
         }
     }
 
@@ -210,19 +243,39 @@ const Invoice = ({
                 paddingLeft: 2.5
             }}
         >
-            <Grid2 container columnSpacing={2} rowSpacing={2} justifyContent={'space-between'}>
+            <Grid2 container columnSpacing={2} rowSpacing={2} justifyContent={!initialInvoice ? 'space-between' : 'right'}>
                 {fields1.map((field, index) => renderFields(field, index))}
 
                 <Grid2 xs={12}>
-                    <InvoiceLoads rows={customerLoads} updateTotal={(newTotal: number) => {setValue('TotalAmount', newTotal)}} updateSelected={(newSelected: string[]) => {setSelected(newSelected)}}/>
+                    <InvoiceLoads readOnly={!!initialInvoice} rows={loads ?? customerLoads} updateTotal={(newTotal: number) => {setValue('TotalAmount', newTotal)}} updateSelected={(newSelected: string[]) => {
+                        setSelected(newSelected);
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-ignore
+                        setValue('selected', newSelected);
+                    }}/>
                 </Grid2>
 
                 {fields2.map((field, index) => renderFields(field, index))}
 
-                <Grid2 xs={3}>
+                {!initialInvoice && <Grid2 xs={3}>
                     <Button type={'submit'} variant={'contained'} color={'primary'}
                             style={{backgroundColor: '#1565C0'}} disabled={selected.length === 0}>Submit</Button>
-                </Grid2>
+                </Grid2>}
+
+                {initialInvoice && <>
+                    <Grid2 xs={1}>
+                        <Button variant={'contained'} color={'warning'}
+                                style={{backgroundColor: '#ffa726'}}>Print</Button>
+                    </Grid2>
+                    <Grid2 xs={1}>
+                        <Button variant={'contained'} color={'success'}
+                                style={{backgroundColor: '#66bb6a'}} disabled={!!initialInvoice.Paid}>Pay</Button>
+                    </Grid2>
+                    <Grid2 xs={1}>
+                        <Button type={'submit'} variant={'contained'} color={'primary'}
+                                style={{backgroundColor: '#1565C0'}}>Submit</Button>
+                    </Grid2>
+                </>}
             </Grid2>
         </Box>
     )

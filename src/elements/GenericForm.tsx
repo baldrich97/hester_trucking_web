@@ -61,6 +61,11 @@ const GenericForm = ({
                             </Grid2>
                         )
                     }
+                    case "padding": {
+                        return (
+                            <Grid2 xs={field.size} key={'form-' + index.toString() + '-padding'}></Grid2>
+                        )
+                    }
                 }
             })}
 

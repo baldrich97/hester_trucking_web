@@ -6,7 +6,7 @@ import FormHelperText from "@mui/material/FormHelperText"
 import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
 
-const RHSelect = ({ name, control, required = false, defaultValue = '', shouldError = false, errorMessage = '', label = name, data = [], optionLabel, optionValue}: {name: string, control: Control<any>, required?: boolean, defaultValue?: string | number, shouldError?: boolean, errorMessage?: string, label?: string, data: Array<any>, optionLabel: string, optionValue: string}) => {
+const RHSelect = ({ name, control, required = false, defaultValue = '', shouldError = false, errorMessage = '', label = name, data = [], optionLabel, optionValue, disabled = false}: {name: string, control: Control<any>, required?: boolean, defaultValue?: string | number, shouldError?: boolean, errorMessage?: string, label?: string, data: Array<any>, optionLabel: string, optionValue: string, disabled?: boolean}) => {
 
     const formatOptionLabel = (optionLabel: string, item: any): string => {
         let returnable = '';
@@ -38,7 +38,7 @@ const RHSelect = ({ name, control, required = false, defaultValue = '', shouldEr
                 rules={{required: required}}
                 defaultValue={defaultValue}
                 render={({ field }) => <FormControl fullWidth={true} error={shouldError} size={'small'}>
-                    <InputLabel id={label + "-label"}>{label}</InputLabel><Select {...field} label={label}>{data.map((item, key) => {return <MenuItem key={name + 'SelectOption-' + (key + Math.random()).toString()} value={item[optionValue]}>{formatOptionLabel(optionLabel, item)}</MenuItem>})}</Select>  {shouldError && <FormHelperText>{errorMessage}</FormHelperText>}
+                    <InputLabel id={label + "-label"}>{label}</InputLabel><Select {...field} label={label} disabled={disabled}>{data.map((item, key) => {return <MenuItem key={name + 'SelectOption-' + (key + Math.random()).toString()} value={item[optionValue]}>{formatOptionLabel(optionLabel, item)}</MenuItem>})}</Select>  {shouldError && <FormHelperText>{errorMessage}</FormHelperText>}
                 </FormControl>}
             />
 

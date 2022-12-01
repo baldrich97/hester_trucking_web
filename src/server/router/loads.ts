@@ -1,6 +1,6 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import { LoadsModel } from '../../../prisma/zod';
+import {LoadsModel} from '../../../prisma/zod';
 
 export const loadsRouter = createRouter()
     .query("getAll", {
@@ -86,21 +86,32 @@ export const loadsRouter = createRouter()
         async resolve({ctx, input}) {
             return ctx.prisma.loads.findMany({
                 where: {
-                    CustomerID: input.customer,
-                    OR: [
+                    AND: [
                         {
-                            Invoiced: false
+                            CustomerID: input.customer,
                         },
                         {
-                            Invoiced: null
+                            OR: [
+                                {
+                                    Deleted: false
+                                },
+                                {
+                                    Deleted: null
+                                }
+                            ]
                         },
                         {
-                            Deleted: false
-                        },
-                        {
-                            Deleted: null
+                            OR: [
+                                {
+                                    Invoiced: false
+                                },
+                                {
+                                    Invoiced: null
+                                }
+                            ]
                         }
-                    ],
+                    ]
+
                 },
                 include: {
                     LoadTypes: true,

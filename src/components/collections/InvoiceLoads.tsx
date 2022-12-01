@@ -118,10 +118,11 @@ interface EnhancedTableProps {
     order: Order;
     orderBy: string;
     rowCount: number;
+    readOnly: boolean;
 }
 
 function EnhancedTableHead(props: EnhancedTableProps) {
-    const { onSelectAllClick, order, orderBy, numSelected, rowCount, onRequestSort } =
+    const { onSelectAllClick, order, orderBy, numSelected, rowCount, onRequestSort, readOnly } =
         props;
     const createSortHandler =
         (property: keyof Data) => (event: React.MouseEvent<unknown>) => {
@@ -131,7 +132,7 @@ function EnhancedTableHead(props: EnhancedTableProps) {
     return (
         <TableHead>
             <TableRow>
-                <TableCell padding="checkbox" size={'small'}>
+                {!readOnly && <TableCell padding="checkbox" size={'small'}>
                     <Checkbox
                         color="primary"
                         indeterminate={numSelected > 0 && numSelected < rowCount}
@@ -141,12 +142,12 @@ function EnhancedTableHead(props: EnhancedTableProps) {
                             'aria-label': 'select all loads',
                         }}
                     />
-                </TableCell>
+                </TableCell>}
                 {headCells.map((headCell) => (
                     <TableCell
                         key={headCell.id}
                         align={headCell.numeric ? 'right' : 'left'}
-                        padding={headCell.disablePadding ? 'none' : 'normal'}
+                        padding={headCell.disablePadding && !readOnly ? 'none' : 'normal'}
                         sortDirection={orderBy === headCell.id ? order : false}
                         size={'small'}
                     >
@@ -171,10 +172,11 @@ function EnhancedTableHead(props: EnhancedTableProps) {
 
 interface EnhancedTableToolbarProps {
     numSelected: number;
+    readOnly: boolean;
 }
 
 function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
-    const { numSelected } = props;
+    const { numSelected, readOnly } = props;
 
     return (
         <Toolbar
@@ -203,15 +205,15 @@ function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
                     id="tableTitle"
                     component="div"
                 >
-                    Loads Available
+                    Loads {readOnly ? 'Included' : 'Available'}
                 </Typography>
             )}
         </Toolbar>
     );
 }
 
-function Row(props: { row: ReturnType<any>, labelId: string, isItemSelected: boolean, handleClick: any }) {
-    const { row, labelId, isItemSelected, handleClick } = props;
+function Row(props: { readOnly: boolean, row: ReturnType<any>, labelId: string, isItemSelected: boolean, handleClick: any }) {
+    const { readOnly, row, labelId, isItemSelected, handleClick } = props;
     const [open, setOpen] = React.useState(false);
 
     return (
@@ -224,7 +226,7 @@ function Row(props: { row: ReturnType<any>, labelId: string, isItemSelected: boo
                 key={Math.random().toString()}
                 selected={isItemSelected}
             >
-                <TableCell padding="checkbox" size={'small'}>
+                {!readOnly && <TableCell padding="checkbox" size={'small'}>
                     <Checkbox
                         color="primary"
                         checked={isItemSelected}
@@ -233,12 +235,12 @@ function Row(props: { row: ReturnType<any>, labelId: string, isItemSelected: boo
                         }}
                         onClick={(event) => handleClick(event, row.ID.toString(), row.TotalAmount)}
                     />
-                </TableCell>
+                </TableCell>}
                 <TableCell
                     component="th"
                     id={labelId}
                     scope="row"
-                    padding="none"
+                    padding={!readOnly ? "none" : 'normal'}
                     size={'small'}
                 >
                     {row.TicketNumber}
@@ -289,7 +291,7 @@ function Row(props: { row: ReturnType<any>, labelId: string, isItemSelected: boo
     );
 }
 
-export default function InvoiceLoads({rows, updateTotal, updateSelected}: {rows: any[], updateTotal: any, updateSelected: any}) {
+export default function InvoiceLoads({readOnly, rows, updateTotal, updateSelected}: {readOnly: boolean, rows: any[], updateTotal: any, updateSelected: any}) {
     const [order, setOrder] = React.useState<Order>('asc');
     const [orderBy, setOrderBy] = React.useState<keyof Data>('TicketNumber');
     const [selected, setSelected] = React.useState<readonly string[]>([]);
@@ -355,7 +357,7 @@ export default function InvoiceLoads({rows, updateTotal, updateSelected}: {rows:
     return (
         <Box sx={{ width: '100%' }}>
             <Paper sx={{ width: '100%', mb: 2 }}>
-                <EnhancedTableToolbar numSelected={selected.length} />
+                <EnhancedTableToolbar numSelected={selected.length} readOnly />
                 <TableContainer>
                     <Table
                         aria-labelledby="tableTitle"
@@ -369,6 +371,7 @@ export default function InvoiceLoads({rows, updateTotal, updateSelected}: {rows:
                             onSelectAllClick={handleSelectAllClick}
                             onRequestSort={handleRequestSort}
                             rowCount={rows.length}
+                            readOnly={readOnly}
                         />
                         <TableBody>
                             {rows.sort(getComparator(order, orderBy))
@@ -377,7 +380,7 @@ export default function InvoiceLoads({rows, updateTotal, updateSelected}: {rows:
                                     const labelId = `enhanced-table-checkbox-${index}`;
 
                                     return (
-                                        <Row key={row.ID.toString()} row={row} isItemSelected={isItemSelected} labelId={labelId} handleClick={handleClick}/>
+                                        <Row key={row.ID.toString()} readOnly={readOnly} row={row} isItemSelected={isItemSelected} labelId={labelId} handleClick={handleClick}/>
                                     );
                                 })}
                         </TableBody>

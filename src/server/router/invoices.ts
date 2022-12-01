@@ -74,19 +74,34 @@ export const invoicesRouter = createRouter()
     // })
     .mutation('put', {
         // validate input with Zod
-        input: InvoicesModel.omit({ID: true, Deleted: true}),
+        input: InvoicesModel.omit({ID: true, Deleted: true}).extend({selected: z.array(z.string())}),
         async resolve({ctx, input}) {
             // use your ORM of choice
-            return ctx.prisma.invoices.create({
-                data: input
+            const {selected, ...rest} = input;
+            const returnable = await ctx.prisma.invoices.create({
+                data: rest
             })
+
+            for (const loadPkey of selected) {
+                await ctx.prisma.loads.update({
+                    where: {
+                        ID: parseInt(loadPkey)
+                    },
+                    data: {
+                        Invoiced: true,
+                        InvoiceID: returnable.ID
+                    }
+                })
+            }
+
+            return returnable;
         },
     })
     .mutation('post', {
         // validate input with Zod
-        input: InvoicesModel,
+        input: InvoicesModel.extend({selected: z.array(z.string())}),
         async resolve({ctx, input}) {
-            const {ID, ...data} = input;
+            const {ID, selected, ...data} = input;
             // use your ORM of choice
             return ctx.prisma.invoices.update({
                 where: {
