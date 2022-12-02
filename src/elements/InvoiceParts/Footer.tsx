@@ -38,14 +38,14 @@ const styles = StyleSheet.create({
 
 const Footer = ({invoiceDate, invoiceNumber, customer, total}: {invoiceDate: string, invoiceNumber: string, customer: CompleteCustomers, total: number}) => (
     <View style={styles.container}>
-        <Text style={{fontStyle: 'italic', ...styles.textLarge}}>Detach here and return with payment - Thank you for your business!</Text>
+        <Text style={{...styles.textLarge}}>Detach here and return with payment - Thank you for your business!</Text>
         <br/>
         <View style={styles.body}>
             <View style={{width: '100%', flexDirection: 'column', display: 'flex'}}>
                 <Text style={{textAlign: 'left', ...styles.textMedium}}>Invoice Date: {invoiceDate}</Text>
                 <Text style={{textAlign: 'left', ...styles.text}}>Bill To: {customer.Name}</Text>
-                <Text style={{textAlign: 'left', paddingLeft: '5.8rem', ...styles.text}}>{customer.Street}</Text>
-                <Text style={{textAlign: 'left', paddingLeft: '5.8rem', ...styles.text}}>{customer.City}, {customer.States.Abbreviation} {customer.ZIP}</Text>
+                <Text style={{textAlign: 'left', paddingLeft: '3.6rem', ...styles.text}}>{customer.Street}</Text>
+                <Text style={{textAlign: 'left', paddingLeft: '3.6rem', ...styles.text}}>{customer.City}, {customer.States.Abbreviation} {customer.ZIP}</Text>
                 <br/>
                 <Text style={{textAlign: 'left', ...styles.textLarge}}>Payment Due: ${total}</Text>
             </View>
@@ -53,8 +53,8 @@ const Footer = ({invoiceDate, invoiceNumber, customer, total}: {invoiceDate: str
             <View style={{width: '100%', flexDirection: 'column', display: 'flex'}}>
                 <Text style={{textAlign: 'right', ...styles.textMedium}}>Invoice Number: {invoiceNumber}</Text>
                 <Text style={{textAlign: 'right', paddingRight: '3rem', ...styles.text}}>Make Payment To: Hester Trucking, Inc.</Text>
-                <Text style={{textAlign: 'right', paddingRight: '3rem', paddingLeft: '5.8rem', ...styles.text}}>9570 Hwy 51</Text>
-                <Text style={{textAlign: 'right', paddingRight: '3rem', paddingLeft: '5.8rem', ...styles.text}}>Broseley, MO 63932</Text>
+                <Text style={{textAlign: 'right', paddingRight: '6.9rem', ...styles.text}}>9570 Hwy 51</Text>
+                <Text style={{textAlign: 'right', paddingRight: '3.4rem', ...styles.text}}>Broseley, MO 63932</Text>
                 <br/>
                 <View style={{flexDirection: 'row', display: 'flex', width: '100%', justifyContent: 'flex-end'}}>
                     <Text style={styles.textLarge}>Amount Enclosed:&nbsp;&nbsp;</Text>

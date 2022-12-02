@@ -11,7 +11,8 @@ const Home = ({invoice}: {invoice: CompleteInvoices}) => {
         <>
             Dashboard coming soon...
             <br/>
-                <InvoicePrintableBasic invoice={invoice}/>
+                {/*<InvoicePrintableBasic invoice={invoice}/>*/}
+            {/*<a href="/api/getPDF">Download PDF</a>*/}
             <br/>
             Please feel free to check out the other pages!
         </>

@@ -357,7 +357,7 @@ export default function InvoiceLoads({readOnly, rows, updateTotal, updateSelecte
     return (
         <Box sx={{ width: '100%' }}>
             <Paper sx={{ width: '100%', mb: 2 }}>
-                <EnhancedTableToolbar numSelected={selected.length} readOnly />
+                <EnhancedTableToolbar numSelected={selected.length} readOnly={readOnly} />
                 <TableContainer>
                     <Table
                         aria-labelledby="tableTitle"

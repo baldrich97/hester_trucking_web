@@ -99,6 +99,7 @@ const Invoice = ({
         const subscription = watch((value, {name, type}) => {
             if (['CustomerID'].includes(name ?? '') && type === 'change') {
                 const customerID = value.CustomerID ?? 0;
+                console.log(customerID)
                 setCustomer(customerID);
                 setShouldFetchLoads(true);
             }
@@ -247,7 +248,7 @@ const Invoice = ({
                 {fields1.map((field, index) => renderFields(field, index))}
 
                 <Grid2 xs={12}>
-                    <InvoiceLoads readOnly={!!initialInvoice} rows={loads ?? customerLoads} updateTotal={(newTotal: number) => {setValue('TotalAmount', newTotal)}} updateSelected={(newSelected: string[]) => {
+                    <InvoiceLoads readOnly={!!initialInvoice} rows={loads.length > 0 ? loads : customerLoads} updateTotal={(newTotal: number) => {setValue('TotalAmount', newTotal)}} updateSelected={(newSelected: string[]) => {
                         setSelected(newSelected);
                         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                         // @ts-ignore

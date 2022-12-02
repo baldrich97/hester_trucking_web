@@ -1,7 +1,11 @@
 import React from 'react';
-import { Page, Document, StyleSheet } from '@react-pdf/renderer';
+import { Page, Document, StyleSheet, Font } from '@react-pdf/renderer';
 import {CompleteInvoices} from "../../../prisma/zod";
 import InvoiceParts from "../../elements/InvoiceParts"
+
+Font.register({family: 'Arimo', fonts: [
+        {src: "../../asset/Arimo/Arimo-Bold.ttf", fontWeight: 'bold', fontStyle: 'normal'}
+    ]});
 
 const styles = StyleSheet.create({
     page: {
@@ -15,7 +19,7 @@ const styles = StyleSheet.create({
     }
 });
 
-const InvoicePrintableBasix = ({invoice} : {invoice: CompleteInvoices}) => {
+const InvoicePrintableBasic = ({invoice} : {invoice: CompleteInvoices}) => {
     const total = invoice.Loads.reduce((acc, obj) => {return acc + (obj.TotalAmount ? obj.TotalAmount : 0)}, 0)
     return (
         <Document>
@@ -37,4 +41,4 @@ const InvoicePrintableBasix = ({invoice} : {invoice: CompleteInvoices}) => {
     )
 }
 
-export default InvoicePrintableBasix;
+export default InvoicePrintableBasic;

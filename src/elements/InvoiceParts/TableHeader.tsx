@@ -38,10 +38,10 @@ const TableHeader = () => (
         <Text style={{width: '15rem', textAlign: 'left', ...styles.padding, ...styles.text}}>Truck</Text>
         <Text style={{width: '25rem', textAlign: 'left', ...styles.padding, ...styles.text}}>Material</Text>
         <Text style={{width: '35rem', textAlign: 'left', ...styles.padding, ...styles.text}}>Location</Text>
-        <Text style={{width: '5rem', textAlign: 'right', ...styles.padding, ...styles.text}}>Weight</Text>
-        <Text style={{width: '5rem', textAlign: 'right', ...styles.padding, ...styles.text}}>Hours</Text>
-        <Text style={{width: '5rem', textAlign: 'right', ...styles.padding, ...styles.text}}>Rate</Text>
-        <Text style={{width: '5rem', textAlign: 'right', ...styles.text}}>Total</Text>
+        <Text style={{width: '5rem', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>Weight</Text>
+        <Text style={{width: '5rem', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>Hours</Text>
+        <Text style={{width: '5rem', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>Rate</Text>
+        <Text style={{width: '5rem', textAlign: 'right', ...styles.text, paddingRight: 5}}>Total</Text>
     </View>
 )
 

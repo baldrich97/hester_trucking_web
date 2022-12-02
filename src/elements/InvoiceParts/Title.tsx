@@ -10,7 +10,6 @@ const styles = StyleSheet.create({
         color: 'black',
         letterSpacing: 0,
         fontSize: 30,
-        fontWeight: 'bold',
     },
     subtitle:{
         color: 'black',

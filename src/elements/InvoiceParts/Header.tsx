@@ -32,8 +32,8 @@ const Header = ({invoiceDate, invoiceNumber, customer}: {invoiceDate: string, in
         </View>
         <br/>
         <Text style={{textAlign: 'left', ...styles.text}}>Bill To: {customer.Name}</Text>
-        <Text style={{textAlign: 'left', paddingLeft: '5.8rem', ...styles.text}}>{customer.Street}</Text>
-        <Text style={{textAlign: 'left', paddingLeft: '5.8rem', ...styles.text}}>{customer.City}, {customer.States.Abbreviation} {customer.ZIP}</Text>
+        <Text style={{textAlign: 'left', paddingLeft: '3.6rem', ...styles.text}}>{customer.Street}</Text>
+        <Text style={{textAlign: 'left', paddingLeft: '3.6rem', ...styles.text}}>{customer.City}, {customer.States.Abbreviation} {customer.ZIP}</Text>
     </View>
 )
 
