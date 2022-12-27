@@ -162,7 +162,7 @@ model TrucksDriven {
   ID         Int      @id @default(autoincrement())
   TruckID    Int
   DriverID   Int
-  DateDriven DateTime @db.Date @db.Date /// @zod.custom(imports.parseDate)
+  DateDriven DateTime @db.Date /// @zod.custom(imports.parseDate)
   Drivers    Drivers  @relation(fields: [DriverID], references: [ID], onUpdate: Restrict, map: "FK_TrucksDriven_Driver")
   Trucks     Trucks   @relation(fields: [TruckID], references: [ID], onUpdate: Restrict, map: "FK_TrucksDriven_Truck")
 
