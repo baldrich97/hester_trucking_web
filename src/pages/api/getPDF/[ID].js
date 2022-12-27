@@ -7,7 +7,6 @@ import {renderToStream} from "@react-pdf/renderer";
 const pipeline = promisify(stream.pipeline);
 
 const handler = async (req, res) => {
-    console.log(req.query)
     const { ID } = req.query;
 
     if (!ID) {

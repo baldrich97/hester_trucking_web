@@ -7,7 +7,7 @@ export const InvoicesModel = z.object({
   ID: z.number().int(),
   InvoiceDate: imports.parseDate,
   Number: z.number().int().nullish(),
-  CustomerID: imports.isNumber.int().min(1),
+  CustomerID: z.number().int().min(1),
   TotalAmount: z.number().min(1),
   PaidDate: imports.parseDate.nullish(),
   CheckNumber: z.string().nullish(),
