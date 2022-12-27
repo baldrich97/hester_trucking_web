@@ -8,15 +8,13 @@ import ReactDOMServer from 'react-dom/server';
 Font.register({
     family: 'Nunito',
     fonts: [
-        { src: 'https://fonts.googleapis.com/css2?family=Nunito:ital,wght@1,300&display=swap', fontWeight: 300, fontStyle: 'italic'},
-        { src: 'https://fonts.googleapis.com/css2?family=Nunito:wght@500&display=swap', fontWeight: 500}
+        { src: 'https://fonts.gstatic.com/s/nunito/v8/kpI87QY2ce-mk2ZnKb-r0g.ttf'},
+        { src: 'https://fonts.gstatic.com/s/nunito/v8/B4-BGlpEzQ4WP-D3Zi0PRQ.ttf', fontWeight: 600}
     ],
 })
 const styles = StyleSheet.create({
     page: {
-        fontFamily: 'Nunito',
         lineHeight: 1.5,
-        fontWeight: 400,
         flexDirection: 'column',
         display: 'flex',
         alignItems: 'center',
