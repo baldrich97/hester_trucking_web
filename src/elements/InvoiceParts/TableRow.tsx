@@ -9,23 +9,23 @@ const styles = StyleSheet.create({
         width: '100%',
         display: 'flex',
         justifyContent: 'space-between',
-        outlineStyle: 'solid',
-        outlineWidth: 'medium',
-        outlineColor: 'grey',
+        borderStyle: 'solid',
+        borderWidth: 2,
+        borderColor: 'grey',
     },
     text: {
         color: 'black',
         letterSpacing: 0,
-        fontSize: 16,
+        fontSize: 8,
     },
     leftAlignNoPadding: {
         textAlign: 'left',
-        borderRight: 3,
+        borderRight: 2,
         borderRightStyle: 'solid',
         borderRightColor: 'grey',
     },
     padding: {
-        borderRight: 3,
+        borderRight: 2,
         borderRightStyle: 'solid',
         borderRightColor: 'grey',
         paddingLeft: 5,
@@ -35,14 +35,14 @@ const styles = StyleSheet.create({
 
 const TableRow = ({load}: {load: CompleteLoads}) => (
     <View style={styles.container}>
-        <Text style={{width: '8rem', ...styles.leftAlignNoPadding, ...styles.text}}>{new Date(load.StartDate).toLocaleDateString()}</Text>
-        <Text style={{width: '15rem', textAlign: 'left', ...styles.padding, ...styles.text}}>{load.Trucks?.Notes ?? 'N/A'}</Text>
-        <Text style={{width: '25rem', textAlign: 'left', ...styles.padding, ...styles.text}}>{load.LoadTypes?.Description ?? 'N/A'}</Text>
-        <Text style={{width: '35rem', textAlign: 'left', ...styles.padding, ...styles.text}}>{load.DeliveryLocations?.Description ?? 'N/A'}</Text>
-        <Text style={{width: '5rem', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.Weight?.toString()}</Text>
-        <Text style={{width: '5rem', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.Hours?.toString()}</Text>
-        <Text style={{width: '5rem', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.TotalRate?.toString()}</Text>
-        <Text style={{width: '5rem', textAlign: 'right', ...styles.text, paddingRight: 5}}>{load.TotalAmount?.toString()}</Text>
+        <Text style={{width: '10%', ...styles.leftAlignNoPadding, ...styles.text}}>{new Date(load.StartDate).toLocaleDateString()}</Text>
+        <Text style={{width: '10%', textAlign: 'left', ...styles.padding, ...styles.text}}>{load.Trucks?.Notes ?? 'N/A'}</Text>
+        <Text style={{width: '25%', textAlign: 'left', ...styles.padding, ...styles.text}}>{load.LoadTypes?.Description ?? 'N/A'}</Text>
+        <Text style={{width: '32%', textAlign: 'left', ...styles.padding, ...styles.text}}>{load.DeliveryLocations?.Description ?? 'N/A'}</Text>
+        <Text style={{width: '8%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.Weight?.toString()}</Text>
+        <Text style={{width: '5%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.Hours?.toString()}</Text>
+        <Text style={{width: '5%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.TotalRate?.toString()}</Text>
+        <Text style={{width: '5%', textAlign: 'right', ...styles.text, paddingRight: 5}}>{load.TotalAmount?.toString()}</Text>
     </View>
 )
 

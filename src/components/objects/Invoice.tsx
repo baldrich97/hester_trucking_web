@@ -79,6 +79,7 @@ const Invoice = ({
         onSuccess(data) {
             setCustomerLoads(data);
             setShouldFetchLoads(false);
+            setValue('TotalAmount', 0)
         },
         onError(error) {
             console.warn(error);
@@ -99,7 +100,6 @@ const Invoice = ({
         const subscription = watch((value, {name, type}) => {
             if (['CustomerID'].includes(name ?? '') && type === 'change') {
                 const customerID = value.CustomerID ?? 0;
-                console.log(customerID)
                 setCustomer(customerID);
                 setShouldFetchLoads(true);
             }
@@ -116,7 +116,7 @@ const Invoice = ({
             errorMessage: 'Customer is required.',
             type: 'select',
             label: 'Customer'
-        },{name: 'Number', size: 3, required: false, type: 'textfield', number: true},
+        }, {name: 'Number', size: 3, required: false, type: 'textfield', number: true},
     ] : [
         {
             name: 'CustomerID',
@@ -129,7 +129,13 @@ const Invoice = ({
             disabled: true
         },
         {name: 'Paid', size: 2, required: false, type: 'checkbox', disabled: true},
-        {name: 'Printed', size: 2, required: false, type: 'checkbox', disabled: true},{name: 'Number', size: 2, required: false, type: 'textfield', number: true},
+        {name: 'Printed', size: 2, required: false, type: 'checkbox', disabled: true}, {
+            name: 'Number',
+            size: 2,
+            required: false,
+            type: 'textfield',
+            number: true
+        },
     ];
 
     const fields2: FormFieldsType = [
@@ -244,11 +250,15 @@ const Invoice = ({
                 paddingLeft: 2.5
             }}
         >
-            <Grid2 container columnSpacing={2} rowSpacing={2} justifyContent={!initialInvoice ? 'space-between' : 'right'}>
+            <Grid2 container columnSpacing={2} rowSpacing={2}
+                   justifyContent={!initialInvoice ? 'space-between' : 'right'}>
                 {fields1.map((field, index) => renderFields(field, index))}
 
                 <Grid2 xs={12}>
-                    <InvoiceLoads readOnly={!!initialInvoice} rows={loads.length > 0 ? loads : customerLoads} updateTotal={(newTotal: number) => {setValue('TotalAmount', newTotal)}} updateSelected={(newSelected: string[]) => {
+                    <InvoiceLoads readOnly={!!initialInvoice} rows={loads.length > 0 ? loads : customerLoads}
+                                  updateTotal={(newTotal: number) => {
+                                      setValue('TotalAmount', newTotal)
+                                  }} updateSelected={(newSelected: string[]) => {
                         setSelected(newSelected);
                         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                         // @ts-ignore
@@ -266,7 +276,14 @@ const Invoice = ({
                 {initialInvoice && <>
                     <Grid2 xs={1}>
                         <Button variant={'contained'} color={'warning'}
-                                style={{backgroundColor: '#ffa726'}}>Print</Button>
+                                style={{backgroundColor: '#ffa726'}} onClick={() => {
+                            const element = document.createElement("a");
+                            element.href = "/api/getPDF/" + initialInvoice.ID?.toString();
+                            element.download = 'invoice-download.pdf';
+                            document.body.appendChild(element);
+                            element.click();
+                            document.body.removeChild(element);
+                        }}>Print</Button>
                     </Grid2>
                     <Grid2 xs={1}>
                         <Button variant={'contained'} color={'success'}

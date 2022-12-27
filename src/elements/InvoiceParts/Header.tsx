@@ -7,13 +7,12 @@ const styles = StyleSheet.create({
     container:{
         flexDirection: 'column',
         width: '100%',
-        display: 'flex'
+        display: 'flex',
     },
     text:{
         color: 'black',
         letterSpacing: 0,
-        fontSize: 16,
-        fontWeight: 550,
+        fontSize: 12,
     },
     firstLine:{
         flexDirection: 'row',
@@ -32,8 +31,8 @@ const Header = ({invoiceDate, invoiceNumber, customer}: {invoiceDate: string, in
         </View>
         <br/>
         <Text style={{textAlign: 'left', ...styles.text}}>Bill To: {customer.Name}</Text>
-        <Text style={{textAlign: 'left', paddingLeft: '3.6rem', ...styles.text}}>{customer.Street}</Text>
-        <Text style={{textAlign: 'left', paddingLeft: '3.6rem', ...styles.text}}>{customer.City}, {customer.States.Abbreviation} {customer.ZIP}</Text>
+        <Text style={{textAlign: 'left', paddingLeft: 38, ...styles.text}}>{customer.Street}</Text>
+        <Text style={{textAlign: 'left', paddingLeft: 38, ...styles.text}}>{customer.City}, {customer.States.Abbreviation} {customer.ZIP}</Text>
     </View>
 )
 

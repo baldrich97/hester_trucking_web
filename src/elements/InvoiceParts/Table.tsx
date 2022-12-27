@@ -22,7 +22,9 @@ const Table = ({loads, total}: {loads: CompleteLoads[], total: number}) => {
             <TableHeader/>
             {loads.map((load, index) =>
                 (
-                    <TableRow load={load} key={'invoice-row-' + index.toString()}/>
+                    <View key={'invoice-row-' + index.toString()} style={{top: '-7px'}}>
+                        <TableRow load={load}/>
+                    </View>
                 )
             )}
             <TableFooter total={total}/>

@@ -1,18 +1,10 @@
-import InvoicePrintableBasic from "../components/objects/InvoicePrintableBasic";
-import {CompleteInvoices} from "../../prisma/zod";
-import {GetServerSideProps} from "next";
-import {prisma} from "../server/db/client";
 
-const Home = ({invoice}: {invoice: CompleteInvoices}) => {
-
-    console.log(invoice)
-
+const Home = () => {
     return (
         <>
             Dashboard coming soon...
             <br/>
-                {/*<InvoicePrintableBasic invoice={invoice}/>*/}
-            {/*<a href="/api/getPDF">Download PDF</a>*/}
+            <a href="/api/getPDF/3">Download PDF</a>
             <br/>
             Please feel free to check out the other pages!
         </>
@@ -20,32 +12,3 @@ const Home = ({invoice}: {invoice: CompleteInvoices}) => {
 };
 
 export default Home;
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-    const invoice = await prisma.invoices.findFirst({
-        where: {
-          ID: 3
-        },
-        include: {
-            Customers: {
-                include: {
-                    States: true
-                }
-            },
-            Loads: {
-               include: {
-                   LoadTypes: true,
-                   Trucks: true,
-                   Drivers: true,
-                   DeliveryLocations: true
-               }
-            },
-        }
-    })
-
-    return {
-        props: {
-           invoice: JSON.parse(JSON.stringify(invoice))
-        }
-    }
-}

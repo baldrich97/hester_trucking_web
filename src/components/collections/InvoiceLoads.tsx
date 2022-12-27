@@ -297,6 +297,11 @@ export default function InvoiceLoads({readOnly, rows, updateTotal, updateSelecte
     const [selected, setSelected] = React.useState<readonly string[]>([]);
     const [total, setTotal] = React.useState<number>(0);
 
+    React.useEffect(() => {
+      setSelected([]);
+      setTotal(0)
+    }, [rows])
+
     const handleRequestSort = (
         event: React.MouseEvent<unknown>,
         property: keyof Data,

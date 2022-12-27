@@ -1,21 +1,22 @@
 import { promisify } from "util";
 import stream from 'stream';
-import InvoicePrintableBasic from "../../components/objects/InvoicePrintableBasic";
-import {prisma} from "../../server/db/client";
+import InvoicePrintableBasic from "../../../components/objects/InvoicePrintableBasic";
+import {prisma} from "../../../server/db/client";
 import {renderToStream} from "@react-pdf/renderer";
 
 const pipeline = promisify(stream.pipeline);
 
 const handler = async (req, res) => {
-    // const { ID } = req.query;
-    //
-    // if (!ID) {
-    //     return;
-    // }
+    console.log(req.query)
+    const { ID } = req.query;
+
+    if (!ID) {
+        return;
+    }
 
     const invoice = await prisma.invoices.findFirst({
         where: {
-            ID: 3
+            ID: parseInt(ID)
         },
         include: {
             Customers: {
@@ -34,12 +35,10 @@ const handler = async (req, res) => {
         }
     })
 
-    console.log('HERE')
-    console.log(invoice)
-
     const stream = await renderToStream(<InvoicePrintableBasic invoice={invoice}/>)
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename=test.pdf');
+    const filename = "Invoice-" + ID;
+    res.setHeader('Content-Disposition', `attachment; filename=${filename}.pdf`);
     await pipeline(stream, res);
 };
 

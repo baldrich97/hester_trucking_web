@@ -108,10 +108,11 @@ model Invoices {
   InvoiceDate DateTime              @db.Date /// @zod.custom(imports.parseDate)
   Number      Int?
   /// @zod.min(1)
+  /// @zod.custom(imports.isNumber)
   CustomerID  Int
   /// @zod.min(1)
   TotalAmount Float
-  PaidDate    DateTime?             @db.Date
+  PaidDate    DateTime?             @db.Date /// @zod.custom(imports.parseDate)
   CheckNumber String?               @db.VarChar(255)
   Paid        Boolean?
   Printed     Boolean?
@@ -161,7 +162,7 @@ model TrucksDriven {
   ID         Int      @id @default(autoincrement())
   TruckID    Int
   DriverID   Int
-  DateDriven DateTime @db.Date
+  DateDriven DateTime @db.Date @db.Date /// @zod.custom(imports.parseDate)
   Drivers    Drivers  @relation(fields: [DriverID], references: [ID], onUpdate: Restrict, map: "FK_TrucksDriven_Driver")
   Trucks     Trucks   @relation(fields: [TruckID], references: [ID], onUpdate: Restrict, map: "FK_TrucksDriven_Truck")
 

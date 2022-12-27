@@ -13,13 +13,13 @@ const styles = StyleSheet.create({
         color: 'black',
         letterSpacing: 0,
         fontSize: 14,
-        fontWeight: 800
+        fontWeight: 600
     },
     textLarge:{
         color: 'black',
         letterSpacing: 0,
         fontSize: 16,
-        fontWeight: 900
+        fontWeight: 600
     },
 });
 
