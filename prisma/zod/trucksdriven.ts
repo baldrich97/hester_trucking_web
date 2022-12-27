@@ -6,7 +6,7 @@ export const TrucksDrivenModel = z.object({
   ID: z.number().int(),
   TruckID: z.number().int(),
   DriverID: z.number().int(),
-  DateDriven: z.date(),
+  DateDriven: imports.parseDate,
 })
 
 export interface CompleteTrucksDriven extends z.infer<typeof TrucksDrivenModel> {
