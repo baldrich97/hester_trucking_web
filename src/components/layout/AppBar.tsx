@@ -60,13 +60,13 @@ function AppBar(props: any) {
                     noWrap
                     sx={{flexGrow: 1}}
                 >
-                    Dashboard
+                    Hester Trucking Inc.
                 </Typography>
-                <IconButton color="inherit">
+                {/*<IconButton color="inherit">
                     <Badge badgeContent={4} color="secondary">
                         <NotificationsIcon/>
                     </Badge>
-                </IconButton>
+                </IconButton>*/}
             </Toolbar>
         </AppBarContent>
     )

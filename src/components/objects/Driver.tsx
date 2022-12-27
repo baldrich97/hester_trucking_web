@@ -7,6 +7,7 @@ import { DriversModel, StatesModel } from '../../../prisma/zod';
 import {trpc} from "../../utils/trpc";
 import { useRouter } from 'next/router';
 import GenericForm from '../../elements/GenericForm'
+import { toast } from "react-toastify";
 
 type StatesType = z.infer<typeof StatesModel>;
 type DriversType = z.infer<typeof DriversModel>;
@@ -45,11 +46,13 @@ const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDr
 
     const addOrUpdateDriver = trpc.useMutation(key, {
         async onSuccess(data) {
+            toast('Successfully Submitted!', {autoClose: 2000, type: 'success'})
             reset(initialDriver ? data : defaultValues)
         }
     })
 
-    const onSubmit = async (data: ValidationSchema) => {
+   const onSubmit = async (data: ValidationSchema) => {
+        toast('Submitting...', {autoClose: 2000, type: 'info'})
         await addOrUpdateDriver.mutateAsync(data)
         if (key === 'drivers.put') {
             await router.replace(router.asPath);

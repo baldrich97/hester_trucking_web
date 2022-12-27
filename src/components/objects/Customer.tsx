@@ -7,6 +7,7 @@ import { CustomersModel, StatesModel } from '../../../prisma/zod';
 import {trpc} from "../../utils/trpc";
 import { useRouter } from 'next/router';
 import GenericForm from '../../elements/GenericForm'
+import { toast } from "react-toastify";
 
 type StatesType = z.infer<typeof StatesModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
@@ -41,11 +42,13 @@ const Customer = ({states, initialCustomer = null}: {states: StatesType[], initi
 
     const addOrUpdateCustomer = trpc.useMutation(key, {
         async onSuccess(data) {
+            toast('Successfully Submitted!', {autoClose: 2000, type: 'success'})
             reset(initialCustomer ? data : defaultValues)
         }
     })
 
-    const onSubmit = async (data: ValidationSchema) => {
+   const onSubmit = async (data: ValidationSchema) => {
+        toast('Submitting...', {autoClose: 2000, type: 'info'})
         await addOrUpdateCustomer.mutateAsync(data)
         if (key === 'customers.put') {
             await router.replace(router.asPath);

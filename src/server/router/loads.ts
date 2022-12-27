@@ -110,7 +110,12 @@ export const loadsRouter = createRouter()
                                 }
                             ]
                         }
-                    ]
+                    ],
+                    NOT: {
+                        DriverID: 0,
+                        DeliveryLocationID: 0,
+                        TruckID: 0
+                    }
 
                 },
                 include: {

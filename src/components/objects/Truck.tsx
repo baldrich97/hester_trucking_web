@@ -7,6 +7,7 @@ import { TrucksModel } from '../../../prisma/zod';
 import {trpc} from "../../utils/trpc";
 import { useRouter } from 'next/router';
 import GenericForm from '../../elements/GenericForm'
+import { toast } from "react-toastify";
 
 type TrucksType = z.infer<typeof TrucksModel>;
 import {FormFieldsType} from "../../utils/types";
@@ -34,11 +35,13 @@ const Truck = ({initialTruck = null}: {initialTruck?: null | TrucksType}) => {
 
     const addOrUpdateTruck = trpc.useMutation(key, {
         async onSuccess(data) {
+            toast('Successfully Submitted!', {autoClose: 2000, type: 'success'})
             reset(initialTruck ? data : defaultValues)
         }
     })
 
-    const onSubmit = async (data: ValidationSchema) => {
+   const onSubmit = async (data: ValidationSchema) => {
+        toast('Submitting...', {autoClose: 2000, type: 'info'})
         await addOrUpdateTruck.mutateAsync(data)
         if (key === 'trucks.put') {
             await router.replace(router.asPath);

@@ -7,6 +7,7 @@ import { DeliveryLocationsModel } from '../../../prisma/zod';
 import {trpc} from "../../utils/trpc";
 import { useRouter } from 'next/router';
 import GenericForm from '../../elements/GenericForm'
+import { toast } from "react-toastify";
 
 type DeliveryLocationsType = z.infer<typeof DeliveryLocationsModel>;
 import {FormFieldsType} from "../../utils/types";
@@ -32,11 +33,13 @@ const DeliveryLocation = ({initialDeliveryLocation = null}: {initialDeliveryLoca
 
     const addOrUpdateDeliveryLocation = trpc.useMutation(key, {
         async onSuccess(data) {
+            toast('Successfully Submitted!', {autoClose: 2000, type: 'success'})
             reset(initialDeliveryLocation ? data : defaultValues)
         }
     })
 
-    const onSubmit = async (data: ValidationSchema) => {
+   const onSubmit = async (data: ValidationSchema) => {
+        toast('Submitting...', {autoClose: 2000, type: 'info'})
         await addOrUpdateDeliveryLocation.mutateAsync(data)
         if (key === 'deliverylocations.put') {
             await router.replace(router.asPath);

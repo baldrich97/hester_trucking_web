@@ -21,6 +21,7 @@ import FormControl from "@mui/material/FormControl"
 import InputLabel from "@mui/material/InputLabel"
 import Button from "@mui/material/Button";
 import InvoiceLoads from "../collections/InvoiceLoads";
+import { toast } from "react-toastify";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
@@ -92,18 +93,21 @@ const Invoice = ({
     const addOrUpdateInvoice = trpc.useMutation(key, {
         async onSuccess(data) {
             reset(initialInvoice ? data : defaultValues)
+            toast('Successfully Submitted!', {autoClose: 2000, type: 'success'})
         }
     })
 
     const payInvoice = trpc.useMutation('invoices.postPaid', {
         async onSuccess(data) {
             reset(data ? data : defaultValues)
+            toast('Successfully Paid!', {autoClose: 2000, type: 'success'})
         }
     })
 
     const printInvoice = trpc.useMutation('invoices.postPrinted', {
         async onSuccess(data) {
             reset(data ? data : defaultValues)
+            toast('Successfully Generated!', {autoClose: 2000, type: 'success'})
         }
     })
 
@@ -119,7 +123,8 @@ const Invoice = ({
         }
     })
 
-    const onSubmit = async (data: ValidationSchema) => {
+   const onSubmit = async (data: ValidationSchema) => {
+        toast('Submitting...', {autoClose: 2000, type: 'info'})
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         await addOrUpdateInvoice.mutateAsync(data)
@@ -365,6 +370,7 @@ const Invoice = ({
                     <Grid2 xs={1}>
                         <Button variant={'contained'} color={'warning'}
                                 style={{backgroundColor: '#ffa726'}} onClick={async () => {
+                            toast('Generating PDF...', {autoClose: 2000, type: 'info'})
                             const element = document.createElement("a");
                             element.href = "/api/getPDF/" + initialInvoice.ID?.toString();
                             element.download = 'invoice-download.pdf';

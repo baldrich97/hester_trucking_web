@@ -15,6 +15,7 @@ import {
 import {trpc} from "../../utils/trpc";
 import {useRouter} from 'next/router';
 import GenericForm from '../../elements/GenericForm'
+import { toast } from "react-toastify";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
@@ -67,11 +68,13 @@ const Load = ({
 
     const addOrUpdateLoad = trpc.useMutation(key, {
         async onSuccess(data) {
+            toast('Successfully Submitted!', {autoClose: 2000, type: 'success'})
            initialLoad && reset(data)
         }
     })
 
-    const onSubmit = async (data: ValidationSchema) => {
+   const onSubmit = async (data: ValidationSchema) => {
+        toast('Submitting...', {autoClose: 2000, type: 'info'})
         await addOrUpdateLoad.mutateAsync(data)
         if (key === 'loads.put') {
             resetField('Weight')

@@ -7,6 +7,7 @@ import { LoadTypesModel } from '../../../prisma/zod';
 import {trpc} from "../../utils/trpc";
 import { useRouter } from 'next/router';
 import GenericForm from '../../elements/GenericForm'
+import { toast } from "react-toastify";
 
 type LoadTypesType = z.infer<typeof LoadTypesModel>;
 import {FormFieldsType} from "../../utils/types";
@@ -33,11 +34,13 @@ const LoadType = ({initialLoadType = null}: {initialLoadType?: null | LoadTypesT
 
     const addOrUpdateLoadType = trpc.useMutation(key, {
         async onSuccess(data) {
+            toast('Successfully Submitted!', {autoClose: 2000, type: 'success'})
             reset(initialLoadType ? data : defaultValues)
         }
     })
 
-    const onSubmit = async (data: ValidationSchema) => {
+   const onSubmit = async (data: ValidationSchema) => {
+        toast('Submitting...', {autoClose: 2000, type: 'info'})
         await addOrUpdateLoadType.mutateAsync(data)
         if (key === 'loadtypes.put') {
             await router.replace(router.asPath);

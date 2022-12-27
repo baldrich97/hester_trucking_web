@@ -20,6 +20,8 @@ import AppBar from "../components/layout/AppBar";
 import CssBaseline from "@mui/material/CssBaseline";
 import {createTheme, ThemeProvider} from '@mui/material/styles';
 import Copyright from "../components/layout/Copyright";
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from 'react-toastify';
 
 const mdTheme = createTheme();
 
@@ -36,6 +38,7 @@ const MyApp: AppType = ({
             <ThemeProvider theme={mdTheme}>
                 <Box sx={{display: 'flex'}}>
                     <CssBaseline/>
+                    <ToastContainer/>
                     <AppBar toggleDrawer={toggleDrawer} open={open}/>
                     <Sidenav toggleDrawer={toggleDrawer} open={open}/>
                     <Box
