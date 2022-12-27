@@ -31,7 +31,7 @@
     "dayjs": "^1.11.5",
     "next": "12.2.5",
     "next-auth": "^4.10.3",
-    "react": "18.2.0",
+    "react": "17.0.2",
     "react-dom": "18.2.0",
     "react-hook-form": "^7.34.2",
     "react-pdf-html": "^1.1.15",
