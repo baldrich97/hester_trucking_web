@@ -1,5 +1,8 @@
 import React, {useState} from 'react';
 import Box from "@mui/material/Box";
+import Typography from '@mui/material/Typography';
+import Modal from '@mui/material/Modal';
+import TextField from "@mui/material/TextField";
 import {useForm} from "react-hook-form";
 import {z} from 'zod';
 import {zodResolver} from '@hookform/resolvers/zod'
@@ -12,6 +15,10 @@ import RHTextfield from "../../elements/RHTextfield";
 import RHSelect from "../../elements/RHSelect";
 import RHDatePicker from "../../elements/RHDatePicker";
 import RHCheckbox from "../../elements/RHCheckbox";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem"
+import FormControl from "@mui/material/FormControl"
+import InputLabel from "@mui/material/InputLabel"
 import Button from "@mui/material/Button";
 import InvoiceLoads from "../collections/InvoiceLoads";
 
@@ -27,7 +34,8 @@ const defaultValues = {
     PaidDate: null,
     CheckNumber: '',
     Paid: false,
-    Printed: false
+    Printed: false,
+    PaymentType: 'N/A'
 };
 
 
@@ -39,11 +47,24 @@ const Invoice = ({
 
     const [customer, setCustomer] = useState(0);
 
+    const [paid, setPaid] = useState(initialInvoice?.Paid ?? false);
+
     const [shouldFetchLoads, setShouldFetchLoads] = useState(false);
 
     const [customerLoads, setCustomerLoads] = useState<any>([]);
 
     const [selected, setSelected] = useState<any>(!initialInvoice ? [] : loads?.map((load) => load.ID.toString()));
+
+    const [paymentAmount, setPaymentAmount] = useState<number>(0);
+
+    const [paymentType, setPaymentType] = useState<string>('Check');
+
+    //this is for forcing it to rerender
+    const [_, forceUpdate] = React.useReducer((x) => x + 1, 0);
+
+    const [open, setOpen] = React.useState(false);
+    const handleOpen = () => setOpen(true);
+    const handleClose = () => setOpen(false);
 
     const router = useRouter();
 
@@ -71,6 +92,18 @@ const Invoice = ({
     const addOrUpdateInvoice = trpc.useMutation(key, {
         async onSuccess(data) {
             reset(initialInvoice ? data : defaultValues)
+        }
+    })
+
+    const payInvoice = trpc.useMutation('invoices.postPaid', {
+        async onSuccess(data) {
+            reset(data ? data : defaultValues)
+        }
+    })
+
+    const printInvoice = trpc.useMutation('invoices.postPrinted', {
+        async onSuccess(data) {
+            reset(data ? data : defaultValues)
         }
     })
 
@@ -102,6 +135,9 @@ const Invoice = ({
                 const customerID = value.CustomerID ?? 0;
                 setCustomer(customerID);
                 setShouldFetchLoads(true);
+            } else if (['CustomerID'].includes(name ?? '') && type === 'change') {
+                const newPaid = value.Paid ?? false;
+                setPaid(newPaid);
             }
         });
         return () => subscription.unsubscribe();
@@ -138,36 +174,29 @@ const Invoice = ({
         },
     ];
 
-    const fields2: FormFieldsType = [
-        {
-            name: 'TotalAmount',
-            size: !initialInvoice ? 5 : 2,
-            required: true,
-            shouldErrorOn: ['required', 'too_small'],
-            errorMessage: 'Total amount is required.',
-            type: 'textfield',
-            number: true,
-            label: 'Total Amount'
-        },
-    ]
+    const fields2: FormFieldsType = [];
 
-    if (initialInvoice && initialInvoice.Paid) {
+    if (initialInvoice) {
         fields2.push({name: 'PaidDate', size: 4, required: false, type: 'date', label: 'Paid Date'},
             {name: 'CheckNumber', size: 3, required: false, type: 'textfield', label: 'Check Number'},
-            {name: 'PaymentType', size: 3, required: false, type: 'select', label: 'Payment Type'},)
+            {name: 'PaymentType', size: 3, required: false, type: 'textfield', label: 'Payment Type', disabled: true},)
     } else {
         fields2.push({name: '', size: 7, required: false, type: 'padding'})
     }
 
+    fields2.push({
+        name: 'TotalAmount',
+        size: !initialInvoice ? 5 : 2,
+        required: true,
+        shouldErrorOn: ['required', 'too_small'],
+        errorMessage: 'Total amount is required.',
+        type: 'textfield',
+        number: true,
+        label: 'Total Amount'
+    })
+
     const selectData: SelectDataType = [
-        {key: 'CustomerID', data: customers, optionValue: 'ID', optionLabel: 'Name+|+Street+,+City'},
-        {
-            key: 'PaymentType',
-            data: [{ID: 0, name: 'Cash'}, {ID: 1, name: 'Credit Card'}, {ID: 2, name: 'Check'}, {ID: 3, name: ''}],
-            optionValue: 'ID',
-            optionLabel: 'name',
-            defaultValue: undefined
-        }
+        {key: 'CustomerID', data: customers, optionValue: 'ID', optionLabel: 'Name+|+Street+,+City'}
     ]
 
     function renderFields(field: any, index: number) {
@@ -240,6 +269,18 @@ const Invoice = ({
         }
     }
 
+    const style = {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 400,
+        bgcolor: 'background.paper',
+        border: '2px solid #000',
+        boxShadow: 24,
+        p: 4,
+    };
+
     return (
         <Box
             component='form'
@@ -250,6 +291,53 @@ const Invoice = ({
                 paddingLeft: 2.5
             }}
         >
+            <div>
+                <Modal
+                    open={open}
+                    onClose={handleClose}
+                    aria-labelledby="modal-modal-title"
+                    aria-describedby="modal-modal-description"
+                >
+                    <Box sx={style}>
+                        <Typography id="modal-modal-title" variant="h6" component="h2" style={{paddingBottom: 10}}>
+                            Enter payment information
+                        </Typography>
+                        <Grid2 container columnSpacing={2} justifyContent={'right'}>
+                            <Grid2 xs={6}>
+                                <FormControl fullWidth={true} size={'small'}>
+                                    <InputLabel id={"payment-label"}>Payment Type</InputLabel>
+                                    <Select label={'Payment Type'} value={paymentType} onChange={(e) => {setPaymentType(e.target.value)}}>
+                                        <MenuItem key={'SelectOption-Check'} value={'Check'}>Check</MenuItem>
+                                        <MenuItem key={'SelectOption-Cash'} value={'Cash'}>Cash</MenuItem>
+                                        <MenuItem key={'SelectOption-Credit_Card'} value={'Credit Card'}>Credit Card</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Grid2>
+                            {/*<Grid2 xs={6}>
+                                <TextField label={'Payment Amount'} value={paymentAmount} fullWidth type={'number'} size={'small'} onChange={(e) => {
+                                    setPaymentAmount(parseInt(e.currentTarget.value, 10));
+                                }}/>
+                            </Grid2>*/}
+                            <Grid2 xs={6} style={{paddingTop: 5}}>
+                                <Button variant={'contained'} color={'success'}
+                                        style={{backgroundColor: '#66bb6a'}} onClick={async () => {
+                                            if (!['Cash', 'Check', 'Credit Card'].includes(paymentType)) {
+                                                handleClose();
+                                            } else {
+                                                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                                // @ts-ignore
+                                                await payInvoice.mutateAsync({...initialInvoice, PaymentType: paymentType, selected: []});
+                                                setPaymentType('Check')
+                                                setPaymentAmount(0)
+                                                handleClose();
+                                                forceUpdate();
+                                            }
+                                }}>Submit Payment</Button>
+                            </Grid2>
+                        </Grid2>
+                    </Box>
+                </Modal>
+            </div>
             <Grid2 container columnSpacing={2} rowSpacing={2}
                    justifyContent={!initialInvoice ? 'space-between' : 'right'}>
                 {fields1.map((field, index) => renderFields(field, index))}
@@ -276,18 +364,19 @@ const Invoice = ({
                 {initialInvoice && <>
                     <Grid2 xs={1}>
                         <Button variant={'contained'} color={'warning'}
-                                style={{backgroundColor: '#ffa726'}} onClick={() => {
+                                style={{backgroundColor: '#ffa726'}} onClick={async () => {
                             const element = document.createElement("a");
                             element.href = "/api/getPDF/" + initialInvoice.ID?.toString();
                             element.download = 'invoice-download.pdf';
                             document.body.appendChild(element);
                             element.click();
                             document.body.removeChild(element);
+                            await printInvoice.mutateAsync({...initialInvoice, selected: []});
                         }}>Print</Button>
                     </Grid2>
                     <Grid2 xs={1}>
                         <Button variant={'contained'} color={'success'}
-                                style={{backgroundColor: '#66bb6a'}} disabled={!!initialInvoice.Paid}>Pay</Button>
+                                style={{backgroundColor: '#66bb6a'}} disabled={!!initialInvoice.Paid || paid} onClick={handleOpen}>Pay</Button>
                     </Grid2>
                     <Grid2 xs={1}>
                         <Button type={'submit'} variant={'contained'} color={'primary'}

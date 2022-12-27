@@ -245,9 +245,9 @@ function Row(props: { readOnly: boolean, row: ReturnType<any>, labelId: string, 
                 >
                     {row.TicketNumber}
                 </TableCell>
-                <TableCell align="left" padding="none" size={'small'}>{row.StartDate ? new Date(row.StartDate).toLocaleDateString() : 'N/A'}</TableCell>
-                <TableCell align="left" padding="none" size={'small'}>{row.TotalRate}</TableCell>
-                <TableCell align="left" padding="none" size={'small'}>{row.TotalAmount}</TableCell>
+                <TableCell align="left" padding="normal" size={'small'}>{row.StartDate ? new Date(row.StartDate).toLocaleDateString() : 'N/A'}</TableCell>
+                <TableCell align="left" padding="normal" size={'small'}>{row.TotalRate}</TableCell>
+                <TableCell align="left" padding="normal" size={'small'}>{row.TotalAmount}</TableCell>
                 <TableCell>
                     <IconButton
                         aria-label="expand row"

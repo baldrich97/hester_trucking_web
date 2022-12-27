@@ -5,12 +5,12 @@ generator client {
 
 generator zod {
   provider              = "zod-prisma"
+  imports               = "../src/utils/zodParsers"
   prismaJsonNullability = "true"
-  relationModel         = "true"
-  modelCase             = "PascalCase"
   modelSuffix           = "Model"
   useDecimalJs          = "true"
-  imports               = "../src/utils/zodParsers"
+  relationModel         = "true"
+  modelCase             = "PascalCase"
 }
 
 datasource db {
@@ -30,7 +30,8 @@ model CustomerLoadTypes {
   ID            Int       @id @default(autoincrement())
   CustomerID    Int
   LoadTypeID    Int
-  DateDelivered DateTime  @db.Date /// @zod.custom(imports.parseDate)
+  /// @zod.custom(imports.parseDate)
+  DateDelivered DateTime  @db.Date
   Customers     Customers @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_CustomerLoadTypes_Customer")
   LoadTypes     LoadTypes @relation(fields: [LoadTypeID], references: [ID], onUpdate: Restrict, map: "FK_CustomerLoadTypes_LoadType")
 
@@ -104,20 +105,22 @@ model Drivers {
 }
 
 model Invoices {
-  ID          Int                   @id @default(autoincrement())
-  InvoiceDate DateTime              @db.Date /// @zod.custom(imports.parseDate)
+  ID          Int       @id @default(autoincrement())
+  /// @zod.custom(imports.parseDate)
+  InvoiceDate DateTime  @db.Date
   Number      Int?
   /// @zod.min(1)
   CustomerID  Int
   /// @zod.min(1)
   TotalAmount Float
-  PaidDate    DateTime?             @db.Date /// @zod.custom(imports.parseDate)
-  CheckNumber String?               @db.VarChar(255)
+  /// @zod.custom(imports.parseDate)
+  PaidDate    DateTime? @db.Date
+  CheckNumber String?   @db.VarChar(255)
   Paid        Boolean?
   Printed     Boolean?
   Deleted     Boolean?
-  PaymentType Invoices_PaymentType?
-  Customers   Customers             @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_Invoices_Customer")
+  PaymentType String?   @default("N/A") @db.VarChar(255)
+  Customers   Customers @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_Invoices_Customer")
   Loads       Loads[]
 
   @@index([CustomerID], map: "FK_Invoices_Customer")
@@ -161,7 +164,8 @@ model TrucksDriven {
   ID         Int      @id @default(autoincrement())
   TruckID    Int
   DriverID   Int
-  DateDriven DateTime @db.Date /// @zod.custom(imports.parseDate)
+  /// @zod.custom(imports.parseDate)
+  DateDriven DateTime @db.Date
   Drivers    Drivers  @relation(fields: [DriverID], references: [ID], onUpdate: Restrict, map: "FK_TrucksDriven_Driver")
   Trucks     Trucks   @relation(fields: [TruckID], references: [ID], onUpdate: Restrict, map: "FK_TrucksDriven_Truck")
 
@@ -171,21 +175,32 @@ model TrucksDriven {
 
 model Loads {
   ID                 Int                @id @default(autoincrement())
-  StartDate          DateTime           @db.Date /// @zod.custom(imports.parseDate)
-  EndDate            DateTime           @db.Date /// @zod.custom(imports.parseDate)
-  Weight             Float?   /// @zod.custom(imports.isNumber)
-  Hours              Float? /// @zod.custom(imports.isNumber)
-  TotalRate          Float? /// @zod.custom(imports.isNumber)
-  TotalAmount        Float? /// @zod.custom(imports.isNumber)
-  TruckRate          Float? /// @zod.custom(imports.isNumber)
-  MaterialRate       Float? /// @zod.custom(imports.isNumber)
+  /// @zod.custom(imports.parseDate)
+  StartDate          DateTime           @db.Date
+  /// @zod.custom(imports.parseDate)
+  EndDate            DateTime           @db.Date
+  /// @zod.custom(imports.isNumber)
+  Weight             Float?
+  /// @zod.custom(imports.isNumber)
+  Hours              Float?
+  /// @zod.custom(imports.isNumber)
+  TotalRate          Float?
+  /// @zod.custom(imports.isNumber)
+  TotalAmount        Float?
+  /// @zod.custom(imports.isNumber)
+  TruckRate          Float?
+  /// @zod.custom(imports.isNumber)
+  MaterialRate       Float?
   Received           String?            @db.VarChar(50)
   Notes              String?            @db.VarChar(255)
   TicketNumber       Int?
   Invoiced           Boolean?
-  CustomerID         Int?     /// @zod.min(1)
-  InvoiceID          Int?     /// @zod.min(1)
-  LoadTypeID         Int?     /// @zod.min(1)
+  /// @zod.min(1)
+  CustomerID         Int?
+  /// @zod.min(1)
+  InvoiceID          Int?
+  /// @zod.min(1)
+  LoadTypeID         Int?
   DeliveryLocationID Int?
   TruckID            Int?
   DriverID           Int?
@@ -203,13 +218,4 @@ model Loads {
   @@index([InvoiceID], map: "FK_Loads_Invoice")
   @@index([LoadTypeID], map: "FK_Loads_LoadType")
   @@index([TruckID], map: "FK_Loads_Truck")
-
-  @@fulltext([Received, Notes])
-}
-
-enum Invoices_PaymentType {
-  Cash
-  Credit_Card      @map("Credit Card")
-  Check
-  EMPTY_ENUM_VALUE @map("")
 }

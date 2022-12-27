@@ -109,5 +109,35 @@ export const invoicesRouter = createRouter()
                 }, data: data
             })
         },
+    }).mutation('postPrinted', {
+        // validate input with Zod
+        input: InvoicesModel.extend({selected: z.array(z.string())}),
+        async resolve({ctx, input}) {
+            const {ID} = input;
+            // use your ORM of choice
+            return ctx.prisma.invoices.update({
+                where: {
+                    ID: ID
+                }, data: {
+                    Printed: true
+                }
+            })
+        },
+    }).mutation('postPaid', {
+        // validate input with Zod
+        input: InvoicesModel.extend({selected: z.array(z.string())}),
+        async resolve({ctx, input}) {
+            const {ID, PaymentType} = input;
+            // use your ORM of choice
+            return ctx.prisma.invoices.update({
+                where: {
+                    ID: ID
+                }, data: {
+                    Paid: true,
+                    PaymentType: PaymentType,
+                    PaidDate: new Date()
+                }
+            })
+        },
     });
 

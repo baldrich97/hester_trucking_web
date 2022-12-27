@@ -1,6 +1,5 @@
 import * as z from "zod"
 import * as imports from "../../src/utils/zodParsers"
-import { Invoices_PaymentType } from "@prisma/client"
 import { CompleteCustomers, RelatedCustomersModel, CompleteLoads, RelatedLoadsModel } from "./index"
 
 export const InvoicesModel = z.object({
@@ -14,7 +13,7 @@ export const InvoicesModel = z.object({
   Paid: z.boolean().nullish(),
   Printed: z.boolean().nullish(),
   Deleted: z.boolean().nullish(),
-  PaymentType: z.nativeEnum(Invoices_PaymentType).nullish(),
+  PaymentType: z.string().nullish(),
 })
 
 export interface CompleteInvoices extends z.infer<typeof InvoicesModel> {

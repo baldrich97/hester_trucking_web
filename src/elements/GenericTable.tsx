@@ -165,7 +165,7 @@ export default function GenericTable({data = [], columns = [], overrides = [], c
                                             case "checkbox":
                                                 return (
                                                     <StyledTableCell align={column.align ? column.align : 'center'} key={'row-' + rowindex.toString() + '-' + column.name}>
-                                                        <Checkbox value={!!data} disabled={true}/>
+                                                        <Checkbox disabled={true} checked={!!data}/>
                                                     </StyledTableCell>
                                                 )
 
