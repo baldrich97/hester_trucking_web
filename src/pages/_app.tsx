@@ -62,9 +62,10 @@ const MyApp: AppType = ({
                             position: 'fixed',
                             bottom: 0,
                             width: '100%',
-                            height: 60,
+                            height: 20,
                             textAlign: 'right',
-                            right: 5
+                            right: 15,
+                            paddingTop: 0,
                         }}/>
                     </Box>
                 </Box>
