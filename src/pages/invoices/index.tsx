@@ -13,6 +13,7 @@ import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import {trpc} from "../../utils/trpc";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
@@ -73,34 +74,63 @@ const overridesAll: TableColumnOverridesType = [
     {name: 'InvoiceDate', type: 'date'}
 ]
 
-const Invoices = ({invoicesUnpaid, invoicesPaid, invoicesAll, countUnpaid, countPaid, countAll, loads, customers}: {invoicesUnpaid: InvoicesType[], invoicesPaid: InvoicesType[], invoicesAll: InvoicesType[], countUnpaid: number, countPaid: number, countAll: number, loads: LoadsType[], customers: CustomersType[]}) => {
+const Invoices = ({invoicesUnpaid, invoicesPaid, invoicesAll, customers}: {invoicesUnpaid: InvoicesType[], invoicesPaid: InvoicesType[], invoicesAll: InvoicesType[], customers: CustomersType[]}) => {
 
-    const [search, setSearch] = useState('');
-
+    const [unpaidData, setUnpaidData] = useState<InvoicesType[]>([]);
+    const [paidData, setPaidData] = useState<InvoicesType[]>([]);
     const [trpcData, setData] = useState<InvoicesType[]>([]);
 
-    const [trpcCount, setCount] = useState(0);
+    const [shouldRefresh, setShouldRefresh] = useState(false);
 
-    const [shouldSearch, setShouldSearch] = useState(false);
+    const [customer, setCustomer] = useState(0);
 
     const [tabValue, setTabValue] = React.useState(0);
+
+    //const [cursor, setCursor] = useState(loads[loads.length - 1]?.ID ?? 1);
+
+    //TODO FIGURE OUT HOW TO FIND A SPECIFIC INVOICE THAT ISN'T SEARCHING
 
     const handleChange = (event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
     };
 
-   /* trpc.useQuery(['invoices.search', {search}], {
-        enabled: shouldSearch,
+    //TODO could probably consolidate calls and filter/parse on frontend if needed
+
+    trpc.useQuery(['invoices.getAllUnpaid', {customer}], {
+        enabled: shouldRefresh,
         onSuccess(data) {
-            setData(data);
-            setCount(data.length)
-            setShouldSearch(false);
+            setUnpaidData(JSON.parse(JSON.stringify(data)));
+            setShouldRefresh(false);
         },
         onError(error) {
             console.warn(error.message)
-            setShouldSearch(false)
+            setShouldRefresh(false)
         }
-    })*/
+    })
+
+    trpc.useQuery(['invoices.getAllPaid', {customer}], {
+        enabled: shouldRefresh,
+        onSuccess(data) {
+            setPaidData(JSON.parse(JSON.stringify(data)));
+            setShouldRefresh(false);
+        },
+        onError(error) {
+            console.warn(error.message)
+            setShouldRefresh(false)
+        }
+    })
+
+    trpc.useQuery(['invoices.getAll', {customer}], {
+        enabled: shouldRefresh,
+        onSuccess(data) {
+            setData(JSON.parse(JSON.stringify(data)));
+            setShouldRefresh(false);
+        },
+        onError(error) {
+            console.warn(error.message)
+            setShouldRefresh(false)
+        }
+    })
 
     return (
         <Grid2 container>
@@ -115,11 +145,23 @@ const Invoices = ({invoicesUnpaid, invoicesPaid, invoicesAll, countUnpaid, count
                 {/*<Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Invoices'}/>
                 </Grid2>*/}
-                {tabValue === 0 && <GenericTable data={search ? trpcData : invoicesUnpaid} columns={columnsUnpaid} overrides={overridesUnpaid} count={search ? trpcCount : countUnpaid}/>}
+                {tabValue === 0 && <GenericTable data={customer ? unpaidData : invoicesUnpaid} columns={columnsUnpaid} overrides={overridesUnpaid} count={10} setCustomer={(customer: React.SetStateAction<number>) => {
+                    setCustomer(customer);
+                    setShouldRefresh(true)
+                }}
+                selectedCustomer={customer}/>}
 
-                {tabValue === 1 && <GenericTable data={search ? trpcData : invoicesPaid} columns={columnsPaid} overrides={overridesPaid} count={search ? trpcCount : countPaid}/>}
+                {tabValue === 1 && <GenericTable data={customer ? paidData : invoicesPaid} columns={columnsPaid} overrides={overridesPaid} count={10} setCustomer={(customer: React.SetStateAction<number>) => {
+                    setCustomer(customer);
+                    setShouldRefresh(true)
+                }}
+                selectedCustomer={customer}/>}
 
-                {tabValue === 2 && <GenericTable data={search ? trpcData : invoicesAll} columns={columnsAll} overrides={overridesAll} count={search ? trpcCount : countAll}/>}
+                {tabValue === 2 && <GenericTable data={customer ? trpcData : invoicesAll} columns={columnsAll} overrides={overridesAll} count={10} setCustomer={(customer: React.SetStateAction<number>) => {
+                    setCustomer(customer);
+                    setShouldRefresh(true)
+                }}
+                selectedCustomer={customer}/>}
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
@@ -140,6 +182,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         include: {
             Customers: true,
             Loads: true
+        },
+        take: 10,
+        orderBy: {
+            ID: 'desc'
         }
     });
 
@@ -150,6 +196,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         include: {
             Customers: true,
             Loads: true
+        },
+        take: 10,
+        orderBy: {
+            InvoiceDate: 'desc'
         }
     });
 
@@ -160,10 +210,14 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         include: {
             Customers: true,
             Loads: true
+        },
+        take: 10,
+        orderBy: {
+            PaidDate: 'desc'
         }
     });
 
-    const customers = await prisma.customers.findMany({});
+    const customers = await prisma.customers.findMany({take: 10});
 
     return {
         props: {

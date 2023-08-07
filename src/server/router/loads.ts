@@ -4,7 +4,12 @@ import {LoadsModel} from '../../../prisma/zod';
 
 export const loadsRouter = createRouter()
     .query("getAll", {
-        async resolve({ctx}) {
+        input: z.object({
+            page: z.number().optional(),
+            customer: z.number().optional()
+        }),
+        async resolve({ctx, input}) {
+            const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
             return ctx.prisma.loads.findMany({
                 include: {
                     Customers: true,
@@ -12,6 +17,9 @@ export const loadsRouter = createRouter()
                     Drivers: true,
                     LoadTypes: true,
                     DeliveryLocations: true
+                },
+                orderBy: {
+                    ID: 'desc'
                 },
                 where: {
                     OR: [
@@ -22,7 +30,10 @@ export const loadsRouter = createRouter()
                             Deleted: null
                         }
                     ],
-                }
+                    ...extra
+                },
+                take: 10,
+                skip: input.page ? 10*input.page : 0
             });
         },
     })

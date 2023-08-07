@@ -276,10 +276,10 @@ function Row(props: { readOnly: boolean, row: ReturnType<any>, labelId: string, 
                                 </TableHead>
                                 <TableBody>
                                     <TableRow key={'inner_row_' + row.ID.toString()}>
-                                        <TableCell align="left" padding="none" size={'small'}>{row.Drivers?.FirstName + ' ' + row.Drivers?.LastName}</TableCell>
-                                        <TableCell align="left" padding="none" size={'small'}>{row.Trucks?.Name}</TableCell>
-                                        <TableCell align="left" padding="none" size={'small'}>{row.LoadTypes?.Description}</TableCell>
-                                        <TableCell align="left" padding="none" size={'small'}>{row.DeliveryLocations?.Description}</TableCell>
+                                        <TableCell align="left" padding="none" size={'small'}>{row.Drivers ? row.Drivers?.FirstName + ' ' + row.Drivers?.LastName : 'N/A'}</TableCell>
+                                        <TableCell align="left" padding="none" size={'small'}>{row.Trucks ? row.Trucks?.Name : 'N/A'}</TableCell>
+                                        <TableCell align="left" padding="none" size={'small'}>{row.LoadTypes ? row.LoadTypes?.Description : 'N/A'}</TableCell>
+                                        <TableCell align="left" padding="none" size={'small'}>{row.DeliveryLocations ? row.DeliveryLocations?.Description : 'N/A'}</TableCell>
                                     </TableRow>
                                 </TableBody>
                             </Table>

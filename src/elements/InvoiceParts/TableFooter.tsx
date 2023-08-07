@@ -20,7 +20,7 @@ const styles = StyleSheet.create({
 
 const TableFooter = ({total}: {total: number}) => (
     <View style={styles.container}>
-        <Text style={styles.text}>Grand Total: {total.toString()}</Text>
+        <Text style={styles.text}>Grand Total: {(Math.round(total * 100) / 100).toString()}</Text>
     </View>
 )
 

@@ -34,20 +34,35 @@ export const loadTypesRouter = createRouter()
     })
     .query('search', {
         input: z.object({
-            search: z.string()
+            search: z.string(),
+            page: z.number().optional()
         }),
         async resolve({ctx, input}) {
             const formattedSearch = `${input.search}*`;
-            return ctx.prisma.loadTypes.findMany({
-                where: {
-                    Notes: {
-                        search: formattedSearch
+            if (input.search.length > 0) {
+                return ctx.prisma.loadTypes.findMany({
+                    where: {
+                        Notes: {
+                            search: formattedSearch
+                        },
+                        Description: {
+                            search: formattedSearch
+                        },
                     },
-                    Description: {
-                        search: formattedSearch
+                    take: 10,
+                    orderBy: {
+                        ID: "desc"
+                    }
+                })
+            } else {
+                return ctx.prisma.loadTypes.findMany({
+                    take: 10,
+                    orderBy: {
+                        ID: "desc"
                     },
-                }
-            })
+                    skip: input.page ? input.page*10 : 0
+                })
+            }
 
         }
     })

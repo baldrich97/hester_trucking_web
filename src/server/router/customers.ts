@@ -15,7 +15,8 @@ export const customersRouter = createRouter()
                             Deleted: null
                         }
                     ],
-                }
+                },
+                take: 10
             });
         },
     })
@@ -34,41 +35,59 @@ export const customersRouter = createRouter()
     })
     .query('search', {
         input: z.object({
-            search: z.string()
+            search: z.string(),
+            page: z.number().optional()
         }),
         async resolve({ctx, input}) {
             const formattedSearch = `${input.search}*`;
-            return ctx.prisma.customers.findMany({
-                where: {
-                    Name: {
-                        search: formattedSearch
+            if (input.search.length > 0) {
+                return ctx.prisma.customers.findMany({
+                    where: {
+                        Name: {
+                            search: formattedSearch
+                        },
+                        Street: {
+                            search: formattedSearch
+                        },
+                        City: {
+                            search: formattedSearch
+                        },
+                        ZIP: {
+                            search: formattedSearch
+                        },
+                        Email: {
+                            search: formattedSearch
+                        },
+                        Phone: {
+                            search: formattedSearch
+                        },
+                        MainContact: {
+                            search: formattedSearch
+                        },
+                        Notes: {
+                            search: formattedSearch
+                        },
                     },
-                    Street: {
-                        search: formattedSearch
+                    orderBy: {
+                        Name: 'asc'
                     },
-                    City: {
-                        search: formattedSearch
+                    include: {
+                        States: true
                     },
-                    ZIP: {
-                        search: formattedSearch
+                    take: 10,
+                })
+            } else {
+                return ctx.prisma.customers.findMany({
+                    orderBy: {
+                        Name: 'asc'
                     },
-                    Email: {
-                        search: formattedSearch
+                    include: {
+                        States: true
                     },
-                    Phone: {
-                        search: formattedSearch
-                    },
-                    MainContact: {
-                        search: formattedSearch
-                    },
-                    Notes: {
-                        search: formattedSearch
-                    },
-                },
-                include: {
-                    States: true
-                }
-            })
+                    take: 10,
+                    skip: input.page ? 10*input.page : 0
+                })
+            }
 
         }
     })

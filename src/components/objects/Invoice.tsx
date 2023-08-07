@@ -156,7 +156,8 @@ const Invoice = ({
             shouldErrorOn: ['invalid_type'],
             errorMessage: 'Customer is required.',
             type: 'select',
-            label: 'Customer'
+            label: 'Customer',
+            searchQuery: 'customers'
         }, {name: 'Number', size: 3, required: false, type: 'textfield', number: true},
     ] : [
         {
@@ -167,7 +168,8 @@ const Invoice = ({
             errorMessage: 'Customer is required.',
             type: 'select',
             label: 'Customer',
-            disabled: true
+            disabled: true,
+            searchQuery: 'customers'
         },
         {name: 'Paid', size: 2, required: false, type: 'checkbox', disabled: true},
         {name: 'Printed', size: 2, required: false, type: 'checkbox', disabled: true}, {
@@ -201,7 +203,7 @@ const Invoice = ({
     })
 
     const selectData: SelectDataType = [
-        {key: 'CustomerID', data: customers, optionValue: 'ID', optionLabel: 'Name+|+Street+,+City'}
+        {key: 'CustomerID', data: customers, optionValue: 'ID', optionLabel: 'Name+|+Street+,+City', defaultValue: null}
     ]
 
     function renderFields(field: any, index: number) {

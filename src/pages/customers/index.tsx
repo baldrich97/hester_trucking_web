@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import Grid2 from "@mui/material/Unstable_Grid2";
 import Customer from "../../components/objects/Customer";
 import {GetServerSideProps} from "next";
@@ -39,11 +39,19 @@ const Customers = ({states, customers, count}: {states: StatesType[], customers:
 
     const [shouldSearch, setShouldSearch] = useState(false);
 
-    trpc.useQuery(['customers.search', {search}], {
+    const [page, setPage] = useState(0);
+
+    useEffect(() => {
+        if (search.length === 0) {
+            setData([])
+            setPage(0)
+        }
+    }, [search])
+
+    trpc.useQuery(['customers.search', {search, page}], {
         enabled: shouldSearch,
         onSuccess(data) {
             setData(data);
-            setCount(data.length)
             setShouldSearch(false);
         },
         onError(error) {
@@ -58,7 +66,10 @@ const Customers = ({states, customers, count}: {states: StatesType[], customers:
                 <Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Customers'}/>
                 </Grid2>
-                <GenericTable data={search ? trpcData : customers} columns={columns} overrides={overrides} count={search ? trpcCount : count}/>
+                <GenericTable data={trpcData.length > 0 ? trpcData : customers} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>) => {
+                    setPage(page)
+                    setShouldSearch(true)
+                }}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
@@ -80,7 +91,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const customers = await prisma.customers.findMany({
         include: {
             States: true
-        }
+        },
+        orderBy: {
+            Name: 'asc'
+        },
+        take: 10
     });
 
     return {

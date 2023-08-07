@@ -1,4 +1,4 @@
-import React, {FunctionComponent, useState} from 'react';
+import React, {FunctionComponent, useEffect, useState} from 'react';
 import Grid2 from "@mui/material/Unstable_Grid2";
 import Truck from "../../components/objects/Truck";
 import {GetServerSideProps} from "next";
@@ -34,11 +34,18 @@ const Trucks = ({trucks, count}: {trucks: TrucksType[], count: number}) => {
 
     const [shouldSearch, setShouldSearch] = useState(false);
 
-    trpc.useQuery(['trucks.search', {search}], {
+    const [page, setPage] = useState(0);
+
+    useEffect(() => {
+        if (search.length === 0) {
+            setData([])
+        }
+    }, [search])
+
+    trpc.useQuery(['trucks.search', {search, page}], {
         enabled: shouldSearch,
         onSuccess(data) {
             setData(data);
-            setCount(data.length)
             setShouldSearch(false);
         },
         onError(error) {
@@ -53,7 +60,10 @@ const Trucks = ({trucks, count}: {trucks: TrucksType[], count: number}) => {
                 <Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Trucks'}/>
                 </Grid2>
-                <GenericTable data={search ? trpcData : trucks} columns={columns} overrides={overrides} count={search ? trpcCount : count}/>
+                <GenericTable data={trpcData.length ? trpcData : trucks} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>) => {
+                    setPage(page)
+                    setShouldSearch(true)
+                }}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
@@ -71,7 +81,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     const count = await prisma.trucks.count();
 
-    const trucks = await prisma.trucks.findMany();
+    const trucks = await prisma.trucks.findMany({take: 10, orderBy: {ID: "desc"}});
 
     return {
         props: {

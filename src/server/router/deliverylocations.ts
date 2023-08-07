@@ -34,17 +34,32 @@ export const deliveryLocationsRouter = createRouter()
     })
     .query('search', {
         input: z.object({
-            search: z.string()
+            search: z.string(),
+            page: z.number().optional()
         }),
         async resolve({ctx, input}) {
             const formattedSearch = `${input.search}*`;
-            return ctx.prisma.deliveryLocations.findMany({
-                where: {
-                    Description: {
-                        search: formattedSearch
+            if (input.search.length > 0) {
+                return ctx.prisma.deliveryLocations.findMany({
+                    where: {
+                        Description: {
+                            search: formattedSearch
+                        },
                     },
-                }
-            })
+                    orderBy: {
+                        ID: 'desc'
+                    },
+                    take: 10,
+                })
+            } else {
+                return ctx.prisma.deliveryLocations.findMany({
+                    skip: input.page ? 10*input.page : 0,
+                    orderBy: {
+                        ID: 'desc'
+                    },
+                    take: 10,
+                })
+            }
 
         }
     })

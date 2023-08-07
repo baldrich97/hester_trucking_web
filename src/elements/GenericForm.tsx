@@ -7,6 +7,7 @@ import {Control} from "react-hook-form";
 import Button from "@mui/material/Button";
 import {FormFieldsType, SelectDataType} from "../utils/types";
 import RHCheckbox from "./RHCheckbox";
+import RHAutocomplete from "./RHAutocomplete";
 
 const GenericForm = ({
                          errors = [],
@@ -41,9 +42,9 @@ const GenericForm = ({
 
                         return (
                             <Grid2 xs={field.size} key={'form-' + index.toString() + '-' + field.name + '-grid'}>
-                                <RHSelect name={field.name} control={control} data={data} optionLabel={optionLabel}
-                                          optionValue={optionValue} defaultValue={defaultValue ?? undefined} key={'form-' + index.toString() + '-' + field.name + '-field'} label={field.label}  shouldError={field.shouldErrorOn?.includes(errors[field.name]?.type)}
-                                          errorMessage={field.errorMessage ?? ''}/>
+                                <RHAutocomplete name={field.name} control={control} data={data} optionLabel={optionLabel}
+                                                optionValue={optionValue} defaultValue={defaultValue ?? null} key={'form-' + index.toString() + '-' + field.name + '-field'} label={field.label}  shouldError={field.shouldErrorOn?.includes(errors[field.name]?.type)}
+                                                errorMessage={field.errorMessage ?? ''} searchQuery={field.searchQuery ?? ''}/>
                             </Grid2>
                         )
                     }

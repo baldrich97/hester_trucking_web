@@ -1,4 +1,4 @@
-import * as React from 'react';
+import React from "react";
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell, { tableCellClasses } from '@mui/material/TableCell'
@@ -18,8 +18,12 @@ import FirstPageIcon from '@mui/icons-material/FirstPage';
 import KeyboardArrowLeft from '@mui/icons-material/KeyboardArrowLeft';
 import KeyboardArrowRight from '@mui/icons-material/KeyboardArrowRight';
 import LastPageIcon from '@mui/icons-material/LastPage';
+import SearchIcon from "@mui/icons-material/Search";
+import CloseIcon from "@mui/icons-material/Close"
 
 import {TableColumnsType, TableColumnOverridesType} from "../utils/types";
+import Modal from "@mui/material/Modal";
+import BasicAutocomplete from "./Autocomplete";
 
 
 interface TablePaginationActionsProps {
@@ -31,6 +35,18 @@ interface TablePaginationActionsProps {
         newPage: number,
     ) => void;
 }
+
+const style = {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: 400,
+    bgcolor: 'white',
+    border: '2px solid #000',
+    boxShadow: 24,
+    p: 4,
+};
 
 
 const StyledTableCell = styled(TableCell)(({ theme }) => ({
@@ -112,15 +128,27 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
 
 
 
-export default function GenericTable({data = [], columns = [], overrides = [], count}: {data: any[], columns: TableColumnsType, overrides: TableColumnOverridesType, count: number}) {
+export default function GenericTable({data = [], columns = [], overrides = [], count, refreshData, setCustomer = null, selectedCustomer = null}: {data: any[], columns: TableColumnsType, overrides: TableColumnOverridesType, count?: number, refreshData?: any, setCustomer?: any, selectedCustomer?: any}) {
 
     const [page, setPage] = React.useState(0);
+
+    const [showCustomerModal, setShowCustomerModal] = React.useState(false);
+
+    const [selected, setSelected] = React.useState(selectedCustomer);
+
+    const _setCustomer = (customer: React.SetStateAction<any>) => {
+        setSelected(customer);
+        setCustomer(customer);
+    }
 
     const handleChangePage = (
         event: React.MouseEvent<HTMLButtonElement> | null,
         newPage: number,
     ) => {
         setPage(newPage);
+        if (typeof(refreshData) === 'function') {
+            refreshData(newPage)
+        }
     };
 
     return (
@@ -129,12 +157,17 @@ export default function GenericTable({data = [], columns = [], overrides = [], c
                 <TableHead>
                     <TableRow>
                         {columns.map((column) => {
+                            if (column.as === '' && setCustomer) {
+                                return <StyledTableCell align={'right'} key={'lookup-header'}>{
+                                    selected ? <Button style={{backgroundColor: 'red', borderRadius: 20}} onClick={() => _setCustomer(0)}><CloseIcon style={{color: 'white'}}/></Button> : <Button style={{backgroundColor: '#1565C0', borderRadius: 20}} onClick={() => setShowCustomerModal(true)}><SearchIcon style={{color: 'white'}}/></Button>
+                                }</StyledTableCell>
+                            }
                             return <StyledTableCell align={column.align ? column.align : 'left'} key={column.name + '-header'}>{column.as ?? column.name}</StyledTableCell>
                         })}
                     </TableRow>
                 </TableHead>
                 <TableBody>
-                    {data.slice(page * 10, page * 10 + 10).map((row, rowindex) => {
+                    {data.map((row, rowindex) => {
                         return (
                             <StyledTableRow key={'row-' + rowindex.toString()}>
                                 {columns.map((column) => {
@@ -208,15 +241,24 @@ export default function GenericTable({data = [], columns = [], overrides = [], c
                     <TableRow>
                         <TablePagination
                             rowsPerPageOptions={[]}
-                            count={count}
+                            count={count ?? -1}
                             rowsPerPage={10}
                             page={page}
                             onPageChange={handleChangePage}
-                            ActionsComponent={TablePaginationActions}
+                            ActionsComponent={count ? TablePaginationActions : undefined}
                         />
                     </TableRow>
                 </TableFooter>
             </Table>
+            <Modal open={showCustomerModal} onClose={() => setShowCustomerModal(false)}>
+                <Box sx={style}>
+                    <b>Select a customer to filter this table by.</b>
+                    <BasicAutocomplete optionLabel={'Name+|+Street+,+City'} optionValue={'ID'} searchQuery={'customers'} label={'Customer'} defaultValue={null} onSelect={(customer: any) => {
+                        _setCustomer(customer)
+                        setShowCustomerModal(false)
+                    }}/>
+                </Box>
+            </Modal>
         </TableContainer>
     );
 }

@@ -34,23 +34,38 @@ export const trucksRouter = createRouter()
     })
     .query('search', {
         input: z.object({
-            search: z.string()
+            search: z.string(),
+            page: z.number().optional()
         }),
         async resolve({ctx, input}) {
             const formattedSearch = `${input.search}*`;
-            return ctx.prisma.trucks.findMany({
-                where: {
-                    Name: {
-                        search: formattedSearch
+            if (input.search.length > 0) {
+                return ctx.prisma.trucks.findMany({
+                    where: {
+                        Name: {
+                            search: formattedSearch
+                        },
+                        VIN: {
+                            search: formattedSearch
+                        },
+                        Notes: {
+                            search: formattedSearch
+                        },
                     },
-                    VIN: {
-                        search: formattedSearch
+                    take: 10,
+                    orderBy: {
+                        ID: 'desc'
+                    }
+                })
+            } else {
+                return ctx.prisma.trucks.findMany({
+                    take: 10,
+                    orderBy: {
+                        ID: 'desc'
                     },
-                    Notes: {
-                        search: formattedSearch
-                    },
-                }
-            })
+                    skip: input.page ? input.page*10 : 0
+                })
+            }
 
         }
     })

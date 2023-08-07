@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import Grid2 from "@mui/material/Unstable_Grid2";
 import Driver from "../../components/objects/Driver";
 import {GetServerSideProps} from "next";
@@ -40,11 +40,18 @@ const Drivers = ({states, drivers, count}: {states: StatesType[], drivers: Drive
 
     const [shouldSearch, setShouldSearch] = useState(false);
 
-    trpc.useQuery(['drivers.search', {search}], {
+    const [page, setPage] = useState(0);
+
+    useEffect(() => {
+        if (search.length === 0) {
+            setData([])
+        }
+    }, [search])
+
+    trpc.useQuery(['drivers.search', {search, page}], {
         enabled: shouldSearch,
         onSuccess(data) {
             setData(data);
-            setCount(data.length)
             setShouldSearch(false);
         },
         onError(error) {
@@ -59,7 +66,10 @@ const Drivers = ({states, drivers, count}: {states: StatesType[], drivers: Drive
                 <Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Drivers'}/>
                 </Grid2>
-                <GenericTable data={search ? trpcData : drivers} columns={columns} overrides={overrides} count={search ? trpcCount : count}/>
+                <GenericTable data={trpcData.length ? trpcData : drivers} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>) => {
+                    setPage(page)
+                    setShouldSearch(true)
+                }}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
@@ -81,7 +91,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const drivers = await prisma.drivers.findMany({
         include: {
             States: true
-        }
+        },
+        orderBy: {
+            ID: 'desc'
+        },
+        take: 10
     });
 
     return {

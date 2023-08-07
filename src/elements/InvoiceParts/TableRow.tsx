@@ -42,7 +42,7 @@ const TableRow = ({load}: {load: CompleteLoads}) => (
         <Text style={{width: '8%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.Weight?.toString()}</Text>
         <Text style={{width: '5%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.Hours?.toString()}</Text>
         <Text style={{width: '5%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.TotalRate?.toString()}</Text>
-        <Text style={{width: '5%', textAlign: 'right', ...styles.text, paddingRight: 5}}>{load.TotalAmount?.toString()}</Text>
+        <Text style={{width: '5%', textAlign: 'right', ...styles.text, paddingRight: 5}}>{load.TotalAmount ? (Math.round(load.TotalAmount * 100) / 100).toString() : 'N/A'}</Text>
     </View>
 )
 

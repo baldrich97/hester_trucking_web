@@ -4,17 +4,64 @@ import { InvoicesModel } from '../../../prisma/zod';
 
 export const invoicesRouter = createRouter()
     .query("getAll", {
-        async resolve({ctx}) {
+        input: z.object({
+            customer: z.number().optional()
+        }),
+        async resolve({ctx, input}) {
+            const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
+            return ctx.prisma.invoices.findMany({
+                include: {
+                    Customers: true,
+                    Loads: true
+                },
+                take: 10,
+                orderBy: {
+                    ID: 'desc'
+                },
+                where: extra
+            });
+        },
+    })
+    .query("getAllPaid", {
+        input: z.object({
+            customer: z.number().optional()
+        }),
+        async resolve({ctx, input}) {
+            const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
             return ctx.prisma.invoices.findMany({
                 where: {
-                    OR: [
-                        {
-                            Deleted: false
-                        },
-                        {
-                            Deleted: null
-                        }
-                    ],
+                    Paid: true,
+                    ...extra
+                },
+                include: {
+                    Customers: true,
+                    Loads: true
+                },
+                take: 10,
+                orderBy: {
+                    ID: 'desc'
+                }
+            });
+        },
+    })
+    .query("getAllUnpaid", {
+        input: z.object({
+            customer: z.number().optional()
+        }),
+        async resolve({ctx, input}) {
+            const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
+            return ctx.prisma.invoices.findMany({
+                where: {
+                    Paid: false,
+                    ...extra
+                },
+                include: {
+                    Customers: true,
+                    Loads: true
+                },
+                take: 10,
+                orderBy: {
+                    ID: 'desc'
                 }
             });
         },

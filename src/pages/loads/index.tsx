@@ -60,6 +60,10 @@ const Loads = ({loads, count, customers, loadTypes, deliveryLocations, trucks, d
 
     const [shouldRefresh, setShouldRefresh] = useState(false);
 
+    const [page, setPage] = useState(0);
+
+    const [customer, setCustomer] = useState(0);
+
    /* trpc.useQuery(['loads.search', {search}], {
         enabled: shouldSearch,
         onSuccess(data) {
@@ -73,11 +77,10 @@ const Loads = ({loads, count, customers, loadTypes, deliveryLocations, trucks, d
         }
     })*/
 
-     trpc.useQuery(['loads.getAll'], {
+     trpc.useQuery(['loads.getAll', {page, customer}], {
         enabled: shouldRefresh,
         onSuccess(data) {
             setNewData(JSON.parse(JSON.stringify(data)));
-            setNewCount(data.length)
             setShouldRefresh(false);
         },
         onError(error) {
@@ -92,7 +95,13 @@ const Loads = ({loads, count, customers, loadTypes, deliveryLocations, trucks, d
                 {/*<Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Loads'}/>
                 </Grid2>*/}
-                <GenericTable data={search ? trpcData : newData.length > 1 ? newData : loads} columns={columns} overrides={overrides} count={search ? trpcCount : newCount > 0 ? newCount : count}/>
+                <GenericTable data={search ? trpcData : newData.length > 1 ? newData : loads} columns={columns} overrides={overrides} count={search ? trpcCount : newCount > 0 ? newCount : count} refreshData={(page: React.SetStateAction<number>) => {
+                    setPage(page)
+                    setShouldRefresh(true)
+                }} setCustomer={(customer: React.SetStateAction<number>) => {
+                    setCustomer(customer);
+                    setShouldRefresh(true)
+                }}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
@@ -119,18 +128,22 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             Drivers: true,
             LoadTypes: true,
             DeliveryLocations: true
+        },
+        take: 10,
+        orderBy: {
+            ID: 'desc'
         }
     });
 
-    const customers = await prisma.customers.findMany({});
+    const customers = await prisma.customers.findMany({take: 10});
 
-    const loadTypes = await prisma.loadTypes.findMany({});
+    const loadTypes = await prisma.loadTypes.findMany({take: 10});
 
-    const trucks = await prisma.trucks.findMany({});
+    const trucks = await prisma.trucks.findMany({take: 10});
 
-    const drivers = await prisma.drivers.findMany({});
+    const drivers = await prisma.drivers.findMany({take: 10});
 
-    const deliveryLocations = await prisma.deliveryLocations.findMany({});
+    const deliveryLocations = await prisma.deliveryLocations.findMany({take: 10});
 
     return {
         props: {

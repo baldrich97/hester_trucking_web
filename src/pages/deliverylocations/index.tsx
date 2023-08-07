@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import Grid2 from "@mui/material/Unstable_Grid2";
 import DeliveryLocation from "../../components/objects/DeliveryLocation";
 import {GetServerSideProps} from "next";
@@ -32,11 +32,18 @@ const DeliveryLocations = ({deliverylocations, count}: {deliverylocations: Deliv
 
     const [shouldSearch, setShouldSearch] = useState(false);
 
-    trpc.useQuery(['deliverylocations.search', {search}], {
+    const [page, setPage] = useState(0);
+
+    useEffect(() => {
+        if (search.length === 0) {
+            setData([])
+        }
+    }, [search])
+
+    trpc.useQuery(['deliverylocations.search', {search, page}], {
         enabled: shouldSearch,
         onSuccess(data) {
             setData(data);
-            setCount(data.length)
             setShouldSearch(false);
         },
         onError(error) {
@@ -51,7 +58,10 @@ const DeliveryLocations = ({deliverylocations, count}: {deliverylocations: Deliv
                 <Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Delivery Locations'}/>
                 </Grid2>
-                <GenericTable data={search ? trpcData : deliverylocations} columns={columns} overrides={overrides} count={search ? trpcCount : count}/>
+                <GenericTable data={trpcData.length ? trpcData : deliverylocations} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>) => {
+                    setPage(page)
+                    setShouldSearch(true)
+                }}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
@@ -70,6 +80,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const count = await prisma.deliveryLocations.count();
 
     const deliverylocations = await prisma.deliveryLocations.findMany({
+        take: 10,
+        orderBy: {
+            ID: 'desc'
+        }
         /*include: {
             States: true MAYBE PUT CUSTOMERS HERE AT SOME POINT
         }*/

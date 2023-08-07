@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import Grid2 from "@mui/material/Unstable_Grid2";
 import LoadType from "../../components/objects/LoadType";
 import {GetServerSideProps} from "next";
@@ -33,11 +33,18 @@ const DeliveryLocations = ({loadtypes, count}: {loadtypes: LoadTypesType[], coun
 
     const [shouldSearch, setShouldSearch] = useState(false);
 
-    trpc.useQuery(['loadtypes.search', {search}], {
+    const [page, setPage] = useState(0);
+
+    useEffect(() => {
+        if (search.length === 0) {
+            setData([])
+        }
+    }, [search])
+
+    trpc.useQuery(['loadtypes.search', {search, page}], {
         enabled: shouldSearch,
         onSuccess(data) {
             setData(data);
-            setCount(data.length)
             setShouldSearch(false);
         },
         onError(error) {
@@ -52,7 +59,10 @@ const DeliveryLocations = ({loadtypes, count}: {loadtypes: LoadTypesType[], coun
                 <Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Load Types'}/>
                 </Grid2>
-                <GenericTable data={search ? trpcData : loadtypes} columns={columns} overrides={overrides} count={search ? trpcCount : count}/>
+                <GenericTable data={trpcData.length ? trpcData : loadtypes} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>) => {
+                    setPage(page)
+                    setShouldSearch(true)
+                }}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
@@ -71,6 +81,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const count = await prisma.loadTypes.count();
 
     const loadtypes = await prisma.loadTypes.findMany({
+        take: 10,
+        orderBy: {
+            ID: "desc"
+        }
         /*include: {
             States: true MAYBE PUT CUSTOMERS HERE AT SOME POINT
         }*/

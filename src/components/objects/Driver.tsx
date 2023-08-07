@@ -79,8 +79,6 @@ const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDr
         {key: 'State', data: states, defaultValue: 25, optionValue: 'ID', optionLabel: 'Name'}
     ]
 
-    console.log(errors)
-
     return (
         <Box
             component='form'

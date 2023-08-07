@@ -100,7 +100,7 @@ const Load = ({
     //const fetchCustomerLoadTypes = trpc.useQuery(['customerloadtypes.getAll', {CustomerID: watchCustomerSelected ?? 0}])
 
     const watchHours = watch('Hours');
-    const watchWeight = watch('Weight')
+    const watchWeight = watch('Weight');
 
     // React.useEffect(() => {
     //     if (initialLoad) {
@@ -123,7 +123,8 @@ const Load = ({
             shouldErrorOn: ['invalid_type'],
             errorMessage: 'Customer is required.',
             type: 'select',
-            label: 'Customer'
+            label: 'Customer',
+            searchQuery: 'customers'
         },
         {name: 'StartDate', size: 4, required: false, type: 'date', label: 'Start Date'},
         {name: 'EndDate', size: 4, required: false, type: 'date', label: 'End Date'},
@@ -133,14 +134,16 @@ const Load = ({
             size: 6,
             required: false,
             type: 'select',
-            label: 'Driver'
+            label: 'Driver',
+            searchQuery: 'drivers'
         },
         {
             name: 'TruckID',
             size: 6,
             required: false,
             type: 'select',
-            label: 'Truck'
+            label: 'Truck',
+            searchQuery: 'trucks'
         },
         {
             name: 'LoadTypeID',
@@ -149,14 +152,16 @@ const Load = ({
             shouldErrorOn: ['invalid_type'],
             errorMessage: 'Load type is required.',
             type: 'select',
-            label: 'Load Type'
+            label: 'Load Type',
+            searchQuery: 'loadtypes'
         },
         {
             name: 'DeliveryLocationID',
             size: 6,
             required: false,
             type: 'select',
-            label: 'Delivery Location'
+            label: 'Delivery Location',
+            searchQuery: 'deliverylocations'
         },
         {name: 'MaterialRate', required: false, type: 'textfield', size: 3, number: true, label: 'Material Rate'},
         {name: 'TruckRate', required: false, type: 'textfield', size: 3, number: true, label: 'Truck Rate'},
@@ -173,11 +178,11 @@ const Load = ({
     }
 
     const selectData: SelectDataType = [
-        {key: 'CustomerID', data: customers, optionValue: 'ID', optionLabel: 'Name+|+Street+,+City'},
-        {key: 'LoadTypeID', data: loadTypes, optionValue: 'ID', optionLabel: 'Description'},
-        {key: 'DeliveryLocationID', data: deliveryLocations, optionValue: 'ID', optionLabel: 'Description', defaultValue: 0},
-        {key: 'TruckID', data: trucks, optionValue: 'ID', optionLabel: 'Name', defaultValue: 0},
-        {key: 'DriverID', data: drivers, optionValue: 'ID', optionLabel: 'FirstName+LastName', defaultValue: 0},
+        {key: 'CustomerID', data: customers, optionValue: 'ID', optionLabel: 'Name+|+Street+,+City', defaultValue: null},
+        {key: 'LoadTypeID', data: loadTypes, optionValue: 'ID', optionLabel: 'Description', defaultValue: null},
+        {key: 'DeliveryLocationID', data: deliveryLocations, optionValue: 'ID', optionLabel: 'Description', defaultValue: null},
+        {key: 'TruckID', data: trucks, optionValue: 'ID', optionLabel: 'Name+|+Notes', defaultValue: null},
+        {key: 'DriverID', data: drivers, optionValue: 'ID', optionLabel: 'FirstName+LastName', defaultValue: null},
     ]
 
     return (

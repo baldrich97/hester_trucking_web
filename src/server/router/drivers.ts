@@ -34,50 +34,68 @@ export const driversRouter = createRouter()
     })
     .query('search', {
         input: z.object({
-            search: z.string()
+            search: z.string(),
+            page: z.number().optional()
         }),
         async resolve({ctx, input}) {
             const formattedSearch = `${input.search}*`;
-            return ctx.prisma.drivers.findMany({
-                where: {
-                    FirstName: {
-                        search: formattedSearch
+            if (input.search.length > 0) {
+                return ctx.prisma.drivers.findMany({
+                    where: {
+                        FirstName: {
+                            search: formattedSearch
+                        },
+                        MiddleName: {
+                            search: formattedSearch
+                        },
+                        LastName: {
+                            search: formattedSearch
+                        },
+                        Street: {
+                            search: formattedSearch
+                        },
+                        City: {
+                            search: formattedSearch
+                        },
+                        ZIP: {
+                            search: formattedSearch
+                        },
+                        License: {
+                            search: formattedSearch
+                        },
+                        Email: {
+                            search: formattedSearch
+                        },
+                        Phone: {
+                            search: formattedSearch
+                        },
+                        HireDate: {
+                            search: formattedSearch
+                        },
+                        Notes: {
+                            search: formattedSearch
+                        },
                     },
-                    MiddleName: {
-                        search: formattedSearch
+                    include: {
+                        States: true
                     },
-                    LastName: {
-                        search: formattedSearch
+                    take: 10,
+                    orderBy: {
+                        ID: 'desc'
+                    }
+                })
+            } else {
+                return ctx.prisma.drivers.findMany({
+                    include: {
+                        States: true
                     },
-                    Street: {
-                        search: formattedSearch
-                    },
-                    City: {
-                        search: formattedSearch
-                    },
-                    ZIP: {
-                        search: formattedSearch
-                    },
-                    License: {
-                        search: formattedSearch
-                    },
-                    Email: {
-                        search: formattedSearch
-                    },
-                    Phone: {
-                        search: formattedSearch
-                    },
-                    HireDate: {
-                        search: formattedSearch
-                    },
-                    Notes: {
-                        search: formattedSearch
-                    },
-                },
-                include: {
-                    States: true
-                }
-            })
+                    take: 10,
+                    skip: input.page ? input.page*10 : 0,
+                    orderBy: {
+                        ID: 'desc'
+                    }
+                })
+            }
 
         }
     })
