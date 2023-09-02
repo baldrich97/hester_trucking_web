@@ -37,5 +37,14 @@ export const customerLoadTypesRouter = createRouter()
                 }, data: data
             })
         },
+    })
+    .mutation('delete', {
+        input: CustomerLoadTypesModel,
+        async resolve({ctx, input}) {
+            const {ID} = input;
+            // use your ORM of choice
+            ctx.prisma.customerLoadTypes.delete({where: {ID: ID}})
+            return true;
+        },
     });
 

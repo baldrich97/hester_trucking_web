@@ -5,7 +5,8 @@ import { InvoicesModel } from '../../../prisma/zod';
 export const invoicesRouter = createRouter()
     .query("getAll", {
         input: z.object({
-            customer: z.number().optional()
+            customer: z.number().optional(),
+            page: z.number().optional()
         }),
         async resolve({ctx, input}) {
             const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
@@ -18,7 +19,8 @@ export const invoicesRouter = createRouter()
                 orderBy: {
                     ID: 'desc'
                 },
-                where: extra
+                where: extra,
+                skip: input.page ? input.page * 10 : 0
             });
         },
     })

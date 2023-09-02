@@ -5,12 +5,12 @@ generator client {
 
 generator zod {
   provider              = "zod-prisma"
-  imports               = "../src/utils/zodParsers"
-  prismaJsonNullability = "true"
   modelSuffix           = "Model"
-  useDecimalJs          = "true"
   relationModel         = "true"
+  imports               = "../src/utils/zodParsers"
+  useDecimalJs          = "true"
   modelCase             = "PascalCase"
+  prismaJsonNullability = "true"
 }
 
 datasource db {
@@ -40,39 +40,41 @@ model CustomerLoadTypes {
 }
 
 model Customers {
-  ID                Int                 @id @default(autoincrement())
+  ID                        Int                         @id @default(autoincrement())
   /// @zod.min(1)
-  Name              String              @db.VarChar(255)
+  Name                      String                      @db.VarChar(255)
   /// @zod.min(1)
-  Street            String              @db.VarChar(255)
+  Street                    String                      @db.VarChar(255)
   /// @zod.min(1)
-  City              String              @db.VarChar(255)
+  City                      String                      @db.VarChar(255)
   /// @zod.min(1)
-  State             Int                 @default(25)
+  State                     Int                         @default(25)
   /// @zod.min(1)
-  ZIP               String              @db.VarChar(10)
-  Phone             String?             @db.VarChar(20)
-  Email             String?             @db.VarChar(255)
-  Notes             String?             @db.VarChar(255)
-  MainContact       String?             @db.VarChar(255)
-  Deleted           Boolean?
-  States            States              @relation(fields: [State], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Customers_States")
-  CustomerLoadTypes CustomerLoadTypes[]
-  DeliveryLocations DeliveryLocations[]
-  Invoices          Invoices[]
-  Loads             Loads[]
+  ZIP                       String                      @db.VarChar(10)
+  Phone                     String?                     @db.VarChar(20)
+  Email                     String?                     @db.VarChar(255)
+  Notes                     String?                     @db.VarChar(255)
+  MainContact               String?                     @db.VarChar(255)
+  Deleted                   Boolean?
+  States                    States                      @relation(fields: [State], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Customers_States")
+  CustomerDeliveryLocations CustomerDeliveryLocations[]
+  CustomerLoadTypes         CustomerLoadTypes[]
+  DeliveryLocations         DeliveryLocations[]
+  Invoices                  Invoices[]
+  Loads                     Loads[]
 
   @@index([State], map: "FK_Customers_States")
   @@fulltext([Name, Street, City, ZIP, Phone, Email, Notes, MainContact])
 }
 
 model DeliveryLocations {
-  ID          Int        @id @default(autoincrement())
-  Description String     @db.VarChar(255)
-  Deleted     Boolean?
-  CustomerID  Int?
-  Customers   Customers? @relation(fields: [CustomerID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_DeliveryLocations_Customers")
-  Loads       Loads[]
+  ID                        Int                         @id @default(autoincrement())
+  Description               String                      @db.VarChar(255)
+  Deleted                   Boolean?
+  CustomerID                Int?
+  Customers                 Customers?                  @relation(fields: [CustomerID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_DeliveryLocations_Customers")
+  CustomerDeliveryLocations CustomerDeliveryLocations[]
+  Loads                     Loads[]
 
   @@index([CustomerID], map: "FK_DeliveryLocations_Customers")
   @@fulltext([Description])
@@ -218,4 +220,244 @@ model Loads {
   @@index([InvoiceID], map: "FK_Loads_Invoice")
   @@index([LoadTypeID], map: "FK_Loads_LoadType")
   @@index([TruckID], map: "FK_Loads_Truck")
+}
+
+model CustomerDeliveryLocations {
+  ID                 Int               @id @default(autoincrement())
+  CustomerID         Int
+  DeliveryLocationID Int
+   /// @zod.custom(imports.parseDate)
+  DateUsed           DateTime          @db.Date
+  Customers          Customers         @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_CustomerDeliveryLocations_Customer")
+  DeliveryLocations  DeliveryLocations @relation(fields: [DeliveryLocationID], references: [ID], onUpdate: Restrict, map: "FK_CustomerDeliveryLocations_DeliveryLocation")
+
+  @@index([CustomerID], map: "FK_CustomerDeliveryLocations_Customer")
+  @@index([DeliveryLocationID], map: "FK_CustomerDeliveryLocations_DeliveryLocation")
+}
+
+model CustomersBackup {
+  ID          Int      @id @default(autoincrement())
+  Name        String   @db.VarChar(255)
+  Street      String   @db.VarChar(255)
+  City        String   @db.VarChar(255)
+  State       Int      @default(25)
+  ZIP         String   @db.VarChar(10)
+  Phone       String?  @db.VarChar(20)
+  Email       String?  @db.VarChar(255)
+  Notes       String?  @db.VarChar(255)
+  MainContact String?  @db.VarChar(255)
+  Deleted     Boolean?
+
+  @@index([State], map: "FK_Customers_States")
+  @@fulltext([Name, Street, City, ZIP, Phone, Email, Notes, MainContact], map: "Customers_Name_Street_City_ZIP_Phone_Email_Notes_MainContact_idx")
+}
+
+model DeliveryLocationsBackup {
+  ID          Int      @id @default(autoincrement())
+  Description String   @db.VarChar(255)
+  Deleted     Boolean?
+  CustomerID  Int?
+
+  @@index([CustomerID], map: "FK_DeliveryLocations_Customers")
+  @@fulltext([Description], map: "DeliveryLocations_Description_idx")
+}
+
+model DriversBackup {
+  ID         Int       @id @default(autoincrement())
+  FirstName  String    @db.VarChar(255)
+  MiddleName String?   @db.VarChar(255)
+  LastName   String    @db.VarChar(255)
+  Street     String?   @db.VarChar(255)
+  City       String?   @db.VarChar(255)
+  State      Int?
+  ZIP        String?   @db.VarChar(10)
+  DOB        DateTime? @db.Date
+  License    String?   @db.VarChar(255)
+  Email      String?   @db.VarChar(255)
+  Phone      String?   @db.VarChar(20)
+  Notes      String?   @db.VarChar(255)
+  Deleted    Boolean?
+  HireDate   String?   @db.VarChar(255)
+
+  @@index([State], map: "FK_Drivers_States")
+  @@fulltext([FirstName, MiddleName, LastName, Street, City, ZIP, License, Email, Phone, Notes, HireDate], map: "Drivers_FirstName_MiddleName_LastName_Street_City_ZIP_Licens_idx")
+}
+
+model InvoicesBackup {
+  ID          Int       @id @default(autoincrement())
+  InvoiceDate DateTime  @db.Date
+  Number      Int?
+  CustomerID  Int
+  TotalAmount Float
+  PaidDate    DateTime? @db.Date
+  CheckNumber String?   @db.VarChar(255)
+  Paid        Boolean?
+  Printed     Boolean?
+  Deleted     Boolean?
+  PaymentType String?   @default("N/A") @db.VarChar(255)
+
+  @@index([CustomerID], map: "FK_Invoices_Customer")
+}
+
+model LoadTypesBackup {
+  ID          Int      @id @default(autoincrement())
+  Description String   @db.VarChar(255)
+  Deleted     Boolean?
+  SourceID    Int?
+  Notes       String?  @db.VarChar(255)
+
+  @@fulltext([Description, Notes], map: "LoadTypes_Description_Notes_idx")
+}
+
+model LoadsBackup {
+  ID                 Int      @id @default(autoincrement())
+  StartDate          DateTime @db.Date
+  EndDate            DateTime @db.Date
+  Weight             Float?
+  Hours              Float?
+  TotalRate          Float?
+  TotalAmount        Float?
+  TruckRate          Float?
+  MaterialRate       Float?
+  Received           String?  @db.VarChar(50)
+  Notes              String?  @db.VarChar(255)
+  TicketNumber       Int?
+  Invoiced           Boolean?
+  CustomerID         Int?
+  InvoiceID          Int?
+  LoadTypeID         Int?
+  DeliveryLocationID Int?
+  TruckID            Int?
+  DriverID           Int?
+  Deleted            Boolean?
+
+  @@index([CustomerID], map: "FK_Loads_Customer")
+  @@index([DeliveryLocationID], map: "FK_Loads_DeliveryLocation")
+  @@index([DriverID], map: "FK_Loads_Driver")
+  @@index([InvoiceID], map: "FK_Loads_Invoice")
+  @@index([LoadTypeID], map: "FK_Loads_LoadType")
+  @@index([TruckID], map: "FK_Loads_Truck")
+}
+
+model TrucksBackup {
+  ID      Int      @id @default(autoincrement())
+  Name    String   @db.VarChar(255)
+  VIN     String?  @db.VarChar(255)
+  Deleted Boolean?
+  Notes   String?  @db.VarChar(255)
+
+  @@fulltext([Name, VIN, Notes], map: "Trucks_Name_VIN_Notes_idx")
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model migrationCustomers {
+  ID          Int
+  Name        String?  @db.VarChar(50)
+  Address     String?  @db.VarChar(50)
+  City        String?  @db.VarChar(50)
+  State       String?  @db.VarChar(50)
+  ZIP         String?  @db.VarChar(50)
+  Email       String?  @db.VarChar(200)
+  Phone       String?  @db.VarChar(50)
+  Notes       String?  @db.VarChar(255)
+  MainContact String?  @db.VarChar(50)
+  Deleted     Boolean?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model migrationDelivery {
+  ID          Int?
+  Description String?  @db.VarChar(200)
+  Deleted     Boolean?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model migrationDrivers {
+  ID         Int?
+  FirstName  String?   @db.VarChar(50)
+  MiddleName String?   @db.VarChar(50)
+  LastName   String?   @db.VarChar(50)
+  Street     String?   @db.VarChar(200)
+  City       String?   @db.VarChar(50)
+  State      String?   @db.VarChar(50)
+  ZIP        String?   @db.VarChar(50)
+  DOB        DateTime? @db.Date
+  License    String?   @db.VarChar(100)
+  Email      String?   @db.VarChar(200)
+  Phone      String?   @db.VarChar(50)
+  Notes      String?   @db.VarChar(255)
+  Deleted    Boolean?
+  SSN        String?   @db.VarChar(50)
+  HireDate   String?   @db.VarChar(50)
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model migrationInvoices {
+  ID            Int
+  InvoiceDate   DateTime? @db.Date
+  Number        Int?
+  CustomerID    Int?
+  TotalAmount   Float?
+  PaymentTypeID Int?
+  PaidDate      String?   @db.VarChar(50)
+  CheckNumber   String?   @db.VarChar(50)
+  Paid          Boolean?
+  Printed       Boolean?
+  Deleted       Boolean?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model migrationLoads {
+  ID                    Int
+  StartDate             DateTime? @db.Date
+  EndDate               DateTime? @db.Date
+  Weight                Float?
+  Hours                 Float?
+  TotalRate             Float?
+  TotalAmount           Float?
+  TruckRate             Float?
+  MaterialRate          Float?
+  Received              String?   @db.VarChar(50)
+  Notes                 String?   @db.VarChar(255)
+  TicketNumber          Int?
+  CustomerID            Int?
+  InvoiceID             Int?
+  LoadTypeID            Int?
+  DeliveryDescriptionID Int?
+  TruckID               Int?
+  DriverID              Int?
+  Invoiced              Boolean?
+  Deleted               Boolean?
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model migrationTrucks {
+  ID      Int?
+  Name    String?  @db.VarChar(50)
+  VIN     String?  @db.VarChar(50)
+  Deleted Boolean?
+  Notes   String?  @db.VarChar(200)
+
+  @@ignore
+}
+
+/// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
+model migrationTypes {
+  ID          Int?
+  Description String?  @db.VarChar(50)
+  Deleted     Boolean?
+  SourceID    Int?
+  Notes       String?  @db.VarChar(255)
+
+  @@ignore
 }
