@@ -4,7 +4,15 @@ import { LoadTypesModel } from '../../../prisma/zod';
 
 export const loadTypesRouter = createRouter()
     .query("getAll", {
-        async resolve({ctx}) {
+        input: z.object({
+            CustomerID: z.number().optional()
+        }),
+        async resolve({ctx, input}) {
+            //let extra = [];
+            if (input.CustomerID) {
+                const associated = await ctx.prisma.customerLoadTypes.findMany({where: {CustomerID: input.CustomerID}, include: {LoadTypes: true}})
+                console.log(associated, 'IN HERE')
+            }
             return ctx.prisma.loadTypes.findMany({
                 where: {
                     OR: [
@@ -49,6 +57,9 @@ export const loadTypesRouter = createRouter()
                             search: formattedSearch
                         },
                     },
+                    include: {
+                        CustomerLoadTypes: true
+                    },
                     take: 10,
                     orderBy: {
                         ID: "desc"
@@ -59,6 +70,9 @@ export const loadTypesRouter = createRouter()
                     take: 10,
                     orderBy: {
                         ID: "desc"
+                    },
+                    include: {
+                        CustomerLoadTypes: true
                     },
                     skip: input.page ? input.page*10 : 0
                 })

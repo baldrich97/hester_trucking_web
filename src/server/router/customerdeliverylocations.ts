@@ -5,13 +5,19 @@ import { CustomerDeliveryLocationsModel } from '../../../prisma/zod';
 export const customerDeliveryLocationsRouter = createRouter()
     .query("getAll", {
         input: z.object({
-            CustomerID: z.number()
+            CustomerID: z.number(),
+            page: z.number().optional()
         }),
         async resolve({ctx, input}) {
             return ctx.prisma.customerDeliveryLocations.findMany({
                 where: {
                     CustomerID: input.CustomerID
-                }
+                },
+                include: {
+                    DeliveryLocations: true
+                },
+                take: 10,
+                skip: input.page ? input.page * 10 : 0
             });
         },
     })
@@ -39,12 +45,12 @@ export const customerDeliveryLocationsRouter = createRouter()
         },
     })
     .mutation('delete', {
-        input: CustomerDeliveryLocationsModel,
+        input: CustomerDeliveryLocationsModel.omit({CustomerID: true, DeliveryLocationID: true, DateUsed: true}),
         async resolve({ctx, input}) {
             const {ID} = input;
             // use your ORM of choice
-            ctx.prisma.customerDeliveryLocations.delete({where: {ID: ID}})
-            return true;
+            return await ctx.prisma.customerDeliveryLocations.delete({where: {ID: ID}})
+
         },
     });
 
