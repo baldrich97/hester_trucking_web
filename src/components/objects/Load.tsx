@@ -44,7 +44,7 @@ const defaultValues = {
   TicketNumber: 0,
 };
 
-const Load = ({
+function Load({
   customers,
   loadTypes,
   deliveryLocations,
@@ -60,7 +60,14 @@ const Load = ({
   drivers: DriversType[];
   initialLoad?: null | LoadsType;
   refreshData?: any;
-}) => {
+}) {
+  function useForceUpdate() {
+    const [value, setValue] = useState(0); // integer state
+    return () => setValue((value) => value + 1); // update state to force render
+  }
+
+  const forceUpdate = useForceUpdate();
+
   const router = useRouter();
 
   const validationSchema = initialLoad
@@ -114,12 +121,12 @@ const Load = ({
 
   const [dlshouldRefresh, dlsetShouldRefresh] = useState(false);
 
-  trpc.useQuery(["loadtypes.getAll", { CustomerID: customer }], {
+  trpc.useQuery(["loadtypes.search", { CustomerID: customer }], {
     enabled: ltshouldRefresh,
     onSuccess(data) {
-      console.log(data)
       ltsetData(JSON.parse(JSON.stringify(data)));
       ltsetShouldRefresh(false);
+      //forceUpdate;
     },
     onError(error) {
       console.warn(error.message);
@@ -134,6 +141,7 @@ const Load = ({
       onSuccess(data) {
         dlsetData(JSON.parse(JSON.stringify(data)));
         dlsetShouldRefresh(false);
+        //forceUpdate;
       },
       onError(error) {
         console.warn(error.message);
@@ -245,6 +253,8 @@ const Load = ({
       type: "select",
       label: "Load Type",
       searchQuery: "loadtypes",
+      groupBy: "Recommend",
+      groupByNames: "Used by Customer|New for Customer"
     },
     {
       name: "DeliveryLocationID",
@@ -253,6 +263,8 @@ const Load = ({
       type: "select",
       label: "Delivery Location",
       searchQuery: "deliverylocations",
+      groupBy: "Recommend",
+      groupByNames: "Used by Customer|New for Customer"
     },
     {
       name: "MaterialRate",
@@ -336,7 +348,6 @@ const Load = ({
       optionValue: "ID",
       optionLabel: "Description",
       defaultValue: initialLoad ? initialLoad.LoadTypeID : null,
-      groupBy: "Recommend",
     },
     {
       key: "DeliveryLocationID",
@@ -344,7 +355,6 @@ const Load = ({
       optionValue: "ID",
       optionLabel: "Description",
       defaultValue: initialLoad ? initialLoad.DeliveryLocationID : null,
-      groupBy: "Recommend",
     },
     {
       key: "TruckID",
@@ -382,6 +392,6 @@ const Load = ({
       </Box>
     </>
   );
-};
+}
 
 export default Load;

@@ -283,9 +283,9 @@ const Invoice = ({
               required={field.required}
               label={field.label ?? field.name}
               type={field.number ? "number" : "text"}
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore
               shouldError={field.shouldErrorOn?.includes(
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
                 errors[field.name]?.type
               )}
               errorMessage={field.errorMessage ?? ""}
@@ -324,6 +324,8 @@ const Invoice = ({
               key={"form-" + index.toString() + "-" + field.name + "-field"}
               label={field.label}
               shouldError={field.shouldErrorOn?.includes(
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
                 errors[field.name]?.type
               )}
               errorMessage={field.errorMessage ?? ""}
@@ -342,9 +344,9 @@ const Invoice = ({
               name={field.name}
               control={control}
               required={field.required}
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore
               shouldError={field.shouldErrorOn?.includes(
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
                 errors[field.name]?.type
               )}
               errorMessage={field.errorMessage}
@@ -365,9 +367,9 @@ const Invoice = ({
               control={control}
               key={"form-" + index.toString() + "-" + field.name + "-field"}
               label={field.label}
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore
               shouldError={field.shouldErrorOn?.includes(
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
                 errors[field.name]?.type
               )}
               errorMessage={field.errorMessage ?? ""}

@@ -1,19 +1,12 @@
 import {createRouter} from "./context";
 import {z} from "zod";
 import { LoadTypesModel } from '../../../prisma/zod';
+import { LoadTypes } from "@prisma/client";
 
 export const loadTypesRouter = createRouter()
     .query("getAll", {
-        input: z.object({
-            CustomerID: z.number().optional()
-        }),
-        async resolve({ctx, input}) {
-            //let extra = [];
-            if (input.CustomerID) {
-                const associated = await ctx.prisma.customerLoadTypes.findMany({where: {CustomerID: input.CustomerID}, include: {LoadTypes: true}})
-                console.log(associated, 'IN HERE')
-            }
-            return ctx.prisma.loadTypes.findMany({
+        async resolve({ctx}) {
+            return await ctx.prisma.loadTypes.findMany({
                 where: {
                     OR: [
                         {
@@ -42,13 +35,32 @@ export const loadTypesRouter = createRouter()
     })
     .query('search', {
         input: z.object({
-            search: z.string(),
-            page: z.number().optional()
+            search: z.string().optional(),
+            page: z.number().optional(),
+            CustomerID: z.number().optional()
         }),
         async resolve({ctx, input}) {
+            const extra: LoadTypes[] = [];
+            if (input.CustomerID) {
+                const associated = await ctx.prisma.customerLoadTypes.findMany({where: {CustomerID: input.CustomerID}, include: {LoadTypes: true}})
+                associated.forEach((item) => {
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    item.LoadTypes.Recommend = true;
+                    extra.push(item.LoadTypes)
+                })
+            }
             const formattedSearch = `${input.search}*`;
-            if (input.search.length > 0) {
-                return ctx.prisma.loadTypes.findMany({
+            const extraCondition = extra.length > 0 ? {
+                NOT: {
+                    ID: {
+                        in: extra.map((item) => item.ID)
+                    }
+                }
+            } : {}
+            let data = [];
+            if (input.search && input.search.length > 0) {
+                data = await ctx.prisma.loadTypes.findMany({
                     where: {
                         Notes: {
                             search: formattedSearch
@@ -56,9 +68,7 @@ export const loadTypesRouter = createRouter()
                         Description: {
                             search: formattedSearch
                         },
-                    },
-                    include: {
-                        CustomerLoadTypes: true
+                        ...extraCondition
                     },
                     take: 10,
                     orderBy: {
@@ -66,17 +76,19 @@ export const loadTypesRouter = createRouter()
                     }
                 })
             } else {
-                return ctx.prisma.loadTypes.findMany({
+                data = await ctx.prisma.loadTypes.findMany({
                     take: 10,
                     orderBy: {
                         ID: "desc"
                     },
-                    include: {
-                        CustomerLoadTypes: true
+                    where: {
+                        ...extraCondition
                     },
                     skip: input.page ? input.page*10 : 0
                 })
             }
+
+            return [...extra, ...data];
 
         }
     })

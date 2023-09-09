@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Control, Controller } from "react-hook-form";
 import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
@@ -21,6 +21,7 @@ const RHAutocomplete = ({
   disabled = false,
   searchQuery,
   groupBy = null,
+  groupByNames = null,
 }: {
   name: string;
   control: Control<any>;
@@ -35,6 +36,7 @@ const RHAutocomplete = ({
   disabled?: boolean;
   searchQuery: string;
   groupBy?: string | null;
+  groupByNames?: string | null;
 }) => {
   const formatOptionLabel = (optionLabel: string, item: any): string => {
     let returnable = "";
@@ -76,6 +78,12 @@ const RHAutocomplete = ({
   const [searchInterval, setSearchInterval] = useState<NodeJS.Timer | null>(
     null
   );
+
+  useEffect(() => {
+    if (JSON.stringify(data) !== JSON.stringify(options)) {
+      setOptions(data);
+    }
+  }, [data]);
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -119,6 +127,15 @@ const RHAutocomplete = ({
     );
   }, [search]);
 
+  function groupByFunction(option: { [x: string]: any }) {
+    if (groupBy && groupByNames) {
+      return option[groupBy]
+        ? groupByNames.split("|")[0] ?? ""
+        : groupByNames.split("|")[1] ?? "";
+    }
+    return "";
+  }
+
   return (
     <Controller
       name={name}
@@ -130,7 +147,7 @@ const RHAutocomplete = ({
           <Autocomplete
             {...field}
             id={label + "-autocomplete"}
-            groupBy={groupBy ? (option) => option[groupBy] : undefined}
+            groupBy={(option) => groupByFunction(option)}
             open={open}
             fullWidth={true}
             disabled={disabled}
