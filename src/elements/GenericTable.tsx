@@ -277,7 +277,9 @@ export default function GenericTable({
                                 if (isOverrided[0]) {
                                   isOverrided[0].callback(
                                     isOverrided[0].name.includes(".")
-                                      ? row[isOverrided[0].name.split(".")[1]]
+                                      ? // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                        // @ts-ignore
+                                        row[isOverrided[0].name.split(".")[1]]
                                       : null
                                   );
                                 }

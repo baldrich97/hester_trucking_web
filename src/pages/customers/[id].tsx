@@ -130,7 +130,7 @@ const Customer = ({
     },
   ];
 
-  const [deletedId, setDeletedId] = useState(null);
+  const [deletedId, setDeletedId] = useState<number | null>(null);
 
   function handleDeleteLoadType(ID: number) {
     setMethod("customerloadtypes.delete");
