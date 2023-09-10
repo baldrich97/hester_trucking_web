@@ -388,6 +388,7 @@ function Load({
           control={control}
           fields={fields}
           selectData={selectData}
+          selectedCustomer={customer}
         />
       </Box>
     </>

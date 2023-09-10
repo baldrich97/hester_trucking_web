@@ -22,6 +22,7 @@ const RHAutocomplete = ({
   searchQuery,
   groupBy = null,
   groupByNames = null,
+  selectedCustomer = 0,
 }: {
   name: string;
   control: Control<any>;
@@ -37,6 +38,7 @@ const RHAutocomplete = ({
   searchQuery: string;
   groupBy?: string | null;
   groupByNames?: string | null;
+  selectedCustomer?: number | null;
 }) => {
   const formatOptionLabel = (optionLabel: string, item: any): string => {
     let returnable = "";
@@ -75,31 +77,36 @@ const RHAutocomplete = ({
 
   const [shouldSearch, setShouldSearch] = useState(false);
 
-  const [searchInterval, setSearchInterval] = useState<NodeJS.Timer | null>(
-    null
-  );
+  const [searchInterval, setSearchInterval] = useState<number | null>(null);
 
   useEffect(() => {
-    if (JSON.stringify(data) !== JSON.stringify(options)) {
+    if (JSON.stringify(data) !== JSON.stringify(options) && !search) {
       setOptions(data);
     }
   }, [data]);
 
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  trpc.useQuery([searchQuery + ".search", { search }], {
-    enabled: shouldSearch,
-    onSuccess(data) {
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      setOptions(data);
-      setShouldSearch(false);
-    },
-    onError(error) {
-      console.warn(error.message);
-      setShouldSearch(false);
-    },
-  });
+  trpc.useQuery(
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    [searchQuery + ".search", { search, CustomerID: selectedCustomer }],
+    {
+      enabled: shouldSearch,
+      onSuccess(data) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        setOptions(data);
+        setShouldSearch(false);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        clearInterval(searchInterval);
+        setSearchInterval(null);
+      },
+      onError(error) {
+        console.warn(error.message);
+        setShouldSearch(false);
+      },
+    }
+  );
 
   const [open, setOpen] = React.useState(false);
   const [options, setOptions] = React.useState<readonly any[]>(data ?? []);
@@ -120,10 +127,13 @@ const RHAutocomplete = ({
       setOptions(data ?? []);
       return;
     }
+    const interval = setInterval(() => {
+      setShouldSearch(true);
+    }, 100);
     setSearchInterval(
-      setInterval(() => {
-        setShouldSearch(true);
-      }, 100)
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      interval
     );
   }, [search]);
 

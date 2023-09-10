@@ -14,11 +14,13 @@ const GenericForm = ({
   control,
   fields = [],
   selectData = [],
+  selectedCustomer = 0
 }: {
   errors: any;
   control: Control<any>;
   fields: FormFieldsType;
   selectData?: SelectDataType;
+  selectedCustomer?: number | null;
 }) => {
   return (
     <Grid2 container columnSpacing={2} rowSpacing={2}>
@@ -80,6 +82,7 @@ const GenericForm = ({
                   searchQuery={field.searchQuery ?? ""}
                   groupBy={field.groupBy}
                   groupByNames={field.groupByNames}
+                  selectedCustomer={selectedCustomer}
                 />
               </Grid2>
             );
