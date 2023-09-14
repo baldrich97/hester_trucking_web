@@ -47,7 +47,7 @@ export const deliveryLocationsRouter = createRouter()
                         },
                     },
                     orderBy: {
-                        ID: 'desc'
+                        Description: 'desc'
                     },
                     take: 10,
                 })
@@ -55,7 +55,7 @@ export const deliveryLocationsRouter = createRouter()
                 return ctx.prisma.deliveryLocations.findMany({
                     skip: input.page ? 10*input.page : 0,
                     orderBy: {
-                        ID: 'desc'
+                        Description: 'desc'
                     },
                     take: 10,
                 })
