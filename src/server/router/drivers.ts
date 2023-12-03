@@ -81,7 +81,7 @@ export const driversRouter = createRouter()
                     },
                     take: 10,
                     orderBy: {
-                        ID: 'desc'
+                        LastName: 'asc'
                     }
                 })
             } else {
@@ -92,7 +92,7 @@ export const driversRouter = createRouter()
                     take: 10,
                     skip: input.page ? input.page*10 : 0,
                     orderBy: {
-                        ID: 'desc'
+                        LastName: 'asc'
                     }
                 })
             }

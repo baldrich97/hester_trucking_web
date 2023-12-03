@@ -1,6 +1,7 @@
 import {createRouter} from "./context";
 import {z} from "zod";
 import { DeliveryLocationsModel } from '../../../prisma/zod';
+import {DeliveryLocations} from "@prisma/client";
 
 export const deliveryLocationsRouter = createRouter()
     .query("getAll", {
@@ -34,32 +35,59 @@ export const deliveryLocationsRouter = createRouter()
     })
     .query('search', {
         input: z.object({
-            search: z.string(),
-            page: z.number().optional()
+            search: z.string().optional(),
+            page: z.number().optional(),
+            CustomerID: z.number().optional()
         }),
         async resolve({ctx, input}) {
+            const extra: DeliveryLocations[] = [];
+            if (input.CustomerID) {
+                const associated = await ctx.prisma.customerDeliveryLocations.findMany({where: {CustomerID: input.CustomerID}, include: {DeliveryLocations: true}})
+                associated.forEach((item) => {
+                    if (extra.filter((_item) => _item.ID === item.DeliveryLocationID).length === 0) {
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-ignore
+                        item.DeliveryLocations.Recommend = true;
+                        extra.push(item.DeliveryLocations)
+                    }
+                })
+            }
             const formattedSearch = `${input.search}*`;
-            if (input.search.length > 0) {
-                return ctx.prisma.deliveryLocations.findMany({
+            const extraCondition = extra.length > 0 ? {
+                NOT: {
+                    ID: {
+                        in: extra.map((item) => item.ID)
+                    }
+                }
+            } : {}
+            let data = [];
+            if (input.search && input.search.length > 0) {
+                data = await ctx.prisma.deliveryLocations.findMany({
                     where: {
                         Description: {
                             search: formattedSearch
                         },
-                    },
-                    orderBy: {
-                        Description: 'desc'
+                        ...extraCondition
                     },
                     take: 10,
+                    orderBy: {
+                        Description: "asc"
+                    }
                 })
             } else {
-                return ctx.prisma.deliveryLocations.findMany({
-                    skip: input.page ? 10*input.page : 0,
-                    orderBy: {
-                        Description: 'desc'
-                    },
+                data = await ctx.prisma.deliveryLocations.findMany({
                     take: 10,
+                    orderBy: {
+                        Description: "asc"
+                    },
+                    where: {
+                        ...extraCondition
+                    },
+                    skip: input.page ? input.page*10 : 0
                 })
             }
+
+            return [...extra, ...data];
 
         }
     })

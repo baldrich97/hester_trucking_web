@@ -16,12 +16,12 @@ export const LoadsModel = z.object({
   Notes: z.string().nullish(),
   TicketNumber: z.number().int().nullish(),
   Invoiced: z.boolean().nullish(),
-  CustomerID: z.number().int().min(1).nullish(),
+  CustomerID: z.number().int().min(1),
   InvoiceID: z.number().int().min(1).nullish(),
-  LoadTypeID: z.number().int().min(1).nullish(),
-  DeliveryLocationID: z.number().int().nullish(),
-  TruckID: z.number().int().nullish(),
-  DriverID: z.number().int().nullish(),
+  LoadTypeID: z.number().int().min(1),
+  DeliveryLocationID: z.number().int().min(1),
+  TruckID: z.number().int().min(1),
+  DriverID: z.number().int().min(1),
   Deleted: z.boolean().nullish(),
 })
 

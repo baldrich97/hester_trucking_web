@@ -44,10 +44,12 @@ export const loadTypesRouter = createRouter()
             if (input.CustomerID) {
                 const associated = await ctx.prisma.customerLoadTypes.findMany({where: {CustomerID: input.CustomerID}, include: {LoadTypes: true}})
                 associated.forEach((item) => {
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    item.LoadTypes.Recommend = true;
-                    extra.push(item.LoadTypes)
+                    if (extra.filter((_item) => _item.ID === item.LoadTypeID).length === 0) {
+                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                        // @ts-ignore
+                        item.LoadTypes.Recommend = true;
+                        extra.push(item.LoadTypes)
+                    }
                 })
             }
             const formattedSearch = `${input.search}*`;

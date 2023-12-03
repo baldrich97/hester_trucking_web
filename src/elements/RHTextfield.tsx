@@ -10,7 +10,7 @@ const RHTextfield = ({ name, control, required = false, defaultValue = '', shoul
             rules={{required: required}}
             defaultValue={defaultValue}
             render={({ field }) => <TextField {...field} label={label} error={shouldError} helperText={shouldError ? errorMessage : ''} multiline={multiline} rows={4} fullWidth type={type} size={'small'} disabled={disabled} onChange={(e) => {
-                field.onChange(name === 'ZIP' ? e.currentTarget.value.toString() : type === 'number' ? e.currentTarget.value === "" ? null : parseInt(e.currentTarget.value, 10) : e.currentTarget.value)
+                field.onChange(name === 'ZIP' ? e.currentTarget.value.toString() : type === 'number' ? e.currentTarget.value === "" ? null : parseFloat(e.currentTarget.value, 10) : e.currentTarget.value)
             }}/>}
         />
     )

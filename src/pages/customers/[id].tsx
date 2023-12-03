@@ -29,9 +29,7 @@ import {
 import { trpc } from "utils/trpc";
 import Close from "@mui/icons-material/Close";
 import { Button, Modal, Typography } from "@mui/material";
-import { confirmAlert } from "react-confirm-alert";
 import { toast } from "react-toastify";
-import { useRouter } from "next/router";
 
 type StatesType = z.infer<typeof StatesModel>;
 type CustomersType = z.infer<typeof CustomersModel>;

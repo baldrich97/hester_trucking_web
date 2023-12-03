@@ -5,6 +5,7 @@ import { TrucksModel } from '../../../prisma/zod';
 export const trucksRouter = createRouter()
     .query("getAll", {
         async resolve({ctx}) {
+            console.log('why am i here')
             return ctx.prisma.trucks.findMany({
                 where: {
                     OR: [
@@ -38,6 +39,7 @@ export const trucksRouter = createRouter()
             page: z.number().optional()
         }),
         async resolve({ctx, input}) {
+            console.log('why am i here to suffer')
             const formattedSearch = `${input.search}*`;
             if (input.search.length > 0) {
                 return ctx.prisma.trucks.findMany({
@@ -54,14 +56,14 @@ export const trucksRouter = createRouter()
                     },
                     take: 10,
                     orderBy: {
-                        ID: 'desc'
+                        Name: 'asc'
                     }
                 })
             } else {
                 return ctx.prisma.trucks.findMany({
                     take: 10,
                     orderBy: {
-                        ID: 'desc'
+                        Name: 'asc'
                     },
                     skip: input.page ? input.page*10 : 0
                 })

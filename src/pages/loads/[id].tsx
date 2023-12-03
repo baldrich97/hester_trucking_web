@@ -74,13 +74,21 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         foundLoadTypes = await prisma.loadTypes.findMany({where: {ID: {in: customerLoadTypes}}});
     }*/
 
-    const loadTypes = await prisma.loadTypes.findMany({});
+    const loadTypes = await prisma.loadTypes.findMany({orderBy: {
+        Description: "asc",
+      },});
 
-    const trucks = await prisma.trucks.findMany({});
+    const trucks = await prisma.trucks.findMany({orderBy: {
+        Name: "asc",
+      },});
 
-    const drivers = await prisma.drivers.findMany({});
+    const drivers = await prisma.drivers.findMany({orderBy: {
+        FirstName: "asc",
+      },});
 
-    const deliveryLocations = await prisma.deliveryLocations.findMany({});
+    const deliveryLocations = await prisma.deliveryLocations.findMany({orderBy: {
+        Description: "asc",
+      },});
 
     return {
         props: {
