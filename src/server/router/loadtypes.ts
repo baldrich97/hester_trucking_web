@@ -74,14 +74,14 @@ export const loadTypesRouter = createRouter()
                     },
                     take: 10,
                     orderBy: {
-                        Description: "desc"
+                        Description: "asc"
                     }
                 })
             } else {
                 data = await ctx.prisma.loadTypes.findMany({
                     take: 10,
                     orderBy: {
-                        Description: "desc"
+                        Description: "asc"
                     },
                     where: {
                         ...extraCondition
