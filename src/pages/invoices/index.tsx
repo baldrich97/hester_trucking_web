@@ -210,7 +210,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         },
         take: 10,
         orderBy: {
-            InvoiceDate: 'desc'
+            ID: 'desc'
         }
     });
 
@@ -224,7 +224,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         },
         take: 10,
         orderBy: {
-            PaidDate: 'desc'
+            ID: 'desc'
         }
     });
 

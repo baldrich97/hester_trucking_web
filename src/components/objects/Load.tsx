@@ -225,6 +225,9 @@ function Load({
                     tdsetData([])
                 }
             }
+            if (name === "StartDate" && value.StartDate) {
+                setValue("EndDate", value.StartDate)
+            }
         });
 
         return () => subscription.unsubscribe();
