@@ -199,6 +199,11 @@ function Load({
                     (totalRate ?? 0) * (hours > 0 ? hours : weight)
                 );
             }
+            if (name === "TotalRate") {
+                const hours = value.Hours ?? 0;
+                const weight = value.Weight ?? 0;
+                setValue("TotalAmount", value.TotalRate * (hours > 0 ? hours : weight))
+            }
             if (name === "CustomerID" && type === "change") {
                 setCustomer(value.CustomerID ?? 0);
                 dlsetShouldRefresh(true);
