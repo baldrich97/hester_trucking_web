@@ -42,7 +42,7 @@ const InvoicePrintableBasic = ({invoice}: { invoice: CompleteInvoices }) => {
                 <InvoiceParts.Title/>
                 <Html>{linebreakhtml}</Html>
                 <InvoiceParts.Header customer={invoice.Customers}
-                                     invoiceDate={new Date(invoice.InvoiceDate).toLocaleDateString()}
+                                     invoiceDate={new Date(invoice.InvoiceDate).toLocaleDateString('en-US', {timeZone: 'UTC'})}
                                      invoiceNumber={invoice.Number ? invoice.Number.toString() : 'N/A'}/>
                 <InvoiceParts.Table loads={invoice.Loads} total={total}/>
                 <View wrap={false}>
@@ -51,7 +51,7 @@ const InvoicePrintableBasic = ({invoice}: { invoice: CompleteInvoices }) => {
                 <InvoiceParts.Disclaimer/>
                 <Html stylesheet={dividerstyle} collapse={false}>{dividerhtml}</Html>
                 <InvoiceParts.Footer customer={invoice.Customers}
-                                     invoiceDate={new Date(invoice.InvoiceDate).toLocaleDateString()}
+                                     invoiceDate={new Date(invoice.InvoiceDate).toLocaleDateString('en-US', {timeZone: 'UTC'})}
                                      invoiceNumber={invoice.Number ? invoice.Number.toString() : 'N/A'} total={total}/>
 
             </Page>

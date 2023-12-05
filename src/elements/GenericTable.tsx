@@ -334,7 +334,7 @@ export default function GenericTable({
                         );
                       case "date":
                         const displayDate = data
-                          ? new Date(data).toLocaleDateString()
+                          ? new Date(data).toLocaleDateString('en-US', {timeZone: 'UTC'})
                           : "N/A";
                         return (
                           <StyledTableCell
