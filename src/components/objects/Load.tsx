@@ -202,7 +202,7 @@ function Load({
             if (name === "TotalRate") {
                 const hours = value.Hours ?? 0;
                 const weight = value.Weight ?? 0;
-                setValue("TotalAmount", value.TotalRate * (hours > 0 ? hours : weight))
+                setValue("TotalAmount", (value.TotalRate ?? 0) * (hours > 0 ? hours : weight))
             }
             if (name === "CustomerID" && type === "change") {
                 setCustomer(value.CustomerID ?? 0);
@@ -416,9 +416,6 @@ function Load({
         {
             key: "TruckID",
             data: tdtrpcData.length > 0 ? tdtrpcData.map((item) => item.Trucks).filter((item) => item !== undefined).filter((value, index, self) => {
-                console.log('RESULT HERE', index === self.findIndex((t) => (
-                    t.ID === value.ID
-                )), value)
                 return index === self.findIndex((t) => (
                     t.ID === value.ID
                 ))

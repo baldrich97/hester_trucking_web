@@ -146,6 +146,12 @@ const RHAutocomplete = ({
     return "";
   }
 
+  const checkKeyDown = (e: { key: string; preventDefault: () => void; }) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+    }
+  };
+
   return (
     <Controller
       name={name}
@@ -170,10 +176,12 @@ const RHAutocomplete = ({
             isOptionEqualToValue={(option, value) => {
               return option[optionValue] === value[optionValue];
             }}
+            onKeyPress={(e) => checkKeyDown(e)}
             getOptionLabel={(option) => formatOptionLabel(optionLabel, option)}
             options={options ?? data}
             loading={loading}
             onChange={(e, data) => {
+              e.preventDefault()
               setValue(data);
               field.onChange(data ? data[optionValue] : null);
             }}
