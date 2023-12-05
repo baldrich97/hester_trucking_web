@@ -44,10 +44,13 @@ const Invoice = ({
   customers,
   loads = [],
   initialInvoice = null,
+    lastInvoice = 0
 }: {
   customers: CustomersType[];
   loads?: LoadsType[];
   initialInvoice?: null | InvoicesType;
+  refreshData?: any;
+  lastInvoice?: number;
 }) => {
   const [customer, setCustomer] = useState(0);
 
@@ -100,6 +103,8 @@ const Invoice = ({
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     setValue("selected", selected);
+  } else {
+    setValue("Number", lastInvoice)
   }
 
   const key = initialInvoice ? "invoices.post" : "invoices.put";

@@ -74,7 +74,7 @@ const overridesAll: TableColumnOverridesType = [
     {name: 'InvoiceDate', type: 'date'}
 ]
 
-const Invoices = ({invoicesUnpaid, invoicesPaid, invoicesAll, customers}: {invoicesUnpaid: InvoicesType[], invoicesPaid: InvoicesType[], invoicesAll: InvoicesType[], customers: CustomersType[]}) => {
+const Invoices = ({invoicesUnpaid, invoicesPaid, invoicesAll, customers, lastInvoice}: {invoicesUnpaid: InvoicesType[], invoicesPaid: InvoicesType[], invoicesAll: InvoicesType[], customers: CustomersType[], lastInvoice: number}) => {
 
     const [unpaidData, setUnpaidData] = useState<InvoicesType[]>([]);
     const [paidData, setPaidData] = useState<InvoicesType[]>([]);
@@ -169,6 +169,7 @@ const Invoices = ({invoicesUnpaid, invoicesPaid, invoicesAll, customers}: {invoi
                          refreshData={() => {
                              setShouldRefresh(true);
                          }}
+                         lastInvoice={lastInvoice}
                 />
             </Grid2>
         </Grid2>
@@ -181,6 +182,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const countAll = await prisma.invoices.count();
     const countUnpaid = await prisma.invoices.count({where: {Paid: false}});
     const countPaid = await prisma.invoices.count({where: {Paid: true}});
+
+    const lastInvoice = await prisma.invoices.aggregate({
+        _max: {
+            Number: true
+        }
+    });
 
     const invoicesAll = await prisma.invoices.findMany({
         include: {
@@ -231,7 +238,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             countAll,
             countUnpaid,
             countPaid,
-            customers
+            customers,
+            lastInvoice: (lastInvoice?._max.Number ?? 0) + 1
         }
     }
 }

@@ -188,13 +188,15 @@ function Load({
             ) {
                 const hours = value.Hours ?? 0;
                 const weight = value.Weight ?? 0;
+                let totalRate = value.TotalRate;
                 setValue(
                     "TotalRate",
                     (value.MaterialRate ?? 0) + (value.TruckRate ?? 0)
                 );
+                totalRate = (value.MaterialRate ?? 0) + (value.TruckRate ?? 0);
                 setValue(
                     "TotalAmount",
-                    (value.TotalRate ?? 0) * (hours > 0 ? hours : weight)
+                    (totalRate ?? 0) * (hours > 0 ? hours : weight)
                 );
             }
             if (name === "CustomerID" && type === "change") {
