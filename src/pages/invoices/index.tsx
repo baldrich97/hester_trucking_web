@@ -165,7 +165,11 @@ const Invoices = ({invoicesUnpaid, invoicesPaid, invoicesAll, customers}: {invoi
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
-                <Invoice customers={customers}/>
+                <Invoice customers={customers}
+                         refreshData={() => {
+                             setShouldRefresh(true);
+                         }}
+                />
             </Grid2>
         </Grid2>
     )

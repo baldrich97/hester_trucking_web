@@ -433,9 +433,6 @@ function Load({
         },
     ];
 
-    console.log('TRUCKS', trucks)
-    console.log('CUSTOMERS', customers)
-
     return (
         <>
             <Box
