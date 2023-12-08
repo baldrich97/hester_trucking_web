@@ -45,8 +45,8 @@ const InvoicePrintableBasic = ({invoice}: { invoice: CompleteInvoices }) => {
                                      invoiceDate={new Date(invoice.InvoiceDate).toLocaleDateString('en-US', {timeZone: 'UTC'})}
                                      invoiceNumber={invoice.Number ? invoice.Number.toString() : 'N/A'}/>
                 <InvoiceParts.Table loads={invoice.Loads} total={total}/>
-                <View wrap={false}>
-                </View>
+                {/*<View wrap={false}>*/}
+                {/*</View>*/}
                 <Html>{linebreakhtml}</Html>
                 <InvoiceParts.Disclaimer/>
                 <Html stylesheet={dividerstyle} collapse={false}>{dividerhtml}</Html>
