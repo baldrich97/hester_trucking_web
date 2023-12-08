@@ -353,7 +353,7 @@ export default function GenericTable({
                         align={column.align ? column.align : "left"}
                         key={"row-" + rowindex.toString() + "-" + column.name}
                       >
-                        {data ?? "N/A"}
+                        {data ? parseFloat(data) && !data.toString().includes(' ') ? Math.round((parseFloat(data) + Number.EPSILON) * 100) / 100 : data : "N/A"}
                       </StyledTableCell>
                     );
                   }

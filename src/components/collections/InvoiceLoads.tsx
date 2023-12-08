@@ -245,9 +245,9 @@ function Row(props: { readOnly: boolean, row: ReturnType<any>, labelId: string, 
                 >
                     {row.TicketNumber}
                 </TableCell>
-                <TableCell align="left" padding="normal" size={'small'}>{row.StartDate ? new Date(row.StartDate).toLocaleDateString() : 'N/A'}</TableCell>
-                <TableCell align="left" padding="normal" size={'small'}>{row.TotalRate}</TableCell>
-                <TableCell align="left" padding="normal" size={'small'}>{row.TotalAmount}</TableCell>
+                <TableCell align="left" padding="normal" size={'small'}>{row.StartDate ? new Date(row.StartDate).toLocaleDateString('en-US', {timeZone: 'UTC'}) : 'N/A'}</TableCell>
+                <TableCell align="left" padding="normal" size={'small'}>{Math.round((parseFloat(row.TotalRate) + Number.EPSILON) * 100)/100}</TableCell>
+                <TableCell align="left" padding="normal" size={'small'}>{Math.round((parseFloat(row.TotalAmount) + Number.EPSILON) * 100)/100}</TableCell>
                 <TableCell>
                     <IconButton
                         aria-label="expand row"

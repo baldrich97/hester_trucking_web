@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
         borderRight: 2,
         borderRightStyle: 'solid',
         borderRightColor: 'grey',
-        paddingLeft: 5,
+        paddingLeft: 2,
     }
 });
 
@@ -39,10 +39,10 @@ const TableRow = ({load}: {load: CompleteLoads}) => (
         <Text style={{width: '10%', textAlign: 'left', ...styles.padding, ...styles.text}}>{load.Trucks?.Notes ?? 'N/A'}</Text>
         <Text style={{width: '25%', textAlign: 'left', ...styles.padding, ...styles.text}}>{load.LoadTypes?.Description ?? 'N/A'}</Text>
         <Text style={{width: '32%', textAlign: 'left', ...styles.padding, ...styles.text}}>{load.DeliveryLocations?.Description ?? 'N/A'}</Text>
-        <Text style={{width: '8%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.Weight?.toString()}</Text>
-        <Text style={{width: '5%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.Hours?.toString()}</Text>
-        <Text style={{width: '5%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.TotalRate?.toString()}</Text>
-        <Text style={{width: '5%', textAlign: 'right', ...styles.text, paddingRight: 5}}>{load.TotalAmount ? (Math.round(load.TotalAmount * 100) / 100).toString() : 'N/A'}</Text>
+        <Text style={{width: '6%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.Weight ? (Math.round(load.Weight * 100)/100).toString() : '0'}</Text>
+        <Text style={{width: '6%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.Hours ? (Math.round(load.Hours * 100)/100).toString() : '0'}</Text>
+        <Text style={{width: '6%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>{load.TotalRate ? (Math.round(load.TotalRate * 100)/100).toString() : '0'}</Text>
+        <Text style={{width: '6%', textAlign: 'right', ...styles.text, paddingRight: 5}}>{load.TotalAmount ? (Math.round(load.TotalAmount * 100) / 100).toString() : 'N/A'}</Text>
     </View>
 )
 
