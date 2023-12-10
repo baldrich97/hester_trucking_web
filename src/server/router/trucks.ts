@@ -39,7 +39,6 @@ export const trucksRouter = createRouter()
             page: z.number().optional()
         }),
         async resolve({ctx, input}) {
-            console.log('why am i here to suffer')
             const formattedSearch = `${input.search}*`;
             if (input.search.length > 0) {
                 return ctx.prisma.trucks.findMany({

@@ -6,10 +6,30 @@ export const loadsRouter = createRouter()
     .query("getAll", {
         input: z.object({
             page: z.number().optional(),
-            customer: z.number().optional()
+            customer: z.number().optional(),
+            truck: z.number().optional(),
+            driver: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional()
         }),
         async resolve({ctx, input}) {
-            const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
+            const extra = [];
+            if (input.customer !== 0) {
+                extra.push({CustomerID: input.customer})
+            }
+            if (input.driver !== 0) {
+                extra.push({DriverID: input.driver})
+            }
+            if (input.truck !== 0) {
+                extra.push({TruckID: input.truck})
+            }
+            if (input.loadType !== 0) {
+                extra.push({LoadTypeID: input.loadType})
+            }
+            if (input.deliveryLocation !== 0) {
+                extra.push({DeliveryLocationID: input.deliveryLocation})
+            }
+            //const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
             return ctx.prisma.loads.findMany({
                 include: {
                     Customers: true,
@@ -19,18 +39,22 @@ export const loadsRouter = createRouter()
                     DeliveryLocations: true
                 },
                 orderBy: {
-                    ID: 'desc'
+                    StartDate: 'desc'
                 },
                 where: {
                     OR: [
-                        {
-                            Deleted: false
-                        },
-                        {
-                            Deleted: null
-                        }
+                        ...extra
                     ],
-                    ...extra
+                    AND: {
+                        OR: [
+                            {
+                                Deleted: false
+                            },
+                            {
+                                Deleted: null
+                            },
+                        ]
+                    }
                 },
                 take: 10,
                 skip: input.page ? 10*input.page : 0
@@ -136,6 +160,52 @@ export const loadsRouter = createRouter()
                     Trucks: true
                 }
             })
+
+        }
+    })
+    .query('getCount', {
+        input: z.object({
+            page: z.number().optional(),
+            customer: z.number().optional(),
+            truck: z.number().optional(),
+            driver: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional()
+        }),
+        async resolve({ctx, input}) {
+            const extra = [];
+            if (input.customer !== 0) {
+                extra.push({CustomerID: input.customer})
+            }
+            if (input.driver !== 0) {
+                extra.push({DriverID: input.driver})
+            }
+            if (input.truck !== 0) {
+                extra.push({TruckID: input.truck})
+            }
+            if (input.loadType !== 0) {
+                extra.push({LoadTypeID: input.loadType})
+            }
+            if (input.deliveryLocation !== 0) {
+                extra.push({DeliveryLocationID: input.deliveryLocation})
+            }
+            return ctx.prisma.loads.count({
+                where: {
+                    OR: [
+                        ...extra
+                    ],
+                    AND: {
+                        OR: [
+                            {
+                                Deleted: false
+                            },
+                            {
+                                Deleted: null
+                            },
+                        ]
+                    }
+                }
+            });
 
         }
     })

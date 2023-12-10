@@ -40,7 +40,7 @@ const style = {
   top: "50%",
   left: "50%",
   transform: "translate(-50%, -50%)",
-  width: 400,
+  width: 600,
   bgcolor: "white",
   border: "2px solid #000",
   boxShadow: 24,
@@ -145,6 +145,9 @@ export default function GenericTable({
   refreshData,
   setCustomer = null,
   selectedCustomer = null,
+  filterBody = null,
+  doSearch = null,
+  clearFilter = null,
 }: {
   data: any[];
   columns: TableColumnsType;
@@ -153,19 +156,17 @@ export default function GenericTable({
   refreshData?: any;
   setCustomer?: any;
   selectedCustomer?: any;
+  filterBody?: any;
+  doSearch?: any;
+  clearFilter?: any;
 }) {
   //console.log(data, columns, overrides);
 
   const [page, setPage] = React.useState(0);
 
+  const [opened, setOpened] = React.useState(false);
+
   const [showCustomerModal, setShowCustomerModal] = React.useState(false);
-
-  const [selected, setSelected] = React.useState(selectedCustomer);
-
-  const _setCustomer = (customer: React.SetStateAction<any>) => {
-    setSelected(customer);
-    setCustomer(customer);
-  };
 
   const handleChangePage = (
     event: React.MouseEvent<HTMLButtonElement> | null,
@@ -183,20 +184,26 @@ export default function GenericTable({
         <TableHead>
           <TableRow>
             {columns.map((column) => {
-              if (column.as === "" && setCustomer) {
+              if (column.as === "" && filterBody) {
                 return (
                   <StyledTableCell align={"right"} key={"lookup-header"}>
-                    {selected ? (
+                    {opened ? (
                       <Button
                         style={{ backgroundColor: "red", borderRadius: 20 }}
-                        onClick={() => _setCustomer(0)}
+                        onClick={() => {
+                          clearFilter();
+                          setOpened(false);
+                        }}
                       >
                         <CloseIcon style={{ color: "white" }} />
                       </Button>
                     ) : (
                       <Button
                         style={{ backgroundColor: "#1565C0", borderRadius: 20 }}
-                        onClick={() => setShowCustomerModal(true)}
+                        onClick={() => {
+                          setShowCustomerModal(true);
+                          setOpened(true);
+                        }}
                       >
                         <SearchIcon style={{ color: "white" }} />
                       </Button>
@@ -334,7 +341,9 @@ export default function GenericTable({
                         );
                       case "date":
                         const displayDate = data
-                          ? new Date(data).toLocaleDateString('en-US', {timeZone: 'UTC'})
+                          ? new Date(data).toLocaleDateString("en-US", {
+                              timeZone: "UTC",
+                            })
                           : "N/A";
                         return (
                           <StyledTableCell
@@ -353,7 +362,13 @@ export default function GenericTable({
                         align={column.align ? column.align : "left"}
                         key={"row-" + rowindex.toString() + "-" + column.name}
                       >
-                        {data ? parseFloat(data) && !data.toString().includes(' ') ? Math.round((parseFloat(data) + Number.EPSILON) * 100) / 100 : data : "N/A"}
+                        {data
+                          ? parseFloat(data) && !data.toString().includes(" ")
+                            ? Math.round(
+                                (parseFloat(data) + Number.EPSILON) * 100
+                              ) / 100
+                            : data
+                          : "N/A"}
                       </StyledTableCell>
                     );
                   }
@@ -380,18 +395,38 @@ export default function GenericTable({
         onClose={() => setShowCustomerModal(false)}
       >
         <Box sx={style}>
-          <b>Select a customer to filter this table by.</b>
-          <BasicAutocomplete
-            optionLabel={"Name+|+Street+,+City"}
-            optionValue={"ID"}
-            searchQuery={"customers"}
-            label={"Customer"}
-            defaultValue={null}
-            onSelect={(customer: any) => {
-              _setCustomer(customer);
-              setShowCustomerModal(false);
+          {filterBody ?? <></>}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "row",
+              justifyContent: "space-between",
             }}
-          />
+          >
+            <Button
+              variant={"contained"}
+              color={"primary"}
+              style={{ backgroundColor: "#1565C0" }}
+              onClick={() => {
+                setShowCustomerModal(false);
+                doSearch();
+              }}
+            >
+              Search
+            </Button>
+            <Button
+              variant={"contained"}
+              color={"primary"}
+              style={{ backgroundColor: "#757575" }}
+              onClick={() => {
+                setShowCustomerModal(false);
+                clearFilter();
+                setOpened(false);
+              }}
+            >
+              Cancel
+            </Button>
+          </div>
         </Box>
       </Modal>
     </TableContainer>
