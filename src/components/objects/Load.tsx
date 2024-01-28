@@ -443,81 +443,29 @@ function Load({
     },
     {
       key: "TruckID",
-      data:
-        tdtrpcData.length > 0
-          ? tdtrpcData
-              .map((item) => item.Trucks)
-              .filter((item) => item !== undefined)
-              .filter((value, index, self) => {
-                return index === self.findIndex((t) => t.ID === value.ID);
-              })
-          : trucks,
+      data: tdtrpcData.length > 0 ? tdtrpcData.map((item) => item.Trucks).filter((item) => item !== undefined).filter((value, index, self) => {
+        return index === self.findIndex((t) => (
+            t.ID === value.ID
+        ))
+      }) : trucks,
       optionValue: "ID",
       optionLabel: "Name+|+Notes",
       defaultValue: initialLoad ? initialLoad.TruckID : null,
     },
     {
       key: "DriverID",
-      data:
-        tdtrpcData.length > 0
-          ? tdtrpcData
-              .map((item) => item.Drivers)
-              .filter((item) => item !== undefined)
-              .filter((value, index, self) => {
-                return index === self.findIndex((t) => t.ID === value.ID);
-              })
-          : drivers,
+      data: tdtrpcData.length > 0 ? tdtrpcData.map((item) => item.Drivers).filter((item) => item !== undefined).filter((value, index, self) => {
+        return index === self.findIndex((t) => (
+            t.ID === value.ID
+        ))
+      }) : drivers,
       optionValue: "ID",
       optionLabel: "FirstName+LastName",
       defaultValue: initialLoad ? initialLoad.DriverID : null,
     },
   ];
 
-    const selectData: SelectDataType = [
-        {
-            key: "CustomerID",
-            data: customers,
-            optionValue: "ID",
-            optionLabel: "Name+|+Street+,+City",
-            defaultValue: initialLoad ? initialLoad.CustomerID : null,
-        },
-        {
-            key: "LoadTypeID",
-            data: lttrpcData.length > 0 ? lttrpcData : loadTypes,
-            optionValue: "ID",
-            optionLabel: "Description",
-            defaultValue: initialLoad ? initialLoad.LoadTypeID : null,
-        },
-        {
-            key: "DeliveryLocationID",
-            data: dltrpcData.length > 0 ? dltrpcData : deliveryLocations,
-            optionValue: "ID",
-            optionLabel: "Description",
-            defaultValue: initialLoad ? initialLoad.DeliveryLocationID : null,
-        },
-        {
-            key: "TruckID",
-            data: tdtrpcData.length > 0 ? tdtrpcData.map((item) => item.Trucks).filter((item) => item !== undefined).filter((value, index, self) => {
-                return index === self.findIndex((t) => (
-                    t.ID === value.ID
-                ))
-            }) : trucks,
-            optionValue: "ID",
-            optionLabel: "Name+|+Notes",
-            defaultValue: initialLoad ? initialLoad.TruckID : null,
-        },
-        {
-            key: "DriverID",
-            data: tdtrpcData.length > 0 ? tdtrpcData.map((item) => item.Drivers).filter((item) => item !== undefined).filter((value, index, self) => {
-                return index === self.findIndex((t) => (
-                    t.ID === value.ID
-                ))
-            }) : drivers,
-            optionValue: "ID",
-            optionLabel: "FirstName+LastName",
-            defaultValue: initialLoad ? initialLoad.DriverID : null,
-        },
-    ];
+
 
     return (
         <>
