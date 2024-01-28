@@ -6,34 +6,76 @@ export const invoicesRouter = createRouter()
     .query("getAll", {
         input: z.object({
             customer: z.number().optional(),
-            page: z.number().optional()
+            page: z.number().optional(),
+            search: z.number().nullish().optional(),
         }),
         async resolve({ctx, input}) {
-            const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
+            const extra = [];
+            if (input.search && input.search.toString().length > 0 && input.search.toString().includes('.')) {
+                extra.push({TotalAmount: input.search})
+            }
+            if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
+                extra.push({Number: input.search})
+            }
+            
+            if (input.customer !== 0) {
+                extra.push({CustomerID: input.customer})
+            }
             return ctx.prisma.invoices.findMany({
+                where: {
+                    OR: [
+                        {Paid: true}, {Paid: false}, {Paid: null}
+                    ],
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                        // @ts-ignore
+                    AND: {
+                        OR: [
+                            ...extra
+                        ],
+                    }
+                },
+                take: 10,
                 include: {
                     Customers: true,
                     Loads: true
                 },
-                take: 10,
                 orderBy: {
-                    ID: 'desc'
+                    InvoiceDate: 'desc'
                 },
-                where: extra,
                 skip: input.page ? input.page * 10 : 0
             });
         },
     })
     .query("getAllPaid", {
         input: z.object({
-            customer: z.number().optional()
+            customer: z.number().optional(),
+            page: z.number().optional(),
+            search: z.number().nullish().optional(),
         }),
         async resolve({ctx, input}) {
-            const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
+            const extra = [];
+            if (input.search && input.search.toString().length > 0 && input.search.toString().includes('.')) {
+                extra.push({TotalAmount: input.search})
+            }
+            if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
+                extra.push({Number: input.search})
+            }
+            
+            if (input.customer !== 0) {
+                extra.push({CustomerID: input.customer})
+            }
             return ctx.prisma.invoices.findMany({
                 where: {
-                    Paid: true,
-                    ...extra
+                    OR: [
+                        {Paid: true}
+                    ],
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                        // @ts-ignore
+                    AND : {
+                        OR: [
+                            ...extra
+                        ]
+                    }
                 },
                 include: {
                     Customers: true,
@@ -41,21 +83,42 @@ export const invoicesRouter = createRouter()
                 },
                 take: 10,
                 orderBy: {
-                    ID: 'desc'
-                }
+                    InvoiceDate: 'desc'
+                },
+                skip: input.page ? 10*input.page : 0
             });
         },
     })
     .query("getAllUnpaid", {
         input: z.object({
-            customer: z.number().optional()
+            customer: z.number().optional(),
+            page: z.number().optional(),
+            search: z.number().nullish().optional(),
         }),
         async resolve({ctx, input}) {
-            const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
+            const extra = [];
+            if (input.search && input.search.toString().length > 0 && input.search.toString().includes('.')) {
+                extra.push({TotalAmount: input.search})
+            }
+            if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
+                extra.push({Number: input.search})
+            }
+            
+            if (input.customer !== 0) {
+                extra.push({CustomerID: input.customer})
+            }
             return ctx.prisma.invoices.findMany({
                 where: {
-                    Paid: false,
-                    ...extra
+                    OR: [
+                        {Paid: false}, {Paid: null}
+                    ],
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                        // @ts-ignore
+                    AND : {
+                        OR: [
+                            ...extra
+                        ]
+                    }
                 },
                 include: {
                     Customers: true,
@@ -63,8 +126,51 @@ export const invoicesRouter = createRouter()
                 },
                 take: 10,
                 orderBy: {
-                    ID: 'desc'
-                }
+                    InvoiceDate: 'desc'
+                },
+                skip: input.page ? 10*input.page : 0
+            });
+        },
+    })
+    .query("getCount", {
+        input: z.object({
+            customer: z.number().optional(),
+            page: z.number().optional(),
+            search: z.number().nullish().optional(),
+            tabValue: z.number().optional()
+        }),
+        async resolve({ctx, input}) {
+            const extra = [];
+            const paidValue = [];
+            if (input.search && input.search.toString().length > 0 && input.search.toString().includes('.')) {
+                extra.push({TotalAmount: input.search})
+            }
+            if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
+                extra.push({Number: input.search})
+            }
+            
+            if (input.customer !== 0) {
+                extra.push({CustomerID: input.customer})
+            }
+            if (input.tabValue === 0) {
+                paidValue.push({Paid: false})
+            }
+            if (input.tabValue === 1) {
+                paidValue.push({Paid: true})
+            }
+            return ctx.prisma.invoices.count({
+                where: {
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                        // @ts-ignore
+                    OR: [
+                        ...extra
+                    ],
+                    AND: {
+                        OR: [
+                            ...paidValue
+                        ]
+                    }
+                },
             });
         },
     })

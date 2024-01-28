@@ -146,9 +146,9 @@ const RHAutocomplete = ({
     return "";
   }
 
-  const checkKeyDown = (e: { key: string; preventDefault: () => void; }) => {
-    if (e.key === 'Enter') {
-      e.preventDefault()
+  const checkKeyDown = (e: { key: string; preventDefault: () => void }) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
     }
   };
 
@@ -181,7 +181,10 @@ const RHAutocomplete = ({
             options={options ?? data}
             loading={loading}
             onChange={(e, data) => {
-              e.preventDefault()
+              e.preventDefault();
+              if (data === null) {
+                setSearch("");
+              }
               setValue(data);
               field.onChange(data ? data[optionValue] : null);
             }}
