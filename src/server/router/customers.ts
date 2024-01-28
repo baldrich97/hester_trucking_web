@@ -39,7 +39,7 @@ export const customersRouter = createRouter()
             page: z.number().optional()
         }),
         async resolve({ctx, input}) {
-            const formattedSearch = `${input.search}*`;
+            const formattedSearch = input.search.trim().includes(' ') ? `+${input.search.trim().split(' ')[0]} +${input.search.trim().split(' ')[1]}*` : `${input.search}*`;
             if (input.search.length > 0) {
                 return ctx.prisma.customers.findMany({
                     where: {

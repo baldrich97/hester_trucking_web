@@ -1,6 +1,6 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import { InvoicesModel } from '../../../prisma/zod';
+import {InvoicesModel, LoadsModel} from '../../../prisma/zod';
 
 export const invoicesRouter = createRouter()
     .query("getAll", {
@@ -187,6 +187,21 @@ export const invoicesRouter = createRouter()
                     PaidDate: new Date()
                 }
             })
+        },
+    })
+    .mutation('delete', {
+        input: InvoicesModel,
+        async resolve({ctx, input}) {
+            const {ID} = input;
+            //make related loads available again
+            await ctx.prisma.loads.findMany({where: {InvoiceID: ID}}).then(async (loads) => {
+                loads.forEach(async (load) => {
+                    ctx.prisma.loads.update({where: {ID: load.ID}, data: {Invoiced: false, InvoiceID: null}}).then();
+                })
+            });
+
+            // use your ORM of choice
+            return await ctx.prisma.invoices.delete({where: {ID: ID}})
         },
     });
 

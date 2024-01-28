@@ -13,12 +13,13 @@ const styles = StyleSheet.create({
         color: 'black',
         letterSpacing: 0,
         fontSize: 30,
-        fontWeight: 600
+        fontFamily: 'Times-Bold'
     },
     subtitle:{
         color: 'black',
         letterSpacing: 0,
         fontSize: 16,
+        fontFamily: 'Times-Roman'
     }
 });
 
@@ -28,7 +29,7 @@ const Title = () => (
         {/*<Html>{html}</Html>*/}
         <Text style={styles.subtitle}>9570 Hwy 51 - Broseley, MO 63932</Text>
         {/*<Html>{html}</Html>*/}
-        <Text style={styles.subtitle}>Office (573)328-1160 - Fax (573)328-1184</Text>
+        <Text style={styles.subtitle}>Office: (573) 328-1160 - Fax: (573) 328-1184</Text>
     </View>
 )
 

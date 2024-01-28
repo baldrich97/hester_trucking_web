@@ -14,13 +14,15 @@ const GenericForm = ({
   control,
   fields = [],
   selectData = [],
-  selectedCustomer = 0
+  selectedCustomer = 0,
+    onDelete = null,
 }: {
   errors: any;
   control: Control<any>;
   fields: FormFieldsType;
   selectData?: SelectDataType;
   selectedCustomer?: number | null;
+  onDelete?: any;
 }) => {
   return (
     <Grid2 container columnSpacing={2} rowSpacing={2}>
@@ -147,6 +149,19 @@ const GenericForm = ({
           Submit
         </Button>
       </Grid2>
+      {onDelete && <Grid2 xs={6}>
+
+      </Grid2>}
+      {onDelete && <Grid2 xs={3} style={{display: 'grid'}}>
+        <Button
+            type={"button"}
+            variant={"contained"}
+            style={{ backgroundColor: "#EF463B", justifySelf: 'flex-end' }}
+            onClick={onDelete}
+        >
+          Delete
+        </Button>
+      </Grid2>}
     </Grid2>
   );
 };

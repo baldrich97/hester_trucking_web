@@ -6,9 +6,9 @@ generator client {
 generator zod {
   provider              = "zod-prisma"
   modelSuffix           = "Model"
-  relationModel         = "true"
   imports               = "../src/utils/zodParsers"
   useDecimalJs          = "true"
+  relationModel         = "true"
   modelCase             = "PascalCase"
   prismaJsonNullability = "true"
 }
@@ -210,7 +210,7 @@ model Loads {
   Customers          Customers?         @relation(fields: [CustomerID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Customer")
   DeliveryLocations  DeliveryLocations? @relation(fields: [DeliveryLocationID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_DeliveryLocation")
   Drivers            Drivers?           @relation(fields: [DriverID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Driver")
-  Invoices           Invoices?          @relation(fields: [InvoiceID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Invoice")
+  Invoices           Invoices?          @relation(fields: [InvoiceID], references: [ID], onUpdate: Restrict, map: "FK_Loads_Invoice")
   LoadTypes          LoadTypes?         @relation(fields: [LoadTypeID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_LoadType")
   Trucks             Trucks?            @relation(fields: [TruckID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Truck")
 
@@ -226,7 +226,7 @@ model CustomerDeliveryLocations {
   ID                 Int               @id @default(autoincrement())
   CustomerID         Int
   DeliveryLocationID Int
-   /// @zod.custom(imports.parseDate)
+  /// @zod.custom(imports.parseDate)
   DateUsed           DateTime          @db.Date
   Customers          Customers         @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_CustomerDeliveryLocations_Customer")
   DeliveryLocations  DeliveryLocations @relation(fields: [DeliveryLocationID], references: [ID], onUpdate: Restrict, map: "FK_CustomerDeliveryLocations_DeliveryLocation")
@@ -377,22 +377,23 @@ model migrationDelivery {
 
 /// The underlying table does not contain a valid unique identifier and can therefore currently not be handled by the Prisma Client.
 model migrationDrivers {
-  ID         Int?
-  FirstName  String?   @db.VarChar(50)
-  MiddleName String?   @db.VarChar(50)
-  LastName   String?   @db.VarChar(50)
-  Street     String?   @db.VarChar(200)
-  City       String?   @db.VarChar(50)
-  State      String?   @db.VarChar(50)
-  ZIP        String?   @db.VarChar(50)
-  DOB        DateTime? @db.Date
-  License    String?   @db.VarChar(100)
-  Email      String?   @db.VarChar(200)
-  Phone      String?   @db.VarChar(50)
-  Notes      String?   @db.VarChar(255)
-  Deleted    Boolean?
-  SSN        String?   @db.VarChar(50)
-  HireDate   String?   @db.VarChar(50)
+  ID             Int?
+  FirstName      String?   @db.VarChar(50)
+  MiddleName     String?   @db.VarChar(50)
+  LastName       String?   @db.VarChar(50)
+  Street         String?   @db.VarChar(200)
+  City           String?   @db.VarChar(50)
+  State          String?   @db.VarChar(50)
+  ZIP            String?   @db.VarChar(50)
+  DOB            DateTime? @db.Date
+  License        String?   @db.VarChar(100)
+  Email          String?   @db.VarChar(200)
+  Phone          String?   @db.VarChar(50)
+  Notes          String?   @db.VarChar(255)
+  Deleted        Boolean?
+  SSN            String?   @db.VarChar(50)
+  HireDate       String?   @db.VarChar(50)
+  PreferredTruck Int?
 
   @@ignore
 }

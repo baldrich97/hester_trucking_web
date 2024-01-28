@@ -15,6 +15,7 @@ const styles = StyleSheet.create({
         color: 'black',
         letterSpacing: 0,
         fontSize: 12,
+        fontFamily: 'Times-Bold'
     },
     body:{
         flexDirection: 'row',
@@ -26,13 +27,13 @@ const styles = StyleSheet.create({
         color: 'black',
         letterSpacing: 0,
         fontSize: 16,
-        fontWeight: 600,
+        fontFamily: 'Times-Bold'
     },
     textMedium:{
         color: 'black',
         letterSpacing: 0,
         fontSize: 14,
-        fontWeight: 600,
+        fontFamily: 'Times-Bold'
     },
 });
 
@@ -43,7 +44,7 @@ const dividerhtml = ReactDOMServer.renderToStaticMarkup(divider);
 
 const Footer = ({invoiceDate, invoiceNumber, customer, total}: {invoiceDate: string, invoiceNumber: string, customer: CompleteCustomers, total: number}) => (
     <View style={styles.container}>
-        <Text style={{...styles.textLarge}}>Detach here and return with payment - Thank you for your business!</Text>
+        <Text style={{...styles.textLarge, fontFamily: 'Times-BoldItalic'}}>Detach here and return with payment - Thank you for your business!</Text>
         <br/>
         <View style={styles.body}>
             <View style={{width: '100%', flexDirection: 'column', display: 'flex'}}>
@@ -52,7 +53,7 @@ const Footer = ({invoiceDate, invoiceNumber, customer, total}: {invoiceDate: str
                 <Text style={{textAlign: 'left', paddingLeft: 38, ...styles.text}}>{customer.Street}</Text>
                 <Text style={{textAlign: 'left', paddingLeft: 38, ...styles.text}}>{customer.City}, {customer.States.Abbreviation} {customer.ZIP}</Text>
                 <br/>
-                <Text style={{textAlign: 'left', ...styles.textLarge}}>Payment Due: ${total}</Text>
+                <Text style={{textAlign: 'left', ...styles.textLarge}}>Payment Due: ${(Math.round((total + Number.EPSILON) * 100) / 100).toString()}</Text>
             </View>
 
             <View style={{width: '100%', flexDirection: 'column', display: 'flex'}}>

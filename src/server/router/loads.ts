@@ -1,6 +1,6 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import {LoadsModel} from '../../../prisma/zod';
+import {CustomerLoadTypesModel, LoadsModel} from '../../../prisma/zod';
 
 export const loadsRouter = createRouter()
     .query("getAll", {
@@ -180,5 +180,14 @@ export const loadsRouter = createRouter()
                 }, data: data
             })
         },
+    })
+    .mutation('delete', {
+        input: LoadsModel,
+        async resolve({ctx, input}) {
+            const {ID} = input;
+            // use your ORM of choice
+            return await ctx.prisma.loads.delete({where: {ID: ID}})
+        },
     });
+
 

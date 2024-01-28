@@ -13,14 +13,14 @@ const styles = StyleSheet.create({
         color: 'black',
         letterSpacing: 0,
         fontSize: 18,
-        fontWeight: 600
+        fontFamily: 'Times-Bold'
     },
 });
 
 
 const TableFooter = ({total}: {total: number}) => (
     <View style={styles.container}>
-        <Text style={styles.text}>Grand Total: {(Math.round(total * 100) / 100).toString()}</Text>
+        <Text style={styles.text}>Grand Total: ${(Math.round(total * 100) / 100).toString()}</Text>
     </View>
 )
 

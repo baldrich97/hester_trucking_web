@@ -98,7 +98,7 @@ const RHAutocomplete = ({
         setShouldSearch(false);
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        clearInterval(searchInterval);
+        clearTimeout(searchInterval);
         setSearchInterval(null);
       },
       onError(error) {
@@ -127,7 +127,7 @@ const RHAutocomplete = ({
       setOptions(data ?? []);
       return;
     }
-    const interval = setInterval(() => {
+    const interval = setTimeout(() => {
       setShouldSearch(true);
     }, 100);
     setSearchInterval(

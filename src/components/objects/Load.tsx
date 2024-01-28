@@ -16,6 +16,8 @@ import {trpc} from "../../utils/trpc";
 import {useRouter} from "next/router";
 import GenericForm from "../../elements/GenericForm";
 import {toast} from "react-toastify";
+import { confirmAlert } from 'react-confirm-alert';
+import 'react-confirm-alert/src/react-confirm-alert.css';
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
@@ -134,6 +136,18 @@ function Load({
     const [dlshouldRefresh, dlsetShouldRefresh] = useState(false);
 
     const [tdshouldRefresh, tdsetShouldRefresh] = useState(false);
+
+    const deleteLoad = trpc.useMutation('loads.delete', {
+        async onSuccess() {
+            toast('Successfully Deleted!', {autoClose: 2000, type: 'success'})
+        }
+    })
+
+    const onDelete = async (data: LoadsType) => {
+        toast('Deleting...', {autoClose: 2000, type: 'info'})
+        await deleteLoad.mutateAsync(data)
+        await router.replace('/loads');
+    }
 
     trpc.useQuery(["loadtypes.search", {CustomerID: customer}], {
         enabled: ltshouldRefresh,
@@ -457,6 +471,22 @@ function Load({
                     fields={fields}
                     selectData={selectData}
                     selectedCustomer={customer}
+                    onDelete={initialLoad ? () => {
+                        confirmAlert({
+                            title: 'Confirm Deletion',
+                            message: 'Are you sure you want to delete this load?',
+                            buttons: [
+                                {
+                                    label: 'Yes',
+                                    onClick: async () => {onDelete(initialLoad).then()}
+                                },
+                                {
+                                    label: 'No'
+                                    //onClick: () => {}
+                                }
+                            ]
+                        })
+                    } : null}
                 />
             </Box>
         </>

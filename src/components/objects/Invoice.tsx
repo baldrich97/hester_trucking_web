@@ -23,6 +23,8 @@ import Button from "@mui/material/Button";
 import InvoiceLoads from "../collections/InvoiceLoads";
 import { toast } from "react-toastify";
 import RHAutocomplete from "elements/RHAutocomplete";
+import {confirmAlert} from "react-confirm-alert";
+import 'react-confirm-alert/src/react-confirm-alert.css';
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
@@ -152,6 +154,18 @@ const Invoice = ({
     }
     setShouldFetchLoads(true);
   };
+
+  const deleteInvoice = trpc.useMutation('invoices.delete', {
+    async onSuccess() {
+      toast('Successfully Deleted!', {autoClose: 2000, type: 'success'})
+    }
+  })
+
+  const onDelete = async (data: InvoicesType) => {
+    toast('Deleting...', {autoClose: 2000, type: 'info'})
+    await deleteInvoice.mutateAsync(data)
+    await router.replace('/invoices');
+  }
 
   React.useEffect(() => {
     const subscription = watch((value, { name, type }) => {
@@ -537,6 +551,31 @@ const Invoice = ({
 
         {initialInvoice && (
           <>
+            <Grid2 xs={1}>
+              <Button
+                  type={"button"}
+                  variant={"contained"}
+                  style={{ backgroundColor: "#EF463B" }}
+                  onClick={() => {
+                    confirmAlert({
+                      title: 'Confirm Deletion',
+                      message: 'Are you sure you want to delete this invoice? It will make any loads associated available again.',
+                      buttons: [
+                        {
+                          label: 'Yes',
+                          onClick: async () => {onDelete(initialInvoice).then()}
+                        },
+                        {
+                          label: 'No'
+                          //onClick: () => {}
+                        }
+                      ]
+                    })
+                  }}
+              >
+                Delete
+              </Button>
+            </Grid2>
             <Grid2 xs={1}>
               <Button
                 variant={"contained"}

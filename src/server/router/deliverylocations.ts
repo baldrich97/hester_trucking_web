@@ -52,7 +52,7 @@ export const deliveryLocationsRouter = createRouter()
                     }
                 })
             }
-            const formattedSearch = `${input.search}*`;
+            const formattedSearch = !input.search ? '' : input.search.trim().includes(' ') ? `+${input.search.trim().split(' ')[0]} +${input.search.trim().split(' ')[1]}*` : `${input.search}*`;
             const extraCondition = extra.length > 0 ? {
                 NOT: {
                     ID: {

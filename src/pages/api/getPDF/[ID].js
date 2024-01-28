@@ -34,9 +34,11 @@ const handler = async (req, res) => {
         }
     })
 
+    const number = invoice.Number;
+
     const stream = await renderToStream(<InvoicePrintableBasic invoice={invoice}/>)
     res.setHeader('Content-Type', 'application/pdf');
-    const filename = "Invoice-" + ID;
+    const filename = "Invoice-" + number;
     res.setHeader('Content-Disposition', `attachment; filename=${filename}.pdf`);
     await pipeline(stream, res);
 };
