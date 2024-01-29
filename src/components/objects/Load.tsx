@@ -205,8 +205,8 @@ function Load({
         setValue(
           "TotalRate",
           Math.round(
-            (((value.MaterialRate ?? 0) + (value.TruckRate ?? 0)) * 100) / 100
-          )
+            (((value.MaterialRate ?? 0) + (value.TruckRate ?? 0)) * 100)
+          ) / 100
         );
         totalRate = (value.MaterialRate ?? 0) + (value.TruckRate ?? 0);
         setValue(
