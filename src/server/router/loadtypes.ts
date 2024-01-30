@@ -1,7 +1,7 @@
 import {createRouter} from "./context";
 import {z} from "zod";
 import { LoadTypesModel } from '../../../prisma/zod';
-import { LoadTypes } from "@prisma/client";
+import { LoadTypes, Prisma } from "@prisma/client";
 
 export const loadTypesRouter = createRouter()
     .query("getAll", {
@@ -52,7 +52,6 @@ export const loadTypesRouter = createRouter()
                     }
                 })
             }
-            const formattedSearch = !input.search ? '' : input.search.trim().includes(' ') ? `+${input.search.trim().split(' ')[0]} +${input.search.trim().split(' ')[1]}*` : `${input.search}*`;
             const extraCondition = extra.length > 0 ? {
                 NOT: {
                     ID: {
@@ -62,24 +61,32 @@ export const loadTypesRouter = createRouter()
             } : {}
             let data = [];
             if (input.search && input.search.length > 0) {
+                const formattedSearch = input.search.replace('"', '\"');
+
                 data = await ctx.prisma.loadTypes.findMany({
                     where: {
-                        Notes: {
-                            search: formattedSearch
-                        },
-                        Description: {
-                            search: formattedSearch
-                        },
+                        OR: [
+                            {
+                                Notes: {
+                                    contains: formattedSearch
+                                }
+                            },
+                            {
+                                Description: {
+                                    contains: formattedSearch
+                                }
+                            }
+                        ],
                         ...extraCondition
                     },
-                    take: 10,
+                    take: 50,
                     orderBy: {
                         Description: "asc"
                     }
                 })
             } else {
                 data = await ctx.prisma.loadTypes.findMany({
-                    take: 10,
+                    take: 50,
                     orderBy: {
                         Description: "asc"
                     },

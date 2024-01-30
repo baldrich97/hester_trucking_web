@@ -1,6 +1,6 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import { CustomersModel } from '../../../prisma/zod';
+import {CustomersModel} from '../../../prisma/zod';
 
 export const customersRouter = createRouter()
     .query("getAll", {
@@ -39,34 +39,52 @@ export const customersRouter = createRouter()
             page: z.number().optional()
         }),
         async resolve({ctx, input}) {
-            const formattedSearch = input.search.trim().includes(' ') ? `+${input.search.trim().split(' ')[0]} +${input.search.trim().split(' ')[1]}*` : `${input.search}*`;
+            const formattedSearch = input.search.replace('"', '\"');
             if (input.search.length > 0) {
                 return ctx.prisma.customers.findMany({
                     where: {
-                        Name: {
-                            search: formattedSearch
-                        },
-                        Street: {
-                            search: formattedSearch
-                        },
-                        City: {
-                            search: formattedSearch
-                        },
-                        ZIP: {
-                            search: formattedSearch
-                        },
-                        Email: {
-                            search: formattedSearch
-                        },
-                        Phone: {
-                            search: formattedSearch
-                        },
-                        MainContact: {
-                            search: formattedSearch
-                        },
-                        Notes: {
-                            search: formattedSearch
-                        },
+                        OR: [
+                            {
+                                Name: {
+                                    contains: formattedSearch
+                                }
+                            },
+                            {
+                                Street: {
+                                    contains: formattedSearch
+                                }
+                            },
+                            {
+                                City: {
+                                    contains: formattedSearch
+                                }
+                            },
+                            {
+                                ZIP: {
+                                    contains: formattedSearch
+                                }
+                            },
+                            {
+                                Email: {
+                                    contains: formattedSearch
+                                }
+                            },
+                            {
+                                Phone: {
+                                    contains: formattedSearch
+                                }
+                            },
+                            {
+                                MainContact: {
+                                    contains: formattedSearch
+                                }
+                            },
+                            {
+                                Notes: {
+                                    contains: formattedSearch
+                                }
+                            }
+                        ]
                     },
                     orderBy: {
                         Name: 'asc'
@@ -74,7 +92,7 @@ export const customersRouter = createRouter()
                     include: {
                         States: true
                     },
-                    take: 10,
+                    take: 50,
                 })
             } else {
                 return ctx.prisma.customers.findMany({
@@ -84,8 +102,8 @@ export const customersRouter = createRouter()
                     include: {
                         States: true
                     },
-                    take: 10,
-                    skip: input.page ? 10*input.page : 0
+                    take: 50,
+                    skip: input.page ? 10 * input.page : 0
                 })
             }
 

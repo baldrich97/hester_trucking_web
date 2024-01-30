@@ -69,14 +69,14 @@ export const deliveryLocationsRouter = createRouter()
                         },
                         ...extraCondition
                     },
-                    take: 10,
+                    take: 50,
                     orderBy: {
                         Description: "asc"
                     }
                 })
             } else {
                 data = await ctx.prisma.deliveryLocations.findMany({
-                    take: 10,
+                    take: 50,
                     orderBy: {
                         Description: "asc"
                     },
