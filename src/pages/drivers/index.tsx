@@ -42,13 +42,16 @@ const Drivers = ({states, drivers, count}: {states: StatesType[], drivers: Drive
 
     const [page, setPage] = useState(0);
 
+    const [order, setOrder] = React.useState<'asc'|'desc'>('desc');
+    const [orderBy, setOrderBy] = React.useState('ID')
+
     useEffect(() => {
         if (search.length === 0) {
             setData([])
         }
     }, [search])
 
-    trpc.useQuery(['drivers.search', {search, page}], {
+    trpc.useQuery(['drivers.search', {search, page, orderBy, order}], {
         enabled: shouldSearch,
         onSuccess(data) {
             setData(data);
@@ -66,9 +69,11 @@ const Drivers = ({states, drivers, count}: {states: StatesType[], drivers: Drive
                 <Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Drivers'}/>
                 </Grid2>
-                <GenericTable data={trpcData.length ? trpcData : drivers} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>) => {
-                    setPage(page)
-                    setShouldSearch(true)
+                <GenericTable data={trpcData.length || (order !== 'desc' || orderBy !== 'ID') ? trpcData : drivers} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
+                    setPage(page);
+                    setOrderBy(orderBy);
+                    setOrder(order);
+                    setShouldSearch(true);
                 }}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>

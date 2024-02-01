@@ -28,11 +28,11 @@ type TrucksType = z.infer<typeof TrucksModel>;
 type DriversType = z.infer<typeof DriversModel>;
 
 const columns: TableColumnsType = [
-  { name: "Customers.Name", as: "Customer", navigateTo: "customers/[ID]" },
+  { name: "Customers.Name", as: "Customer", navigateTo: "customers/[ID]", column: 'CustomerID' },
   { name: "StartDate", as: "Start Date" },
   { name: "TotalAmount", as: "Total Amount" },
-  { name: "LoadTypes.Description", as: "Load Type" },
-  { name: "DeliveryLocations.Description", as: "Delivery Notes" },
+  { name: "LoadTypes.Description", as: "Load Type", column: 'LoadTypeID'  },
+  { name: "DeliveryLocations.Description", as: "Delivery Notes", column: 'DeliveryLocationID'  },
   { name: "TicketNumber", as: "Ticket #" },
   { name: "Invoiced" },
   { name: "ID", as: "", navigateTo: "/loads/" },
@@ -88,6 +88,9 @@ const Loads = ({
 
   const [deliveryLocation, setDeliveryLocation] = useState(0);
 
+  const [order, setOrder] = React.useState<'asc'|'desc'>('desc');
+  const [orderBy, setOrderBy] = React.useState('ID')
+
   /* trpc.useQuery(['loads.search', {search}], {
           enabled: shouldSearch,
           onSuccess(data) {
@@ -104,11 +107,12 @@ const Loads = ({
   trpc.useQuery(
     [
       "loads.getAll",
-      { page, customer, driver, truck, loadType, deliveryLocation },
+      { page, customer, driver, truck, loadType, deliveryLocation, orderBy, order },
     ],
     {
       enabled: shouldRefresh,
       onSuccess(data) {
+        console.log(data)
         setNewData(JSON.parse(JSON.stringify(data)));
         setShouldRefresh(false);
       },
@@ -141,12 +145,14 @@ const Loads = ({
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Loads'}/>
                 </Grid2>*/}
         <GenericTable
-          data={newData.length >= 1 ? newData : loads}
+          data={newData.length >= 1 || (order !== 'desc' || orderBy !== 'ID')  ? newData : loads}
           columns={columns}
           overrides={overrides}
           count={newCount > 0 ? newCount : count}
-          refreshData={(page: React.SetStateAction<number>) => {
+          refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
             setPage(page);
+            setOrderBy(orderBy);
+            setOrder(order);
             setShouldRefresh(true);
           }}
           doSearch={() => {

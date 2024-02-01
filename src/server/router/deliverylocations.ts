@@ -1,6 +1,6 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import { DeliveryLocationsModel } from '../../../prisma/zod';
+import {DeliveryLocationsModel} from '../../../prisma/zod';
 import {DeliveryLocations} from "@prisma/client";
 
 export const deliveryLocationsRouter = createRouter()
@@ -35,14 +35,19 @@ export const deliveryLocationsRouter = createRouter()
     })
     .query('search', {
         input: z.object({
-            search: z.string().optional(),
+            search: z.string(),
             page: z.number().optional(),
-            CustomerID: z.number().optional()
+            CustomerID: z.number().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional()
         }),
         async resolve({ctx, input}) {
             const extra: DeliveryLocations[] = [];
             if (input.CustomerID) {
-                const associated = await ctx.prisma.customerDeliveryLocations.findMany({where: {CustomerID: input.CustomerID}, include: {DeliveryLocations: true}})
+                const associated = await ctx.prisma.customerDeliveryLocations.findMany({
+                    where: {CustomerID: input.CustomerID},
+                    include: {DeliveryLocations: true}
+                })
                 associated.forEach((item) => {
                     if (extra.filter((_item) => _item.ID === item.DeliveryLocationID).length === 0) {
                         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -52,7 +57,17 @@ export const deliveryLocationsRouter = createRouter()
                     }
                 })
             }
-            const formattedSearch = !input.search ? '' : input.search.trim().includes(' ') ? `+${input.search.trim().split(' ')[0]} +${input.search.trim().split(' ')[1]}*` : `${input.search}*`;
+            const formattedSearch = input.search.replace('"', '\"');
+
+            const {order, orderBy} = input;
+
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            let orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            orderObj[orderBy] = order;
+
             const extraCondition = extra.length > 0 ? {
                 NOT: {
                     ID: {
@@ -70,20 +85,16 @@ export const deliveryLocationsRouter = createRouter()
                         ...extraCondition
                     },
                     take: 50,
-                    orderBy: {
-                        Description: "asc"
-                    }
+                    orderBy: orderObj,
                 })
             } else {
                 data = await ctx.prisma.deliveryLocations.findMany({
                     take: 50,
-                    orderBy: {
-                        Description: "asc"
-                    },
+                    orderBy: orderObj,
                     where: {
                         ...extraCondition
                     },
-                    skip: input.page ? input.page*10 : 0
+                    skip: input.page ? input.page * 10 : 0
                 })
             }
 

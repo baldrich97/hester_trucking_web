@@ -1,6 +1,6 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import { TrucksModel } from '../../../prisma/zod';
+import {TrucksModel} from '../../../prisma/zod';
 
 export const trucksRouter = createRouter()
     .query("getAll", {
@@ -36,35 +36,51 @@ export const trucksRouter = createRouter()
     .query('search', {
         input: z.object({
             search: z.string(),
-            page: z.number().optional()
+            page: z.number().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional()
         }),
         async resolve({ctx, input}) {
-            const formattedSearch = !input.search ? '' : input.search.trim().includes(' ') ? `+${input.search.trim().split(' ')[0]} +${input.search.trim().split(' ')[1]}*` : `${input.search}*`;
+            const formattedSearch = input.search.replace('"', '\"');
+
+            const {order, orderBy} = input;
+
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            let orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            orderObj[orderBy] = order;
+
             if (input.search.length > 0) {
                 return ctx.prisma.trucks.findMany({
                     where: {
-                        Name: {
-                            search: formattedSearch
-                        },
-                        VIN: {
-                            search: formattedSearch
-                        },
-                        Notes: {
-                            search: formattedSearch
-                        },
+                        OR: [
+                            {
+                                Name: {
+                                    contains: formattedSearch
+                                }
+                            },
+                            {
+                                VIN: {
+                                    contains: formattedSearch
+                                }
+                            },
+                            {
+                                Notes: {
+                                    contains: formattedSearch
+                                }
+                            },
+                        ]
                     },
                     take: 10,
-                    orderBy: {
-                        Name: 'asc'
-                    }
+                    orderBy: orderObj,
                 })
             } else {
                 return ctx.prisma.trucks.findMany({
                     take: 10,
-                    orderBy: {
-                        Name: 'asc'
-                    },
-                    skip: input.page ? input.page*10 : 0
+                    orderBy: orderObj,
+                    skip: input.page ? input.page * 10 : 0
                 })
             }
 

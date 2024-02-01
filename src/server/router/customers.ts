@@ -36,10 +36,22 @@ export const customersRouter = createRouter()
     .query('search', {
         input: z.object({
             search: z.string(),
-            page: z.number().optional()
+            page: z.number().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional()
         }),
         async resolve({ctx, input}) {
             const formattedSearch = input.search.replace('"', '\"');
+
+            const {order, orderBy} = input;
+
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            let orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            orderObj[orderBy] = order;
+
             if (input.search.length > 0) {
                 return ctx.prisma.customers.findMany({
                     where: {
@@ -86,9 +98,7 @@ export const customersRouter = createRouter()
                             }
                         ]
                     },
-                    orderBy: {
-                        Name: 'asc'
-                    },
+                    orderBy: orderObj,
                     include: {
                         States: true
                     },
@@ -96,9 +106,7 @@ export const customersRouter = createRouter()
                 })
             } else {
                 return ctx.prisma.customers.findMany({
-                    orderBy: {
-                        Name: 'asc'
-                    },
+                    orderBy: orderObj,
                     include: {
                         States: true
                     },

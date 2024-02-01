@@ -10,7 +10,9 @@ export const loadsRouter = createRouter()
             truck: z.number().optional(),
             driver: z.number().optional(),
             loadType: z.number().optional(),
-            deliveryLocation: z.number().optional()
+            deliveryLocation: z.number().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional()
         }),
         async resolve({ctx, input}) {
             const extra = [];
@@ -29,6 +31,18 @@ export const loadsRouter = createRouter()
             if (input.deliveryLocation !== 0) {
                 extra.push({DeliveryLocationID: input.deliveryLocation})
             }
+
+            const {order, orderBy} = input;
+
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            let orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            orderObj[orderBy] = order;
+
+            console.log(orderObj, input)
+
             //const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
             return ctx.prisma.loads.findMany({
                 include: {
@@ -38,22 +52,20 @@ export const loadsRouter = createRouter()
                     LoadTypes: true,
                     DeliveryLocations: true
                 },
-                orderBy: {
-                    StartDate: 'desc'
-                },
+                orderBy: orderObj,
                 where: {
                     OR: [
-                        ...extra
+                        {
+                            Deleted: false
+                        },
+                        {
+                            Deleted: null
+                        },
                     ],
                     AND: {
                         OR: [
-                            {
-                                Deleted: false
-                            },
-                            {
-                                Deleted: null
-                            },
-                        ]
+                            ...extra
+                        ],
                     }
                 },
                 take: 10,

@@ -41,6 +41,9 @@ const Customers = ({states, customers, count}: {states: StatesType[], customers:
 
     const [page, setPage] = useState(0);
 
+    const [order, setOrder] = React.useState<'asc'|'desc'>('desc');
+    const [orderBy, setOrderBy] = React.useState('ID')
+
     useEffect(() => {
         if (search.length === 0) {
             setData([])
@@ -48,9 +51,10 @@ const Customers = ({states, customers, count}: {states: StatesType[], customers:
         }
     }, [search])
 
-    trpc.useQuery(['customers.search', {search, page}], {
+    trpc.useQuery(['customers.search', {search, page, orderBy, order}], {
         enabled: shouldSearch,
         onSuccess(data) {
+            console.log(data)
             setData(data);
             setShouldSearch(false);
         },
@@ -66,9 +70,11 @@ const Customers = ({states, customers, count}: {states: StatesType[], customers:
                 <Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Customers'}/>
                 </Grid2>
-                <GenericTable data={trpcData.length > 0 ? trpcData : customers} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>) => {
-                    setPage(page)
-                    setShouldSearch(true)
+                <GenericTable data={trpcData.length > 0 || (order !== 'desc' || orderBy !== 'ID') ? trpcData : customers} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
+                    setPage(page);
+                    setOrderBy(orderBy);
+                    setOrder(order);
+                    setShouldSearch(true);
                 }}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>

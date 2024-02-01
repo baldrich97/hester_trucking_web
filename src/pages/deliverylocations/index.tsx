@@ -34,13 +34,16 @@ const DeliveryLocations = ({deliverylocations, count}: {deliverylocations: Deliv
 
     const [page, setPage] = useState(0);
 
+    const [order, setOrder] = React.useState<'asc'|'desc'>('desc');
+    const [orderBy, setOrderBy] = React.useState('ID')
+
     useEffect(() => {
         if (search.length === 0) {
             setData([])
         }
     }, [search])
 
-    trpc.useQuery(['deliverylocations.search', {search, page}], {
+    trpc.useQuery(['deliverylocations.search', {search, page, orderBy, order}], {
         enabled: shouldSearch,
         onSuccess(data) {
             setData(data);
@@ -58,9 +61,11 @@ const DeliveryLocations = ({deliverylocations, count}: {deliverylocations: Deliv
                 <Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Delivery Locations'}/>
                 </Grid2>
-                <GenericTable data={trpcData.length ? trpcData : deliverylocations} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>) => {
-                    setPage(page)
-                    setShouldSearch(true)
+                <GenericTable data={trpcData.length || (order !== 'desc' || orderBy !== 'ID') ? trpcData : deliverylocations} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
+                    setPage(page);
+                    setOrderBy(orderBy);
+                    setOrder(order);
+                    setShouldSearch(true);
                 }}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>

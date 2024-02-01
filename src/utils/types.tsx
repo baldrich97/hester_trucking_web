@@ -3,6 +3,7 @@ export type TableColumnsType = {
   as?: string;
   align?: "left" | "right" | "center" | "justify" | "inherit" | undefined;
   navigateTo?: string;
+  column?: string;
 }[];
 
 export type TableColumnOverridesType = {

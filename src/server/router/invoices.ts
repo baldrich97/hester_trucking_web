@@ -8,6 +8,8 @@ export const invoicesRouter = createRouter()
             customer: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional()
         }),
         async resolve({ctx, input}) {
             const extra = [];
@@ -17,6 +19,15 @@ export const invoicesRouter = createRouter()
             if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
                 extra.push({Number: input.search})
             }
+
+            const {order, orderBy} = input;
+
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                        // @ts-ignore
+            let orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                        // @ts-ignore
+            orderObj[orderBy] = order;
             
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
@@ -39,9 +50,7 @@ export const invoicesRouter = createRouter()
                     Customers: true,
                     Loads: true
                 },
-                orderBy: {
-                    InvoiceDate: 'desc'
-                },
+                orderBy: orderObj,
                 skip: input.page ? input.page * 10 : 0
             });
         },
@@ -51,6 +60,8 @@ export const invoicesRouter = createRouter()
             customer: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional()
         }),
         async resolve({ctx, input}) {
             const extra = [];
@@ -60,6 +71,15 @@ export const invoicesRouter = createRouter()
             if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
                 extra.push({Number: input.search})
             }
+
+            const {order, orderBy} = input;
+
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                        // @ts-ignore
+            let orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                        // @ts-ignore
+            orderObj[orderBy] = order;
             
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
@@ -82,9 +102,7 @@ export const invoicesRouter = createRouter()
                     Loads: true
                 },
                 take: 10,
-                orderBy: {
-                    InvoiceDate: 'desc'
-                },
+                orderBy: orderObj,
                 skip: input.page ? 10*input.page : 0
             });
         },
@@ -94,6 +112,8 @@ export const invoicesRouter = createRouter()
             customer: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional()
         }),
         async resolve({ctx, input}) {
             const extra = [];
@@ -103,6 +123,15 @@ export const invoicesRouter = createRouter()
             if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
                 extra.push({Number: input.search})
             }
+
+            const {order, orderBy} = input;
+
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                        // @ts-ignore
+            let orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                        // @ts-ignore
+            orderObj[orderBy] = order;
             
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
@@ -125,9 +154,7 @@ export const invoicesRouter = createRouter()
                     Loads: true
                 },
                 take: 10,
-                orderBy: {
-                    InvoiceDate: 'desc'
-                },
+                orderBy: orderObj,
                 skip: input.page ? 10*input.page : 0
             });
         },

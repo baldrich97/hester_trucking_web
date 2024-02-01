@@ -37,7 +37,9 @@ export const loadTypesRouter = createRouter()
         input: z.object({
             search: z.string().optional(),
             page: z.number().optional(),
-            CustomerID: z.number().optional()
+            CustomerID: z.number().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional()
         }),
         async resolve({ctx, input}) {
             const extra: LoadTypes[] = [];
@@ -60,6 +62,16 @@ export const loadTypesRouter = createRouter()
                 }
             } : {}
             let data = [];
+
+            const {order, orderBy} = input;
+
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            let orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            orderObj[orderBy] = order;
+
             if (input.search && input.search.length > 0) {
                 const formattedSearch = input.search.replace('"', '\"');
 
@@ -80,16 +92,12 @@ export const loadTypesRouter = createRouter()
                         ...extraCondition
                     },
                     take: 50,
-                    orderBy: {
-                        Description: "asc"
-                    }
+                    orderBy: orderObj,
                 })
             } else {
                 data = await ctx.prisma.loadTypes.findMany({
                     take: 50,
-                    orderBy: {
-                        Description: "asc"
-                    },
+                    orderBy: orderObj,
                     where: {
                         ...extraCondition
                     },

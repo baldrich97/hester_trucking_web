@@ -22,7 +22,7 @@ type LoadsType = z.infer<typeof LoadsModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
 
 const columnsUnpaid: TableColumnsType = [
-  { name: "Customers.Name", as: "Customer", navigateTo: "customers/[ID]" },
+  { name: "Customers.Name", as: "Customer", navigateTo: "customers/[ID]", column: 'CustomerID' },
   { name: "Number" },
   { name: "InvoiceDate", as: "Invoice Date" },
   { name: "TotalAmount", as: "Total Amount" },
@@ -38,7 +38,7 @@ const overridesUnpaid: TableColumnOverridesType = [
 ];
 
 const columnsPaid: TableColumnsType = [
-  { name: "Customers.Name", as: "Customer", navigateTo: "customers/[ID]" },
+  { name: "Customers.Name", as: "Customer", navigateTo: "customers/[ID]", column: 'CustomerID' },
   { name: "Number" },
   { name: "InvoiceDate", as: "Invoice Date" },
   { name: "TotalAmount", as: "Total Amount" },
@@ -59,7 +59,7 @@ const overridesPaid: TableColumnOverridesType = [
 ];
 
 const columnsAll: TableColumnsType = [
-  { name: "Customers.Name", as: "Customer", navigateTo: "customers/[ID]" },
+  { name: "Customers.Name", as: "Customer", navigateTo: "customers/[ID]", column: 'CustomerID' },
   { name: "Number" },
   { name: "InvoiceDate", as: "Invoice Date" },
   { name: "TotalAmount", as: "Total Amount" },
@@ -124,7 +124,10 @@ const Invoices = ({
 
   //TODO could probably consolidate calls and filter/parse on frontend if needed
 
-  trpc.useQuery(["invoices.getAllUnpaid", { customer, search, page }], {
+  const [order, setOrder] = React.useState<'asc'|'desc'>('desc');
+  const [orderBy, setOrderBy] = React.useState('ID')
+
+  trpc.useQuery(["invoices.getAllUnpaid", { customer, search, page, orderBy, order }], {
     enabled: shouldRefresh,
     onSuccess(data) {
       setUnpaidData(JSON.parse(JSON.stringify(data)));
@@ -136,7 +139,7 @@ const Invoices = ({
     },
   });
 
-  trpc.useQuery(["invoices.getAllPaid", { customer, search, page }], {
+  trpc.useQuery(["invoices.getAllPaid", { customer, search, page, orderBy, order }], {
     enabled: shouldRefresh,
     onSuccess(data) {
       setPaidData(JSON.parse(JSON.stringify(data)));
@@ -148,7 +151,7 @@ const Invoices = ({
     },
   });
 
-  trpc.useQuery(["invoices.getAll", { customer, search, page }], {
+  trpc.useQuery(["invoices.getAll", { customer, search, page, orderBy, order }], {
     enabled: shouldRefresh,
     onSuccess(data) {
       setData(JSON.parse(JSON.stringify(data)));
@@ -163,7 +166,6 @@ const Invoices = ({
   trpc.useQuery(["invoices.getCount", { customer, search, tabValue }], {
     enabled: shouldRefresh,
     onSuccess(data) {
-      console.log("NEW COUNT", data);
       setNewCount(data);
       setShouldRefresh(false);
     },
@@ -238,7 +240,7 @@ const Invoices = ({
                 </Grid2>*/}
         {tabValue === 0 && (
           <GenericTable
-            data={customer || search ? unpaidData : invoicesUnpaid}
+            data={customer || search || (order !== 'desc' || orderBy !== 'ID') ? unpaidData : invoicesUnpaid}
             columns={columnsUnpaid}
             overrides={overridesUnpaid}
             count={customer || search ? newCount : countUnpaid}
@@ -247,8 +249,10 @@ const Invoices = ({
               setPage(0);
               setShouldRefresh(true);
             }}
-            refreshData={(page: React.SetStateAction<number>) => {
+            refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
               setPage(page);
+              setOrderBy(orderBy);
+              setOrder(order);
               setShouldRefresh(true);
             }}
             clearFilter={() => {
@@ -262,7 +266,7 @@ const Invoices = ({
 
         {tabValue === 1 && (
           <GenericTable
-            data={customer || search ? paidData : invoicesPaid}
+            data={customer || search || (order !== 'desc' || orderBy !== 'ID') ? paidData : invoicesPaid}
             columns={columnsPaid}
             overrides={overridesPaid}
             count={customer || search ? newCount : countPaid}
@@ -271,8 +275,10 @@ const Invoices = ({
               setPage(0);
               setShouldRefresh(true);
             }}
-            refreshData={(page: React.SetStateAction<number>) => {
+            refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
               setPage(page);
+              setOrderBy(orderBy);
+              setOrder(order);
               setShouldRefresh(true);
             }}
             clearFilter={() => {
@@ -286,7 +292,7 @@ const Invoices = ({
 
         {tabValue === 2 && (
           <GenericTable
-            data={customer || search ? trpcData : invoicesAll}
+            data={customer || search || (order !== 'desc' || orderBy !== 'ID') ? trpcData : invoicesAll}
             columns={columnsAll}
             overrides={overridesAll}
             count={customer || search ? newCount : countAll}
@@ -295,8 +301,10 @@ const Invoices = ({
               setPage(0);
               setShouldRefresh(true);
             }}
-            refreshData={(page: React.SetStateAction<number>) => {
+            refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
               setPage(page);
+              setOrderBy(orderBy);
+              setOrder(order);
               setShouldRefresh(true);
             }}
             clearFilter={() => {
