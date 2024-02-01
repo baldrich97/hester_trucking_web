@@ -35,7 +35,7 @@ export const deliveryLocationsRouter = createRouter()
     })
     .query('search', {
         input: z.object({
-            search: z.string(),
+            search: z.string().optional(),
             page: z.number().optional(),
             CustomerID: z.number().optional(),
             orderBy: z.string().optional(),
@@ -57,7 +57,7 @@ export const deliveryLocationsRouter = createRouter()
                     }
                 })
             }
-            const formattedSearch = input.search.replace('"', '\"');
+            const formattedSearch = input.search ? input.search.replace('"', '\"') : '';
 
             const {order, orderBy} = input;
 
