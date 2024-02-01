@@ -47,7 +47,7 @@ export const customersRouter = createRouter()
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            let orderObj = {};
+            const orderObj = {};
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             orderObj[orderBy] = order;
