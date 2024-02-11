@@ -13,13 +13,12 @@ export const invoicesRouter = createRouter()
         }),
         async resolve({ctx, input}) {
             const extra = [];
-            if (input.search && input.search.toString().length > 0 && input.search.toString().includes('.')) {
+            if (input.search && input.search.toString().length > 0) {
                 extra.push({TotalAmount: input.search})
+                if (!input.search.toString().includes('.')) {
+                    extra.push({Number: input.search})
+                }
             }
-            if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
-                extra.push({Number: input.search})
-            }
-
             const {order, orderBy} = input;
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -65,14 +64,12 @@ export const invoicesRouter = createRouter()
         }),
         async resolve({ctx, input}) {
             const extra = [];
-            if (input.search && input.search.toString().length > 0 && input.search.toString().includes('.')) {
+            if (input.search && input.search.toString().length > 0) {
                 extra.push({TotalAmount: input.search})
-            }
-            if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
-                extra.push({Number: input.search})
-            }
-
-            const {order, orderBy} = input;
+                if (!input.search.toString().includes('.')) {
+                    extra.push({Number: input.search})
+                }
+            }            const {order, orderBy} = input;
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                                         // @ts-ignore
@@ -116,14 +113,14 @@ export const invoicesRouter = createRouter()
             order: z.string().optional()
         }),
         async resolve({ctx, input}) {
+            console.log(input)
             const extra = [];
-            if (input.search && input.search.toString().length > 0 && input.search.toString().includes('.')) {
+            if (input.search && input.search.toString().length > 0) {
                 extra.push({TotalAmount: input.search})
+                if (!input.search.toString().includes('.')) {
+                    extra.push({Number: input.search})
+                }
             }
-            if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
-                extra.push({Number: input.search})
-            }
-
             const {order, orderBy} = input;
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -169,11 +166,11 @@ export const invoicesRouter = createRouter()
         async resolve({ctx, input}) {
             const extra = [];
             const paidValue = [];
-            if (input.search && input.search.toString().length > 0 && input.search.toString().includes('.')) {
+            if (input.search && input.search.toString().length > 0) {
                 extra.push({TotalAmount: input.search})
-            }
-            if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
-                extra.push({Number: input.search})
+                if (!input.search.toString().includes('.')) {
+                    extra.push({Number: input.search})
+                }
             }
             
             if (input.customer !== 0) {
