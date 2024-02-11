@@ -1,6 +1,6 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import {InvoicesModel, LoadsModel} from '../../../prisma/zod';
+import { InvoicesModel } from '../../../prisma/zod';
 
 export const invoicesRouter = createRouter()
     .query("getAll", {
@@ -8,8 +8,6 @@ export const invoicesRouter = createRouter()
             customer: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional()
         }),
         async resolve({ctx, input}) {
             const extra = [];
@@ -19,15 +17,6 @@ export const invoicesRouter = createRouter()
             if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
                 extra.push({Number: input.search})
             }
-
-            const {order, orderBy} = input;
-
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
-            orderObj[orderBy] = order;
             
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
@@ -50,7 +39,9 @@ export const invoicesRouter = createRouter()
                     Customers: true,
                     Loads: true
                 },
-                orderBy: orderObj,
+                orderBy: {
+                    InvoiceDate: 'desc'
+                },
                 skip: input.page ? input.page * 10 : 0
             });
         },
@@ -60,8 +51,6 @@ export const invoicesRouter = createRouter()
             customer: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional()
         }),
         async resolve({ctx, input}) {
             const extra = [];
@@ -71,15 +60,6 @@ export const invoicesRouter = createRouter()
             if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
                 extra.push({Number: input.search})
             }
-
-            const {order, orderBy} = input;
-
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
-            orderObj[orderBy] = order;
             
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
@@ -102,7 +82,9 @@ export const invoicesRouter = createRouter()
                     Loads: true
                 },
                 take: 10,
-                orderBy: orderObj,
+                orderBy: {
+                    InvoiceDate: 'desc'
+                },
                 skip: input.page ? 10*input.page : 0
             });
         },
@@ -112,27 +94,14 @@ export const invoicesRouter = createRouter()
             customer: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional()
         }),
         async resolve({ctx, input}) {
+            console.log(input)
             const extra = [];
-            if (input.search && input.search.toString().length > 0 && input.search.toString().includes('.')) {
+            if (input.search && input.search.toString().length > 0) {
                 extra.push({TotalAmount: input.search})
-            }
-            if (input.search && input.search.toString().length > 0 && !input.search.toString().includes('.')) {
                 extra.push({Number: input.search})
             }
-
-            const {order, orderBy} = input;
-
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
-            orderObj[orderBy] = order;
-            
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
             }
@@ -154,7 +123,9 @@ export const invoicesRouter = createRouter()
                     Loads: true
                 },
                 take: 10,
-                orderBy: orderObj,
+                orderBy: {
+                    InvoiceDate: 'desc'
+                },
                 skip: input.page ? 10*input.page : 0
             });
         },
@@ -320,21 +291,6 @@ export const invoicesRouter = createRouter()
                     PaidDate: new Date()
                 }
             })
-        },
-    })
-    .mutation('delete', {
-        input: InvoicesModel,
-        async resolve({ctx, input}) {
-            const {ID} = input;
-            //make related loads available again
-            await ctx.prisma.loads.findMany({where: {InvoiceID: ID}}).then(async (loads) => {
-                loads.forEach(async (load) => {
-                    ctx.prisma.loads.update({where: {ID: load.ID}, data: {Invoiced: false, InvoiceID: null}}).then();
-                })
-            });
-
-            // use your ORM of choice
-            return await ctx.prisma.invoices.delete({where: {ID: ID}})
         },
     });
 
