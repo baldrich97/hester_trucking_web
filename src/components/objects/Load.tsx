@@ -16,9 +16,9 @@ import {
 import { trpc } from "../../utils/trpc";
 import { useRouter } from "next/router";
 import GenericForm from "../../elements/GenericForm";
-import {toast} from "react-toastify";
-import { confirmAlert } from 'react-confirm-alert';
-import 'react-confirm-alert/src/react-confirm-alert.css';
+import { toast } from "react-toastify";
+import { confirmAlert } from "react-confirm-alert";
+import "react-confirm-alert/src/react-confirm-alert.css";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
@@ -38,10 +38,10 @@ const defaultValues = {
   StartDate: new Date(),
   EndDate: new Date(),
   CustomerID: undefined,
-  LoadTypeID: undefined,
-  DeliveryDescriptionID: 0,
-  DriverID: 0,
-  TruckID: 0,
+  LoadTypeID: null,
+  DeliveryDescriptionID: null,
+  DriverID: null,
+  TruckID: null,
   Hours: undefined,
   TotalAmount: undefined,
   TotalRate: undefined,
@@ -49,6 +49,7 @@ const defaultValues = {
   Weight: undefined,
   MaterialRate: undefined,
   TicketNumber: 0,
+  onReset: false,
 };
 
 function Load({
@@ -59,6 +60,7 @@ function Load({
   drivers,
   initialLoad = null,
   refreshData,
+  resetButton = false,
 }: {
   customers: CustomersType[];
   loadTypes: LoadTypesType[];
@@ -67,6 +69,7 @@ function Load({
   drivers: DriversType[];
   initialLoad?: null | LoadsType;
   refreshData?: any;
+  resetButton?: any;
 }) {
   function useForceUpdate() {
     const [value, setValue] = useState(0); // integer state
@@ -114,7 +117,9 @@ function Load({
       resetField("Hours");
       resetField("TotalAmount");
       resetField("TicketNumber");
-      refreshData();
+      if (refreshData) {
+        refreshData();
+      }
     }
   };
 
@@ -142,30 +147,30 @@ function Load({
 
   const [tdshouldRefresh, tdsetShouldRefresh] = useState(false);
 
-    const deleteLoad = trpc.useMutation('loads.delete', {
-        async onSuccess() {
-            toast('Successfully Deleted!', {autoClose: 2000, type: 'success'})
-        }
-    })
+  const deleteLoad = trpc.useMutation("loads.delete", {
+    async onSuccess() {
+      toast("Successfully Deleted!", { autoClose: 2000, type: "success" });
+    },
+  });
 
-    const onDelete = async (data: LoadsType) => {
-        toast('Deleting...', {autoClose: 2000, type: 'info'})
-        await deleteLoad.mutateAsync(data)
-        await router.replace('/loads');
-    }
+  const onDelete = async (data: LoadsType) => {
+    toast("Deleting...", { autoClose: 2000, type: "info" });
+    await deleteLoad.mutateAsync(data);
+    await router.replace("/loads");
+  };
 
-    trpc.useQuery(["loadtypes.search", {CustomerID: customer}], {
-        enabled: ltshouldRefresh,
-        onSuccess(data) {
-            ltsetData(JSON.parse(JSON.stringify(data)));
-            ltsetShouldRefresh(false);
-            //forceUpdate;
-        },
-        onError(error) {
-            console.warn(error.message);
-            ltsetShouldRefresh(false);
-        },
-    });
+  trpc.useQuery(["loadtypes.search", { CustomerID: customer }], {
+    enabled: ltshouldRefresh,
+    onSuccess(data) {
+      ltsetData(JSON.parse(JSON.stringify(data)));
+      ltsetShouldRefresh(false);
+      //forceUpdate;
+    },
+    onError(error) {
+      console.warn(error.message);
+      ltsetShouldRefresh(false);
+    },
+  });
 
   trpc.useQuery(["deliverylocations.search", { CustomerID: customer }], {
     enabled: dlshouldRefresh,
@@ -205,7 +210,7 @@ function Load({
         setValue(
           "TotalRate",
           Math.round(
-            (((value.MaterialRate ?? 0) + (value.TruckRate ?? 0)) * 100)
+            ((value.MaterialRate ?? 0) + (value.TruckRate ?? 0)) * 100
           ) / 100
         );
         totalRate = (value.MaterialRate ?? 0) + (value.TruckRate ?? 0);
@@ -443,67 +448,86 @@ function Load({
     },
     {
       key: "TruckID",
-      data: tdtrpcData.length > 0 ? tdtrpcData.map((item) => item.Trucks).filter((item) => item !== undefined).filter((value, index, self) => {
-        return index === self.findIndex((t) => (
-            t.ID === value.ID
-        ))
-      }) : trucks,
+      data:
+        tdtrpcData.length > 0
+          ? tdtrpcData
+              .map((item) => item.Trucks)
+              .filter((item) => item !== undefined)
+              .filter((value, index, self) => {
+                return index === self.findIndex((t) => t.ID === value.ID);
+              })
+          : trucks,
       optionValue: "ID",
       optionLabel: "Name+|+Notes",
       defaultValue: initialLoad ? initialLoad.TruckID : null,
     },
     {
       key: "DriverID",
-      data: tdtrpcData.length > 0 ? tdtrpcData.map((item) => item.Drivers).filter((item) => item !== undefined).filter((value, index, self) => {
-        return index === self.findIndex((t) => (
-            t.ID === value.ID
-        ))
-      }) : drivers,
+      data:
+        tdtrpcData.length > 0
+          ? tdtrpcData
+              .map((item) => item.Drivers)
+              .filter((item) => item !== undefined)
+              .filter((value, index, self) => {
+                return index === self.findIndex((t) => t.ID === value.ID);
+              })
+          : drivers,
       optionValue: "ID",
       optionLabel: "FirstName+LastName",
       defaultValue: initialLoad ? initialLoad.DriverID : null,
     },
   ];
 
-
-
-    return (
-        <>
-            <Box
-                component="form"
-                autoComplete="off"
-                noValidate
-                onSubmit={handleSubmit(onSubmit)}
-                sx={{
-                    paddingLeft: 2.5,
-                }}
-            >
-                <GenericForm
-                    errors={errors}
-                    control={control}
-                    fields={fields}
-                    selectData={selectData}
-                    selectedCustomer={customer}
-                    onDelete={initialLoad ? () => {
-                        confirmAlert({
-                            title: 'Confirm Deletion',
-                            message: 'Are you sure you want to delete this load?',
-                            buttons: [
-                                {
-                                    label: 'Yes',
-                                    onClick: async () => {onDelete(initialLoad).then()}
-                                },
-                                {
-                                    label: 'No'
-                                    //onClick: () => {}
-                                }
-                            ]
-                        })
-                    } : null}
-                />
-            </Box>
-        </>
-    );
+  return (
+    <>
+      <Box
+        component="form"
+        autoComplete="off"
+        noValidate
+        onSubmit={handleSubmit(onSubmit)}
+        sx={{
+          paddingLeft: 2.5,
+        }}
+      >
+        <GenericForm
+          errors={errors}
+          control={control}
+          fields={fields}
+          selectData={selectData}
+          selectedCustomer={customer}
+          onReset={
+            resetButton
+              ? () => {
+                  reset(defaultValues);
+                }
+              : null
+          }
+          onDelete={
+            initialLoad
+              ? () => {
+                  confirmAlert({
+                    title: "Confirm Deletion",
+                    message: "Are you sure you want to delete this load?",
+                    buttons: [
+                      {
+                        label: "Yes",
+                        onClick: async () => {
+                          onDelete(initialLoad).then();
+                        },
+                      },
+                      {
+                        label: "No",
+                        //onClick: () => {}
+                      },
+                    ],
+                  });
+                }
+              : null
+          }
+        />
+      </Box>
+    </>
+  );
 }
 
 export default Load;

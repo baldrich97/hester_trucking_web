@@ -15,7 +15,8 @@ const GenericForm = ({
   fields = [],
   selectData = [],
   selectedCustomer = 0,
-    onDelete = null,
+  onDelete = null,
+  onReset = null,
 }: {
   errors: any;
   control: Control<any>;
@@ -23,6 +24,7 @@ const GenericForm = ({
   selectData?: SelectDataType;
   selectedCustomer?: number | null;
   onDelete?: any;
+  onReset?: any;
 }) => {
   return (
     <Grid2 container columnSpacing={2} rowSpacing={2}>
@@ -149,19 +151,31 @@ const GenericForm = ({
           Submit
         </Button>
       </Grid2>
-      {onDelete && <Grid2 xs={6}>
-
-      </Grid2>}
-      {onDelete && <Grid2 xs={3} style={{display: 'grid'}}>
-        <Button
+      {(onDelete || onReset) && <Grid2 xs={6}></Grid2>}
+      {onDelete && (
+        <Grid2 xs={3} style={{ display: "grid" }}>
+          <Button
             type={"button"}
             variant={"contained"}
-            style={{ backgroundColor: "#EF463B", justifySelf: 'flex-end' }}
+            style={{ backgroundColor: "#EF463B", justifySelf: "flex-end" }}
             onClick={onDelete}
-        >
-          Delete
-        </Button>
-      </Grid2>}
+          >
+            Delete
+          </Button>
+        </Grid2>
+      )}
+      {/* {onReset && (
+        <Grid2 xs={3} style={{ display: "grid" }}>
+          <Button
+            type={"button"}
+            variant={"contained"}
+            style={{ backgroundColor: "grey", justifySelf: "flex-end" }}
+            onClick={onReset}
+          >
+            Reset Form
+          </Button>
+        </Grid2>
+      )} */}
     </Grid2>
   );
 };
