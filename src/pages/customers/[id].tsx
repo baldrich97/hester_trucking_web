@@ -7,6 +7,8 @@ import {
   CustomersModel,
   InvoicesModel,
   StatesModel,
+  CustomerLoadTypesModel,
+  CustomerDeliveryLocationsModel,
 } from "../../../prisma/zod";
 import { z } from "zod";
 import Grid2 from "@mui/material/Unstable_Grid2";
@@ -34,6 +36,10 @@ import { toast } from "react-toastify";
 type StatesType = z.infer<typeof StatesModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
 type InvoicesType = z.infer<typeof InvoicesModel>;
+type CustomerLoadTypesType = z.infer<typeof CustomerLoadTypesModel>;
+type CustomerDeliveryLocationsType = z.infer<
+  typeof CustomerDeliveryLocationsModel
+>;
 
 const style = {
   position: "absolute",
@@ -102,12 +108,12 @@ const Customer = ({
   const ltcolumns: TableColumnsType = [
     { name: "LoadTypes.Description", as: "Description" },
     { name: "LoadTypes.Notes", as: "Notes" },
-    { name: "Remove.ID", as: "" },
+    { name: "Remove", as: "" },
   ];
 
   const ltoverrides: TableColumnOverridesType = [
     {
-      name: "Remove.ID",
+      name: "Remove",
       type: "action",
       callback: handleDeleteLoadType,
       icon: <Close />,
@@ -116,29 +122,31 @@ const Customer = ({
 
   const dlcolumns: TableColumnsType = [
     { name: "DeliveryLocations.Description", as: "Description" },
-    { name: "Remove.ID", as: "" },
+    { name: "Remove", as: "" },
   ];
 
   const dloverrides: TableColumnOverridesType = [
     {
-      name: "Remove.ID",
+      name: "Remove",
       type: "action",
       callback: handleDeleteDeliveryLocation,
       icon: <Close />,
     },
   ];
 
-  const [deletedId, setDeletedId] = useState<number | null>(null);
+  const [deletedItem, setDeletedItem] = useState<
+    CustomerDeliveryLocationsType | CustomerLoadTypesType | null
+  >(null);
 
-  function handleDeleteLoadType(ID: number) {
+  function handleDeleteLoadType(item: CustomerLoadTypesType) {
     setMethod("customerloadtypes.delete");
-    setDeletedId(ID);
+    setDeletedItem(item);
     handleOpen();
   }
 
-  function handleDeleteDeliveryLocation(ID: number) {
+  function handleDeleteDeliveryLocation(item: CustomerDeliveryLocationsType) {
     setMethod("customerdeliverylocations.delete");
-    setDeletedId(ID);
+    setDeletedItem(item);
     handleOpen();
   }
 
@@ -182,7 +190,7 @@ const Customer = ({
 
   const handleClose = () => {
     setOpen(false);
-    setDeletedId(null);
+    setDeletedItem(null);
   };
 
   trpc.useQuery(["invoices.getAll", { page, customer: initialCustomer.ID }], {
@@ -379,12 +387,12 @@ const Customer = ({
                   variant={"contained"}
                   style={{ backgroundColor: "red" }}
                   onClick={async () => {
-                    if (deletedId) {
+                    if (deletedItem) {
                       toast("Deleting...", {
                         autoClose: 2000,
                         type: "warning",
                       });
-                      await deleteRelated.mutateAsync({ ID: deletedId });
+                      await deleteRelated.mutateAsync({ ...deletedItem });
                     }
 
                     handleClose();

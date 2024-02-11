@@ -20,8 +20,8 @@ import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import LastPageIcon from "@mui/icons-material/LastPage";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
-import TableSortLabel from '@mui/material/TableSortLabel';
-import { visuallyHidden } from '@mui/utils';
+import TableSortLabel from "@mui/material/TableSortLabel";
+import { visuallyHidden } from "@mui/utils";
 
 import { TableColumnsType, TableColumnOverridesType } from "../utils/types";
 import Modal from "@mui/material/Modal";
@@ -170,8 +170,8 @@ export default function GenericTable({
 
   const [showCustomerModal, setShowCustomerModal] = React.useState(false);
 
-  const [order, setOrder] = React.useState<'asc'|'desc'>('desc');
-  const [orderBy, setOrderBy] = React.useState('ID')
+  const [order, setOrder] = React.useState<"asc" | "desc">("desc");
+  const [orderBy, setOrderBy] = React.useState("ID");
 
   const handleChangePage = (
     event: React.MouseEvent<HTMLButtonElement> | null,
@@ -183,7 +183,7 @@ export default function GenericTable({
     }
   };
 
-    //console.log(columns)
+  //console.log(columns)
   return (
     <TableContainer component={Paper}>
       <Table sx={{ minWidth: 650 }} size={"small"}>
@@ -222,27 +222,43 @@ export default function GenericTable({
                   align={column.align ? column.align : "left"}
                   key={column.name + "-header"}
                 >
-                    {column.as === '' ? <>{column.as ?? column.name}</> :
+                  {column.as === "" ? (
+                    <>{column.as ?? column.name}</>
+                  ) : (
                     <TableSortLabel
-                        active={orderBy === column.name || orderBy === column.column}
-                        direction={orderBy === column.name || orderBy === column.column ? order : 'asc'}
-                        onClick={() => {
-                            if (orderBy === column.name || orderBy === column.column) {
-                                setOrder(order === 'asc' ? 'desc' : 'asc')
-                            } else {
-                                setOrderBy(column.column ? column.column : column.name)
-                                setOrder('asc')
-                            }
-                            refreshData(page, orderBy, order);
-                        }}
+                      active={
+                        orderBy === column.name || orderBy === column.column
+                      }
+                      direction={
+                        orderBy === column.name || orderBy === column.column
+                          ? order
+                          : "asc"
+                      }
+                      onClick={() => {
+                        if (
+                          orderBy === column.name ||
+                          orderBy === column.column
+                        ) {
+                          setOrder(order === "asc" ? "desc" : "asc");
+                        } else {
+                          setOrderBy(
+                            column.column ? column.column : column.name
+                          );
+                          setOrder("asc");
+                        }
+                        refreshData(page, orderBy, order);
+                      }}
                     >
-                        {column.as ?? column.name}
-                        {orderBy === column.name || orderBy === column.column ? (
-                            <Box component="span" sx={visuallyHidden}>
-                                {order === 'desc' ? 'sorted descending' : 'sorted ascending'}
-                            </Box>
-                        ) : null}
-                    </TableSortLabel>}
+                      {column.as ?? column.name}
+                      {orderBy === column.name || orderBy === column.column ? (
+                        <Box component="span" sx={visuallyHidden}>
+                          {order === "desc"
+                            ? "sorted descending"
+                            : "sorted ascending"}
+                        </Box>
+                      ) : null}
+                    </TableSortLabel>
+                  )}
                 </StyledTableCell>
               );
             })}
@@ -313,7 +329,7 @@ export default function GenericTable({
                                       ? // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                                         // @ts-ignore
                                         row[isOverrided[0].name.split(".")[1]]
-                                      : null
+                                      : row
                                   );
                                 }
                               }}
@@ -419,9 +435,9 @@ export default function GenericTable({
       <Modal
         open={showCustomerModal}
         onClose={() => {
-          clearFilter()
-          setShowCustomerModal(false)
-          setOpened(false)
+          clearFilter();
+          setShowCustomerModal(false);
+          setOpened(false);
         }}
       >
         <Box sx={style}>

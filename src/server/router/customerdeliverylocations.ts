@@ -1,6 +1,9 @@
+import { DeliveryLocations } from '@prisma/client';
 import {createRouter} from "./context";
 import {z} from "zod";
 import { CustomerDeliveryLocationsModel } from '../../../prisma/zod';
+
+type CustomerDeliveryLocationsType = z.infer<typeof CustomerDeliveryLocationsModel>;
 
 export const customerDeliveryLocationsRouter = createRouter()
     .query("getAll", {
@@ -9,7 +12,7 @@ export const customerDeliveryLocationsRouter = createRouter()
             page: z.number().optional()
         }),
         async resolve({ctx, input}) {
-            return ctx.prisma.customerDeliveryLocations.findMany({
+            const data = ctx.prisma.customerDeliveryLocations.findMany({
                 where: {
                     CustomerID: input.CustomerID
                 },
@@ -19,6 +22,13 @@ export const customerDeliveryLocationsRouter = createRouter()
                 take: 10,
                 skip: input.page ? input.page * 10 : 0
             });
+            const returnable: CustomerDeliveryLocationsType[] = [];
+            (await data).forEach((item) => {
+                if (returnable.filter((_item) => _item.CustomerID === item.CustomerID && _item.DeliveryLocationID === item.DeliveryLocationID).length === 0) {
+                    returnable.push(item);
+                }
+            })
+            return returnable;
         },
     })
     .mutation('put', {
@@ -45,12 +55,17 @@ export const customerDeliveryLocationsRouter = createRouter()
         },
     })
     .mutation('delete', {
-        input: CustomerDeliveryLocationsModel.omit({CustomerID: true, DeliveryLocationID: true, DateUsed: true}),
+        input: CustomerDeliveryLocationsModel,
         async resolve({ctx, input}) {
-            const {ID} = input;
+            const {CustomerID, DeliveryLocationID} = input;
+            console.log('INPUT', input)
             // use your ORM of choice
-            return await ctx.prisma.customerDeliveryLocations.delete({where: {ID: ID}})
-
+            return await ctx.prisma.customerDeliveryLocations.deleteMany({where: {
+                AND: [
+                    {CustomerID: CustomerID},
+                    {DeliveryLocationID: DeliveryLocationID}
+                ]
+            }})
         },
     });
 

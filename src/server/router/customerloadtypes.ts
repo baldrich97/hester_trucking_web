@@ -2,6 +2,8 @@ import {createRouter} from "./context";
 import {z} from "zod";
 import { CustomerLoadTypesModel } from '../../../prisma/zod';
 
+type CustomerLoadTypesType = z.infer<typeof CustomerLoadTypesModel>;
+
 export const customerLoadTypesRouter = createRouter()
     .query("getAll", {
         input: z.object({
@@ -9,7 +11,7 @@ export const customerLoadTypesRouter = createRouter()
             page: z.number().optional()
         }),
         async resolve({ctx, input}) {
-            return ctx.prisma.customerLoadTypes.findMany({
+            const data = ctx.prisma.customerLoadTypes.findMany({
                 where: {
                     CustomerID: input.CustomerID
                 },
@@ -19,6 +21,13 @@ export const customerLoadTypesRouter = createRouter()
                 take: 10,
                 skip: input.page ? input.page*10 : 0
             });
+            const returnable: CustomerLoadTypesType[] = [];
+            (await data).forEach((item) => {
+                if (returnable.filter((_item) => _item.CustomerID === item.CustomerID && _item.LoadTypeID === item.LoadTypeID).length === 0) {
+                    returnable.push(item);
+                }
+            })
+            return returnable;
         },
     })
     .mutation('put', {
@@ -45,11 +54,16 @@ export const customerLoadTypesRouter = createRouter()
         },
     })
     .mutation('delete', {
-        input: CustomerLoadTypesModel.omit({CustomerID: true, LoadTypeID: true, DateDelivered: true}),
+        input: CustomerLoadTypesModel.omit({DateDelivered: true}),
         async resolve({ctx, input}) {
-            const {ID} = input;
+            const {CustomerID, LoadTypeID} = input;
             // use your ORM of choice
-            return await ctx.prisma.customerLoadTypes.delete({where: {ID: ID}})
+            return await ctx.prisma.customerLoadTypes.deleteMany({where: {
+                AND: [
+                    {CustomerID: CustomerID},
+                    {LoadTypeID: LoadTypeID}
+                ]
+            }})
         },
     });
 
