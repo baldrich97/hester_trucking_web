@@ -80,7 +80,7 @@ export const deliveryLocationsRouter = createRouter()
                 data = await ctx.prisma.deliveryLocations.findMany({
                     where: {
                         Description: {
-                            search: formattedSearch
+                            contains: formattedSearch
                         },
                         ...extraCondition
                     },
