@@ -353,6 +353,22 @@ export default function GenericTable({
                           </StyledTableCell>
                         );
 
+                        case "checkbox-action":
+                            return (
+                                <StyledTableCell
+                                    align={column.align ? column.align : "center"}
+                                    key={
+                                        "row-" + rowindex.toString() + "-" + column.name
+                                    }
+                                >
+                                    <Checkbox checked={!!data} onClick={() => {
+                                        if (isOverrided[0]) {
+                                            isOverrided[0].callback(row)
+                                        }
+                                    }}/>
+                                </StyledTableCell>
+                            );
+
                       case "link":
                         let link = null;
                         if (column.navigateTo?.includes("[ID]")) {

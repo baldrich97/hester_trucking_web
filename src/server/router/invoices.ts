@@ -1,6 +1,7 @@
 import {createRouter} from "./context";
 import {z} from "zod";
 import {InvoicesModel, LoadsModel} from '../../../prisma/zod';
+import {prisma} from "../db/client";
 
 export const invoicesRouter = createRouter()
     .query("getAll", {
@@ -110,10 +111,10 @@ export const invoicesRouter = createRouter()
             page: z.number().optional(),
             search: z.number().nullish().optional(),
             orderBy: z.string().optional(),
-            order: z.string().optional()
+            order: z.string().optional(),
+            showAll: z.boolean().optional()
         }),
         async resolve({ctx, input}) {
-            console.log(input)
             const extra = [];
             if (input.search && input.search.toString().length > 0) {
                 extra.push({TotalAmount: input.search})
@@ -121,6 +122,7 @@ export const invoicesRouter = createRouter()
                     extra.push({Number: input.search})
                 }
             }
+
             const {order, orderBy} = input;
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -133,6 +135,19 @@ export const invoicesRouter = createRouter()
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
             }
+
+            const andArray = [{
+                OR: [
+                    ...extra
+                ],
+
+            }
+            ];
+            if (input.showAll) {// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                andArray.push({Consolidated: null})
+            }
+
             return ctx.prisma.invoices.findMany({
                 where: {
                     OR: [
@@ -140,17 +155,13 @@ export const invoicesRouter = createRouter()
                     ],
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                                         // @ts-ignore
-                    AND : {
-                        OR: [
-                            ...extra
-                        ]
-                    }
+                    AND : andArray
                 },
                 include: {
                     Customers: true,
                     Loads: true
                 },
-                take: 10,
+                take: input.showAll ? 100 : 10,
                 orderBy: orderObj,
                 skip: input.page ? 10*input.page : 0
             });
@@ -274,6 +285,72 @@ export const invoicesRouter = createRouter()
             }
 
             return returnable;
+        },
+    })
+    .mutation('putConsolidated', {
+        // validate input with Zod
+        input: z.object({ids: z.array(z.number())}),
+        async resolve({ctx, input}) {
+            const lastInvoice = await ctx.prisma.invoices.aggregate({
+                _max: {
+                    Number: true,
+                },
+            });
+
+            let newTotal = 0;
+            let customerID = null;
+
+            if (input.ids.length > 0) {
+                for (const invoiceID of input.ids) {
+                    const item = await ctx.prisma.invoices.findUnique({
+                        where: {
+                            ID: invoiceID
+                        }
+                    })
+                    if (item) {
+                        console.log('TOTAL', item.TotalAmount)
+                        newTotal += (Math.round((item.TotalAmount + Number.EPSILON) * 100) / 100)
+                        customerID = item.CustomerID
+                    }
+
+                }
+            } else {
+                return false;
+            }
+
+            if (!customerID) {
+                return false;
+            }
+
+
+            // use your ORM of choice
+            const returnable = await ctx.prisma.invoices.create({
+                data: {
+                    InvoiceDate: new Date(),
+                    Number: (lastInvoice?._max.Number ?? 0) + 1,
+                    CustomerID: customerID,
+                    TotalAmount: (Math.round((newTotal + Number.EPSILON) * 100) / 100),
+                }
+            })
+
+            const consolidatedID = returnable.ID;
+
+
+
+            if (input.ids.length > 0) {
+                for (const invoiceID of input.ids) {
+                    await ctx.prisma.invoices.update({
+                        where: {
+                            ID: invoiceID
+                        },
+                        data: {
+                            Consolidated: consolidatedID
+                        }
+                    })
+                }
+            }
+
+            return true;
         },
     })
     .mutation('post', {

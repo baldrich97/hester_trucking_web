@@ -8,7 +8,7 @@ export type TableColumnsType = {
 
 export type TableColumnOverridesType = {
   name: string;
-  type: "checkbox" | "button" | "link" | "date" | "action";
+  type: "checkbox" | "button" | "link" | "date" | "action" | 'checkbox-action';
   callback?: any;
   icon?: any;
 }[];
