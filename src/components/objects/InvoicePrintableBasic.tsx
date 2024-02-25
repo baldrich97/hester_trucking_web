@@ -41,7 +41,7 @@ const InvoicePrintableBasic = ({invoice, invoices = null}: { invoice: CompleteIn
     return (
         <Document>
             <Page size='A4' style={styles.page}>
-                <InvoiceParts.Title/>
+                <InvoiceParts.Title isConsolidated={invoices !== null}/>
                 <Html>{linebreakhtml}</Html>
                 <InvoiceParts.Header customer={invoice.Customers}
                                      invoiceDate={new Date(invoice.InvoiceDate).toLocaleDateString('en-US', {timeZone: 'UTC'})}

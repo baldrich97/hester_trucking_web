@@ -17,6 +17,7 @@ const styles = StyleSheet.create({
         color: 'black',
         letterSpacing: 0,
         fontSize: 8,
+        fontFamily: 'Times-Bold'
     },
     leftAlignNoPadding: {
         textAlign: 'left',
@@ -28,7 +29,7 @@ const styles = StyleSheet.create({
         borderRight: 2,
         borderRightStyle: 'solid',
         borderRightColor: 'black',
-        paddingLeft: 5,
+        paddingLeft: 2,
     }
 });
 
@@ -36,13 +37,13 @@ const styles = StyleSheet.create({
 const TableHeader = ({isConsolidated = false}: { isConsolidated: boolean }) => (
     <View style={styles.container}>
         {isConsolidated ? <>
-            <Text style={{width: '10%', ...styles.leftAlignNoPadding, ...styles.text}}>Date</Text>
+            <Text style={{width: '8%', ...styles.leftAlignNoPadding, ...styles.text}}>Date</Text>
             <Text style={{width: '10%', textAlign: 'left', ...styles.padding, ...styles.text}}>Number</Text>
             <Text style={{width: '73%', textAlign: 'left', ...styles.padding, ...styles.text}}>Loads Included In Invoice</Text>
             <Text style={{width: '8%', textAlign: 'right', ...styles.text, paddingRight: 5}}>Total</Text>
         </> : 
         <>
-            <Text style={{width: '10%', ...styles.leftAlignNoPadding, ...styles.text}}>Date</Text>
+            <Text style={{width: '8%', ...styles.leftAlignNoPadding, ...styles.text}}>Date</Text>
             <Text style={{width: '10%', textAlign: 'left', ...styles.padding, ...styles.text}}>Truck</Text>
             <Text style={{width: '25%', textAlign: 'left', ...styles.padding, ...styles.text}}>Material</Text>
             <Text style={{width: '30%', textAlign: 'left', ...styles.padding, ...styles.text}}>Location</Text>
