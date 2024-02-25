@@ -23,8 +23,9 @@ import Button from "@mui/material/Button";
 import InvoiceLoads from "../collections/InvoiceLoads";
 import { toast } from "react-toastify";
 import RHAutocomplete from "elements/RHAutocomplete";
-import {confirmAlert} from "react-confirm-alert";
-import 'react-confirm-alert/src/react-confirm-alert.css';
+import { confirmAlert } from "react-confirm-alert";
+import "react-confirm-alert/src/react-confirm-alert.css";
+import ConsolidatedInvoices from "components/collections/ConsolidatedInvoices";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
@@ -46,13 +47,15 @@ const Invoice = ({
   customers,
   loads = [],
   initialInvoice = null,
-    lastInvoice = 0
+  lastInvoice = 0,
+  invoices = null,
 }: {
   customers: CustomersType[];
   loads?: LoadsType[];
   initialInvoice?: null | InvoicesType;
   refreshData?: any;
   lastInvoice?: number;
+  invoices?: null | InvoicesType[];
 }) => {
   const [customer, setCustomer] = useState(0);
 
@@ -106,7 +109,7 @@ const Invoice = ({
     // @ts-ignore
     setValue("selected", selected);
   } else {
-    setValue("Number", lastInvoice)
+    setValue("Number", lastInvoice);
   }
 
   const key = initialInvoice ? "invoices.post" : "invoices.put";
@@ -122,6 +125,7 @@ const Invoice = ({
     async onSuccess(data) {
       reset(data ? data : defaultValues);
       toast("Successfully Paid!", { autoClose: 2000, type: "success" });
+      await router.replace(router.asPath);
     },
   });
 
@@ -155,17 +159,17 @@ const Invoice = ({
     setShouldFetchLoads(true);
   };
 
-  const deleteInvoice = trpc.useMutation('invoices.delete', {
+  const deleteInvoice = trpc.useMutation("invoices.delete", {
     async onSuccess() {
-      toast('Successfully Deleted!', {autoClose: 2000, type: 'success'})
-    }
-  })
+      toast("Successfully Deleted!", { autoClose: 2000, type: "success" });
+    },
+  });
 
   const onDelete = async (data: InvoicesType) => {
-    toast('Deleting...', {autoClose: 2000, type: 'info'})
-    await deleteInvoice.mutateAsync(data)
-    await router.replace('/invoices');
-  }
+    toast("Deleting...", { autoClose: 2000, type: "info" });
+    await deleteInvoice.mutateAsync(data);
+    await router.replace("/invoices");
+  };
 
   React.useEffect(() => {
     const subscription = watch((value, { name, type }) => {
@@ -214,7 +218,7 @@ const Invoice = ({
           searchQuery: "customers",
         },
         {
-          name: "Paid",
+          name: "Consolidated",
           size: 2,
           required: false,
           type: "checkbox",
@@ -228,8 +232,15 @@ const Invoice = ({
           disabled: true,
         },
         {
+          name: "Paid",
+          size: 1,
+          required: false,
+          type: "checkbox",
+          disabled: true,
+        },
+        {
           name: "Number",
-          size: 2,
+          size: 1,
           required: false,
           type: "textfield",
           number: true,
@@ -518,19 +529,23 @@ const Invoice = ({
         {fields1.map((field, index) => renderFields(field, index))}
 
         <Grid2 xs={12}>
-          <InvoiceLoads
-            readOnly={!!initialInvoice}
-            rows={loads.length > 0 ? loads : customerLoads}
-            updateTotal={(newTotal: number) => {
-              setValue("TotalAmount", newTotal);
-            }}
-            updateSelected={(newSelected: string[]) => {
-              setSelected(newSelected);
-              // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-              // @ts-ignore
-              setValue("selected", newSelected);
-            }}
-          />
+          {invoices !== null && invoices !== undefined ? (
+            <ConsolidatedInvoices rows={invoices} />
+          ) : (
+            <InvoiceLoads
+              readOnly={!!initialInvoice}
+              rows={loads.length > 0 ? loads : customerLoads}
+              updateTotal={(newTotal: number) => {
+                setValue("TotalAmount", newTotal);
+              }}
+              updateSelected={(newSelected: string[]) => {
+                setSelected(newSelected);
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                setValue("selected", newSelected);
+              }}
+            />
+          )}
         </Grid2>
 
         {fields2.map((field, index) => renderFields(field, index))}
@@ -553,25 +568,28 @@ const Invoice = ({
           <>
             <Grid2 xs={1}>
               <Button
-                  type={"button"}
-                  variant={"contained"}
-                  style={{ backgroundColor: "#EF463B" }}
-                  onClick={() => {
-                    confirmAlert({
-                      title: 'Confirm Deletion',
-                      message: 'Are you sure you want to delete this invoice? It will make any loads associated available again.',
-                      buttons: [
-                        {
-                          label: 'Yes',
-                          onClick: async () => {onDelete(initialInvoice).then()}
+                type={"button"}
+                variant={"contained"}
+                style={{ backgroundColor: "#EF463B" }}
+                onClick={() => {
+                  confirmAlert({
+                    title: "Confirm Deletion",
+                    message:
+                      "Are you sure you want to delete this invoice? It will make any loads associated available again.",
+                    buttons: [
+                      {
+                        label: "Yes",
+                        onClick: async () => {
+                          onDelete(initialInvoice).then();
                         },
-                        {
-                          label: 'No'
-                          //onClick: () => {}
-                        }
-                      ]
-                    })
-                  }}
+                      },
+                      {
+                        label: "No",
+                        //onClick: () => {}
+                      },
+                    ],
+                  });
+                }}
               >
                 Delete
               </Button>

@@ -5,12 +5,12 @@ generator client {
 
 generator zod {
   provider              = "zod-prisma"
-  imports               = "../src/utils/zodParsers"
-  useDecimalJs          = "true"
-  modelCase             = "PascalCase"
-  modelSuffix           = "Model"
   prismaJsonNullability = "true"
+  modelSuffix           = "Model"
+  useDecimalJs          = "true"
   relationModel         = "true"
+  imports               = "../src/utils/zodParsers"
+  modelCase             = "PascalCase"
 }
 
 datasource db {
@@ -107,24 +107,25 @@ model Drivers {
 }
 
 model Invoices {
-  ID           Int       @id @default(autoincrement())
+  ID             Int       @id @default(autoincrement())
   /// @zod.custom(imports.parseDate)
-  InvoiceDate  DateTime  @db.Date
-  Number       Int?
+  InvoiceDate    DateTime  @db.DateTime(0)
+  Number         Int?
   /// @zod.min(1)
-  CustomerID   Int
+  CustomerID     Int
   /// @zod.min(1)
-  TotalAmount  Float
+  TotalAmount    Float
   /// @zod.custom(imports.parseDate)
-  PaidDate     DateTime? @db.Date
-  CheckNumber  String?   @db.VarChar(255)
-  Paid         Boolean?
-  Printed      Boolean?
-  Deleted      Boolean?
-  PaymentType  String?   @default("N/A") @db.VarChar(255)
-  Consolidated Int?
-  Customers    Customers @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_Invoices_Customer")
-  Loads        Loads[]
+  PaidDate       DateTime? @db.DateTime(0)
+  CheckNumber    String?   @db.VarChar(255)
+  Paid           Boolean?  @default(false)
+  Printed        Boolean?  @default(false)
+  Deleted        Boolean?
+  PaymentType    String?   @default("N/A") @db.VarChar(255)
+  Consolidated   Boolean?  @default(false)
+  ConsolidatedID Int?
+  Customers      Customers @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_Invoices_Customer")
+  Loads          Loads[]
 
   @@index([CustomerID], map: "FK_Invoices_Customer")
 }
@@ -179,9 +180,9 @@ model TrucksDriven {
 model Loads {
   ID                 Int                @id @default(autoincrement())
   /// @zod.custom(imports.parseDate)
-  StartDate          DateTime           @db.Date
+  StartDate          DateTime           @db.DateTime(0)
   /// @zod.custom(imports.parseDate)
-  EndDate            DateTime           @db.Date
+  EndDate            DateTime           @db.DateTime(0)
   /// @zod.custom(imports.isNumber)
   Weight             Float?
   /// @zod.custom(imports.isNumber)

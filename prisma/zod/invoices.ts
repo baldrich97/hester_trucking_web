@@ -14,7 +14,8 @@ export const InvoicesModel = z.object({
   Printed: z.boolean().nullish(),
   Deleted: z.boolean().nullish(),
   PaymentType: z.string().nullish(),
-  Consolidated: z.number().int().nullish(),
+  Consolidated: z.boolean().nullish(),
+  ConsolidatedID: z.number().int().nullish(),
 })
 
 export interface CompleteInvoices extends z.infer<typeof InvoicesModel> {

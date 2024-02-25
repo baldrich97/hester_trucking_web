@@ -34,9 +34,15 @@ const handler = async (req, res) => {
         }
     })
 
+    let invoices = null;
+
+    if (invoice.Consolidated) {
+        invoices = await prisma.invoices.findMany({where: {ConsolidatedID: invoice.ID}, include: {Loads: true}})
+    }
+
     const number = invoice.Number;
 
-    const stream = await renderToStream(<InvoicePrintableBasic invoice={invoice}/>)
+    const stream = await renderToStream(<InvoicePrintableBasic invoice={invoice} invoices={invoices}/>)
     res.setHeader('Content-Type', 'application/pdf');
     const filename = "Invoice-" + number;
     res.setHeader('Content-Disposition', `attachment; filename=${filename}.pdf`);
