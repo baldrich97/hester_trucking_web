@@ -1,23 +1,29 @@
-On cusotmer select, query unpaid from that customer and display with select boxes, remember to filter by consolidated = null to not double dip
-On create, make a new invoice with the total of the summed selected and set consolidated to the pkey of them to the new pkey
-Consolidated tab shows all already consolidated invoices, grouped like loads where they can expand and see all the ones included
-Add consolidated to db and to the unpaid invoices table so they can see which ones are already conslidated
-When a consolidated invoice is paid, flag all child invoices as paid
-If they delete one just set consolidated to null on the affected ones
-In super invoice print query all invoices with that consolidated
-In super invoice display show the breakdown like loads where they can see each one in it
-Add consolidated to the [ID] view as well as another checkbox
-Need to refresh unpaid data
+X On cusotmer select, query unpaid from that customer and display with select boxes, remember to filter by consolidated = null to not double dip
+X On create, make a new invoice with the total of the summed selected and set consolidated to the pkey of them to the new pkey
+X Consolidated tab shows all already consolidated invoices, grouped like loads where they can expand and see all the ones included
+X Add consolidated to db and to the unpaid invoices table so they can see which ones are already conslidated
+X When a consolidated invoice is paid, flag all child invoices as paid
+X If they delete one just set consolidated to null on the affected ones
+X In super invoice print query all invoices with that consolidated
+X In super invoice display show the breakdown like loads where they can see each one in it
+X Add consolidated to the [ID] view as well as another checkbox
+X Need to refresh unpaid data
 
-Need to separate out the api calls for the customer get and the unpaid data get
-Need to somehow show that the parent invoice is a consolidated one while also showing the children as consolidated too
+X Need to separate out the api calls for the customer get and the unpaid data get
+X Need to somehow show that the parent invoice is a consolidated one while also showing the children as consolidated too
 	probably just add new column called isConsolidated? that way on [ID] get if isConsolidated I can trigger different logic, and I can display differently on the table
 Need to add in the ability to do custom cols to the table, there have been too many times I've needed to just do a one-off column
+
+added consolidated
+added conslidatedID
 updated things to default to 0
+changed dates in invoices to be datetimes
+changes dates in loads to be datetimes
+probably should do that in others too
 
 
 Prefill data
 Fix old invoices/loads
-Super invoice
-Create location/type on create if not there
+X Super invoice
+X Create location/type on create if not there
 If load edited update invoice?

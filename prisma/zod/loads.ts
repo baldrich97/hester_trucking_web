@@ -26,7 +26,7 @@ export const LoadsModel = z.object({
 })
 
 export interface CompleteLoads extends z.infer<typeof LoadsModel> {
-  Customers?: CompleteCustomers | null
+  Customers: CompleteCustomers
   DeliveryLocations?: CompleteDeliveryLocations | null
   Drivers?: CompleteDrivers | null
   Invoices?: CompleteInvoices | null
@@ -40,7 +40,7 @@ export interface CompleteLoads extends z.infer<typeof LoadsModel> {
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
 export const RelatedLoadsModel: z.ZodSchema<CompleteLoads> = z.lazy(() => LoadsModel.extend({
-  Customers: RelatedCustomersModel.nullish(),
+  Customers: RelatedCustomersModel,
   DeliveryLocations: RelatedDeliveryLocationsModel.nullish(),
   Drivers: RelatedDriversModel.nullish(),
   Invoices: RelatedInvoicesModel.nullish(),

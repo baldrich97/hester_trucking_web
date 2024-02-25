@@ -32,19 +32,21 @@ const dividerstyle = {div: {border: 1, borderStyle: 'dashed', borderColor: 'blac
 const divider = <div/>;
 const dividerhtml = ReactDOMServer.renderToStaticMarkup(divider);
 
-const InvoicePrintableBasic = ({invoice}: { invoice: CompleteInvoices }) => {
-    const total = invoice.Loads.reduce((acc, obj) => {
+const InvoicePrintableBasic = ({invoice, invoices = null}: { invoice: CompleteInvoices, invoices: CompleteInvoices[] | null }) => {
+    const total = invoices !== null ? invoices.reduce((acc, obj) => {
+        return acc + (obj.TotalAmount ? obj.TotalAmount : 0)
+    }, 0) : invoice.Loads.reduce((acc, obj) => {
         return acc + (obj.TotalAmount ? obj.TotalAmount : 0)
     }, 0)
     return (
         <Document>
             <Page size='A4' style={styles.page}>
-                <InvoiceParts.Title/>
+                <InvoiceParts.Title isConsolidated={invoices !== null}/>
                 <Html>{linebreakhtml}</Html>
                 <InvoiceParts.Header customer={invoice.Customers}
                                      invoiceDate={new Date(invoice.InvoiceDate).toLocaleDateString('en-US', {timeZone: 'UTC'})}
                                      invoiceNumber={invoice.Number ? invoice.Number.toString() : 'N/A'}/>
-                <InvoiceParts.Table loads={invoice.Loads} total={total}/>
+                <InvoiceParts.Table loads={invoice.Loads} total={total} invoices={invoices}/>
                 {/*<View wrap={false}>*/}
                 {/*</View>*/}
                 <Html>{linebreakhtml}</Html>

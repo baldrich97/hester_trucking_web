@@ -131,7 +131,7 @@ const BasicAutocomplete = ({
       loading={loading}
       onChange={(e: any, data: { [x: string]: any }) => {
         setValue(data);
-        onSelect(data.ID);
+        onSelect(data?.ID ?? 0);
       }}
       value={value}
       onInputChange={() => {

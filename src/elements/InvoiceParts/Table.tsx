@@ -1,6 +1,6 @@
 import React from 'react';
 import {View, StyleSheet} from '@react-pdf/renderer';
-import {CompleteLoads} from "../../../prisma/zod";
+import {CompleteInvoices, CompleteLoads} from "../../../prisma/zod";
 import TableHeader from "./TableHeader";
 import TableRow from "./TableRow";
 import TableFooter from "./TableFooter";
@@ -16,17 +16,23 @@ const styles = StyleSheet.create({
 });
 
 
-const Table = ({loads, total}: {loads: CompleteLoads[], total: number}) => {
+const Table = ({loads, total, invoices = null}: {loads: CompleteLoads[], total: number, invoices: CompleteInvoices[] | null}) => {
     return (
         <View style={styles.container}>
-            <TableHeader/>
-            {loads.map((load, index) =>
+            <TableHeader isConsolidated={invoices !== null}/>
+            {invoices !== null ? invoices.map((invoice, index) =>
                 (
                     <View key={'invoice-row-' + index.toString()} style={{top: '-7px'}}>
-                        <TableRow load={load}/>
+                        <TableRow invoice={invoice}/>
                     </View>
                 )
-            )}
+            ) : loads.map((load, index) =>
+            (
+                <View key={'invoice-row-' + index.toString()} style={{top: '-7px'}}>
+                    <TableRow load={load}/>
+                </View>
+            )
+        )}
             <TableFooter total={total}/>
         </View>
     )
