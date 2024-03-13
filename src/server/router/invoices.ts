@@ -2,6 +2,7 @@ import {createRouter} from "./context";
 import {z} from "zod";
 import {InvoicesModel, LoadsModel} from '../../../prisma/zod';
 import {prisma} from "../db/client";
+import {TRPCError} from "@trpc/server";
 
 export const invoicesRouter = createRouter()
     .query("getAll", {
@@ -373,6 +374,32 @@ export const invoicesRouter = createRouter()
         async resolve({ctx, input}) {
             // use your ORM of choice
             const {selected, ...rest} = input;
+            const invoicedLoads = await ctx.prisma.loads.findMany({
+                where: {
+                    AND: [
+                        {ID: { in: selected.map((pkey) => parseInt(pkey))}},
+                        {Invoiced: true}
+                    ]
+                },
+                include: {Invoices: true}
+            })
+
+            if (invoicedLoads.length > 0) {
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: `Load(s) with ticket number ${invoicedLoads.map((item) => item.TicketNumber ?? 'N/A').join(', ')} have already been invoiced in invoice number(s) ${invoicedLoads.map((item) => item.Invoices?.Number ?? 'N/A').join(', ')}.`,
+                })
+            }
+
+            const dupeInvoice = await ctx.prisma.invoices.findMany({where: {Number: input.Number}})
+
+            if (dupeInvoice.length > 0) {
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: `There is already an invoice numbered ${input.Number}. Please change the invoice number.`,
+                })
+            }
+
             const returnable = await ctx.prisma.invoices.create({
                 data: rest
             })

@@ -119,6 +119,10 @@ const Invoice = ({
       reset(initialInvoice ? data : defaultValues);
       toast("Successfully Submitted!", { autoClose: 2000, type: "success" });
     },
+    async onError(error) {
+      toast("There was an issue creating this invoice. The issue was: " + error.message, { autoClose: 100000, type: "error"})
+      return;
+    }
   });
 
   const payInvoice = trpc.useMutation("invoices.postPaid", {

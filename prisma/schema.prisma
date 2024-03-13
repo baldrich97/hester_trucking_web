@@ -5,10 +5,10 @@ generator client {
 
 generator zod {
   provider              = "zod-prisma"
-  prismaJsonNullability = "true"
-  modelSuffix           = "Model"
   useDecimalJs          = "true"
   relationModel         = "true"
+  prismaJsonNullability = "true"
+  modelSuffix           = "Model"
   imports               = "../src/utils/zodParsers"
   modelCase             = "PascalCase"
 }
