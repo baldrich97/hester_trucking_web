@@ -1,6 +1,7 @@
 import {createRouter} from "./context";
 import {z} from "zod";
 import {CustomerLoadTypesModel, LoadsModel} from '../../../prisma/zod';
+import { TRPCError } from "@trpc/server";
 
 export const loadsRouter = createRouter()
     .query("getAll", {
@@ -225,7 +226,73 @@ export const loadsRouter = createRouter()
         // validate input with Zod
         input: LoadsModel.omit({ID: true, Deleted: true}),
         async resolve({ctx, input}) {
-            const {DriverID, TruckID, StartDate, CustomerID, LoadTypeID, DeliveryLocationID} = input;
+            const {DriverID, TruckID, StartDate, CustomerID, LoadTypeID, DeliveryLocationID, TruckRate, MaterialRate} = input;
+
+            if (DriverID && LoadTypeID && CustomerID && DeliveryLocationID) {
+                let openJobs = await ctx.prisma.jobs.findMany({
+                    where: {
+                        AND: [
+                            {TruckingRevenue: null},
+                            {CompanyRevenue: null},
+                            {DriverID: DriverID},
+                            {CustomerID: CustomerID},
+                            {LoadTypeID: LoadTypeID},
+                            {DeliveryLocationID: DeliveryLocationID}
+                        ]
+                    }
+                })
+
+                openJobs = openJobs.filter((item) => {
+                    let shouldReturn = true;
+                    if (TruckRate) {
+                        const loadTR = (Math.round(TruckRate * 100)) / 100
+                        shouldReturn = item.TruckingRate === loadTR
+                    } else {
+                        shouldReturn = TruckRate === item.TruckingRate ?? 0;
+                    }
+                    if (!shouldReturn) {
+                        return;
+                    }
+                    if (MaterialRate) {
+                        const loadMR = (Math.round(MaterialRate * 100)) / 100
+                        shouldReturn = item.CompanyRate === loadMR
+                    } else {
+                        shouldReturn = MaterialRate === item.CompanyRate ?? 0;
+                    }
+                    return shouldReturn;
+                })
+
+                if (openJobs.length > 1) {
+                    //Error here that there are multiple open jobs that fit the criteria
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `There are multiple open jobs that fit these criteria. Please close similar jobs or contact support.`,
+                    })
+                } else if (openJobs[0]) {
+                    //Set this load's JobID to the open job
+                    input.JobID = openJobs[0].ID
+                } else {
+                    //Make a new job and set this load's JobID to it
+                    const newJob = await ctx.prisma.jobs.create({
+                        data: {
+                            DriverID: DriverID,
+                            LoadTypeID: LoadTypeID,
+                            CustomerID: CustomerID,
+                            TruckingRate: TruckRate ?? 0,
+                            CompanyRate: MaterialRate ?? 0,
+                            DeliveryLocationID: DeliveryLocationID
+                        }
+                    })
+                    input.JobID = newJob.ID;
+                }
+            } else {
+                //Error here that we could not create a job with this load due to missing information
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: `This load is missing critical information. Please ensure there is a Driver, Load Type, Delivery Location, and Customer.`,
+                })
+            }
+
             if (DriverID && TruckID) {
                 await ctx.prisma.trucksDriven.create({
                     data: {TruckID, DriverID, DateDriven: StartDate}

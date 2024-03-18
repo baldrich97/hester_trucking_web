@@ -5,7 +5,7 @@ import { CompleteCustomers, RelatedCustomersModel, CompleteDeliveryLocations, Re
 export const LoadsModel = z.object({
   ID: z.number().int(),
   StartDate: imports.parseDate,
-  EndDate: imports.parseDate,
+  Created: z.date(),
   Weight: imports.isNumber.nullish(),
   Hours: imports.isNumber.nullish(),
   TotalRate: imports.isNumber.nullish(),
@@ -23,6 +23,9 @@ export const LoadsModel = z.object({
   TruckID: z.number().int().nullish(),
   DriverID: z.number().int().nullish(),
   Deleted: z.boolean().nullish(),
+  DailyID: z.number().int().nullish(),
+  WeeklyID: z.number().int().nullish(),
+  JobID: z.number().int().nullish(),
 })
 
 export interface CompleteLoads extends z.infer<typeof LoadsModel> {

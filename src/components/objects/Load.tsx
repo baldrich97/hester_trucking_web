@@ -36,7 +36,7 @@ import {
 
 const defaultValues = {
   StartDate: new Date(),
-  EndDate: new Date(),
+  Created: new Date(),
   CustomerID: undefined,
   LoadTypeID: null,
   DeliveryDescriptionID: null,
@@ -106,6 +106,14 @@ function Load({
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       initialLoad && reset(data);
+    },
+    async onError(error) {
+      toast(
+        "There was an issue creating or updating this load. The issue was: " +
+          error.message,
+        { autoClose: 100000, type: "error" }
+      );
+      return;
     },
   });
 
@@ -256,9 +264,6 @@ function Load({
           tdsetData([]);
         }
       }
-      if (name === "StartDate" && value.StartDate) {
-        setValue("EndDate", value.StartDate);
-      }
     });
 
     return () => subscription.unsubscribe();
@@ -295,23 +300,16 @@ function Load({
     },
     {
       name: "StartDate",
-      size: 4,
+      size: 6,
       required: false,
       type: "date",
-      label: "Start Date",
-    },
-    {
-      name: "EndDate",
-      size: 4,
-      required: false,
-      type: "date",
-      label: "End Date",
+      label: "Delivered On",
     },
     {
       name: "TicketNumber",
       required: false,
       type: "textfield",
-      size: 4,
+      size: 6,
       number: true,
       label: "Ticket Number",
     },
