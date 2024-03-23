@@ -1,7 +1,21 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import {JobsModel} from '../../../prisma/zod';
+import {JobsModel, DriversModel, LoadsModel} from '../../../prisma/zod';
 import moment from "moment";
+
+type Driver = z.infer<typeof DriversModel>;
+
+type Jobs = z.infer<typeof JobsModel>;
+
+type Loads = z.infer<typeof LoadsModel>;
+
+interface JobsLoads extends Jobs {
+    Loads: Loads[]
+}
+
+interface DriverSheet extends Driver {
+    Jobs: JobsLoads[]
+}
 
 export const jobsRouter = createRouter()
     .query("getAll", {
@@ -40,77 +54,143 @@ export const jobsRouter = createRouter()
     .query('getByWeek', {
         input: z.object({
             week: z.string(),
+            forDaily: z.boolean()
         }),
         async resolve({ctx, input}) {
             const start = new Date(moment(input.week).format("YYYY-MM-DD 00:00:00"))
             const end = new Date(moment(input.week).add(6, "days").format("YYYY-MM-DD 23:59:59"))
-
-            const jobs: any[] = [];
 
             const loads = await ctx.prisma.loads.findMany({
                 where: {
                     Created: {
                         lte: end,
                         gte: start
+                    },
+                    JobID: {
+                        not: null
                     }
+                },
+                include: {
+                    Customers: true, Drivers: true, DeliveryLocations: true, LoadTypes: true, Jobs: true
                 }
-            });
+            })
 
-            let shouldReturn = false;
-            let shouldGroup = false;
-
-            for (let i = 0; i < loads.length; i++) {
-                const load = loads[i];
-                if (!load) {
-                    continue;
-                }
-                if (!load.JobID) {
-                    continue;
-                }
-                const found = jobs.findIndex((job) => job.ID === load.JobID);
-                if (found !== -1) {
-                    jobs[found].Loads = [...jobs[found].Loads, load]
-                } else {
-                    const job = await ctx.prisma.jobs.findUnique({
-                        where: {ID: load.JobID},
-                        include: {Customers: true, Drivers: true, DeliveryLocations: true, LoadTypes: true}
-                    });
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    job.Loads = [load];
-                    jobs.push(job);
-                }
-                if (i === loads.length - 1) {
-                    shouldGroup = true;
-                }
-            }
-
-            const grouped: any[] = [];
-
-            if (shouldGroup) {
-                for (let i = 0; i < jobs.length; i++) {
-                    const job = jobs[i];
-                    if (!job) {
-                        continue;
-                    }
-                    const found = grouped.findIndex((driver) => driver.ID === job.DriverID);
-                    //console.log('FOUND', found, grouped, job)
-                    if (found !== -1) {
-                        grouped[found].Jobs = [...grouped[found].Jobs, job]
+            if (input.forDaily) {
+                const sheets: DriverSheet[] = [];
+                await Promise.all(loads.map((load) => {
+                    const {Drivers, Customers, DeliveryLocations, LoadTypes, Jobs, ...rest} = load;
+                    const foundSheet = sheets.findIndex((item) => item.ID === load.DriverID)
+                    if (foundSheet !== -1) {
+                        //if a sheet already exists for this driver, set sheet to the found sheet
+                        const sheet = sheets[foundSheet];
+                        if (!sheet) {
+                            return;
+                        }
+                        if (sheet.Jobs) {
+                            const foundJob = sheet.Jobs.findIndex((item) => item.ID === load.JobID)
+                            if (foundJob !== -1) {
+                                //if the existing sheet already had a job that matches this load's jobid, set job to the found job
+                                const job = sheet.Jobs[foundJob];
+                                if (!job) {
+                                    return;
+                                }
+                                //set the job's loads = it's loads plus the new one, then set the sheet's job to the job, then set the sheet in the array to the new sheet
+                                job.Loads = [...job.Loads, {...rest}]
+                                sheet.Jobs[foundJob] = job;
+                                sheets[foundSheet] = sheet;
+                            }
+                        } else {
+                            if (!Jobs) {
+                                return;
+                            }
+                            sheet.Jobs = [{
+                                ...Jobs,
+                                Loads: [{...rest}],
+                                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                // @ts-ignore
+                                Customers: Customers,
+                                DeliveryLocations: DeliveryLocations,
+                                LoadTypes: LoadTypes
+                            }]
+                        }
                     } else {
-                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                        // @ts-ignore
-                        grouped.push({...job.Drivers, Jobs: [job]});
+                        if (!Jobs || !Drivers) {
+                            return;
+                        }
+                        sheets.push({
+                            ...Drivers,
+                            Jobs: [{
+                                ...Jobs,
+                                Loads: [{...rest}],
+                                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                                // @ts-ignore
+                                Customers: Customers,
+                                DeliveryLocations: DeliveryLocations,
+                                LoadTypes: LoadTypes
+                            }]
+                        })
                     }
-                    if (i === jobs.length - 1) {
-                        shouldReturn = true;
-                    }
-                }
+                }))
+
+                return sheets;
+            } else {
+
             }
 
-            if (shouldReturn) {
-                return grouped;
-            }
+            // let shouldReturn = false;
+            // let shouldGroup = false;
+            //
+            // for (let i = 0; i < loads.length; i++) {
+            //     const load = loads[i];
+            //     if (!load) {
+            //         continue;
+            //     }
+            //     if (!load.JobID) {
+            //         continue;
+            //     }
+            //     const found = jobs.findIndex((job) => job.ID === load.JobID);
+            //     if (found !== -1) {
+            //         jobs[found].Loads = [...jobs[found].Loads, load]
+            //     } else {
+            //         const job = await ctx.prisma.jobs.findUnique({
+            //             where: {ID: load.JobID},
+            //             include: {Customers: true, Drivers: true, DeliveryLocations: true, LoadTypes: true}
+            //         });
+            //         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            //         // @ts-ignore
+            //         job.Loads = [load];
+            //         jobs.push(job);
+            //     }
+            //     if (i === loads.length - 1) {
+            //         shouldGroup = true;
+            //     }
+            // }
+            //
+            // const grouped: any[] = [];
+            //
+            // if (shouldGroup) {
+            //     for (let i = 0; i < jobs.length; i++) {
+            //         const job = jobs[i];
+            //         if (!job) {
+            //             continue;
+            //         }
+            //         const found = grouped.findIndex((driver) => driver.ID === job.DriverID);
+            //         //console.log('FOUND', found, grouped, job)
+            //         if (found !== -1) {
+            //             grouped[found].Jobs = [...grouped[found].Jobs, job]
+            //         } else {
+
+            //             grouped.push({...job.Drivers, Jobs: [job]});
+            //         }
+            //         if (i === jobs.length - 1) {
+            //             shouldReturn = true;
+            //         }
+            //     }
+            // }
+            //
+            // if (shouldReturn) {
+            //     return grouped;
+            // }
 
         }
     })
@@ -198,27 +278,43 @@ export const jobsRouter = createRouter()
 
     //     }
     // })
-    // .mutation('put', {
-    //     // validate input with Zod
-    //     input: DailiesModel.omit({ID: true, Deleted: true}),
-    //     async resolve({ctx, input}) {
-    //         // use your ORM of choice
-    //         return ctx.prisma.dailies.create({
-    //             data: input
-    //         })
-    //     },
-    // })
-    // .mutation('post', {
-    //     // validate input with Zod
-    //     input: DailiesModel,
-    //     async resolve({ctx, input}) {
-    //         const {ID, ...data} = input;
-    //         // use your ORM of choice
-    //         return ctx.prisma.dailies.update({
-    //             where: {
-    //                 ID: ID
-    //             }, data: data
-    //         })
-    //     },
-    // });
+    .mutation('postClosed', {
+        // validate input with Zod
+        input: JobsModel,
+        async resolve({ctx, input}) {
+            const {ID, ...data} = input;
+            // use your ORM of choice
+            return ctx.prisma.jobs.update({
+                where: {
+                    ID: ID
+                }, data: data
+            })
+        },
+    })
+    .mutation('postPaid', {
+        // validate input with Zod
+        input: JobsModel,
+        async resolve({ctx, input}) {
+            const {ID, ...data} = input;
+            // use your ORM of choice
+            return ctx.prisma.jobs.update({
+                where: {
+                    ID: ID
+                }, data: data
+            })
+        },
+    })
+// .mutation('post', {
+//     // validate input with Zod
+//     input: DailiesModel,
+//     async resolve({ctx, input}) {
+//         const {ID, ...data} = input;
+//         // use your ORM of choice
+//         return ctx.prisma.dailies.update({
+//             where: {
+//                 ID: ID
+//             }, data: data
+//         })
+//     },
+// });
 

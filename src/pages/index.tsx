@@ -1,6 +1,5 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import React, { useState } from "react";
-import CustomerObject from "../components/objects/Customer";
+import React from "react";
 import { GetServerSideProps } from "next";
 import { prisma } from "server/db/client";
 import {
@@ -15,7 +14,7 @@ import Grid2 from "@mui/material/Unstable_Grid2";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
-import { Button, Divider, Modal, Typography } from "@mui/material";
+import Divider from "@mui/material/Divider";
 import Load from "components/objects/Load";
 import Invoice from "components/objects/Invoice";
 

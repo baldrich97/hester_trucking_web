@@ -196,7 +196,7 @@ function Sidenav(props: any) {
             <ListItemText primary="Dailies" />
           </ListItemButton>
         </NextLink>
-        {/* <NextLink href="/weeklies" passHref>
+        <NextLink href="/weeklies" passHref>
           <ListItemButton
             selected={selectedIndex === 10}
             onClick={() => setSelectedIndex(10)}
@@ -206,7 +206,7 @@ function Sidenav(props: any) {
             </ListItemIcon>
             <ListItemText primary="Weeklies" />
           </ListItemButton>
-        </NextLink> */}
+        </NextLink>
       </List>
     </Drawer>
   );

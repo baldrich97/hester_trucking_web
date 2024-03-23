@@ -606,7 +606,7 @@ const Invoice = ({
                 onClick={async () => {
                   toast("Generating PDF...", { autoClose: 2000, type: "info" });
                   const element = document.createElement("a");
-                  element.href = "/api/getPDF/" + initialInvoice.ID?.toString();
+                  element.href = "/api/getPDF/invoice/" + initialInvoice.ID?.toString();
                   element.download = "invoice-download.pdf";
                   document.body.appendChild(element);
                   element.click();

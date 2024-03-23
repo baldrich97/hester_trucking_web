@@ -1,6 +1,6 @@
 import * as z from "zod"
 import * as imports from "../../src/utils/zodParsers"
-import { CompleteCustomers, RelatedCustomersModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteDrivers, RelatedDriversModel, CompleteLoadTypes, RelatedLoadTypesModel } from "./index"
+import { CompleteCustomers, RelatedCustomersModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteDrivers, RelatedDriversModel, CompleteLoadTypes, RelatedLoadTypesModel, CompleteLoads, RelatedLoadsModel } from "./index"
 
 export const JobsModel = z.object({
   ID: z.number().int(),
@@ -20,6 +20,7 @@ export interface CompleteJobs extends z.infer<typeof JobsModel> {
   DeliveryLocations: CompleteDeliveryLocations
   Drivers: CompleteDrivers
   LoadTypes: CompleteLoadTypes
+  Loads: CompleteLoads[]
 }
 
 /**
@@ -32,4 +33,5 @@ export const RelatedJobsModel: z.ZodSchema<CompleteJobs> = z.lazy(() => JobsMode
   DeliveryLocations: RelatedDeliveryLocationsModel,
   Drivers: RelatedDriversModel,
   LoadTypes: RelatedLoadTypesModel,
+  Loads: RelatedLoadsModel.array(),
 }))

@@ -208,7 +208,6 @@ function Load({
 
   React.useEffect(() => {
     const subscription = watch((value, { name, type }) => {
-      console.log(value, name, type);
       if (
         ["MaterialRate", "TruckRate", "Hours", "Weight"].includes(name ?? "") &&
         type === "change"

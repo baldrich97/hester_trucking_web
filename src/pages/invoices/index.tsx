@@ -15,7 +15,7 @@ import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import { trpc } from "../../utils/trpc";
 import BasicAutocomplete from "elements/Autocomplete";
-import { TextField } from "@mui/material";
+import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Modal from "@mui/material/Modal";
 import Close from "@mui/icons-material/Close";

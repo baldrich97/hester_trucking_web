@@ -18,6 +18,7 @@ export const DriversModel = z.object({
   Notes: z.string().nullish(),
   Deleted: z.boolean().nullish(),
   HireDate: z.string().nullish(),
+  OwnerOperator: z.boolean(),
 })
 
 export interface CompleteDrivers extends z.infer<typeof DriversModel> {
