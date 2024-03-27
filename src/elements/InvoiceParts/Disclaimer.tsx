@@ -12,13 +12,13 @@ const styles = StyleSheet.create({
     text:{
         color: 'black',
         letterSpacing: 0,
-        fontSize: 14,
+        fontSize: 9,
         fontFamily: 'Times-Bold'
     },
     textLarge:{
         color: 'black',
         letterSpacing: 0,
-        fontSize: 16,
+        fontSize: 11,
         fontFamily: 'Times-BoldItalic'
     },
 });
