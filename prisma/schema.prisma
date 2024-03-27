@@ -5,12 +5,12 @@ generator client {
 
 generator zod {
   provider              = "zod-prisma"
-  prismaJsonNullability = "true"
-  modelCase             = "PascalCase"
   modelSuffix           = "Model"
+  modelCase             = "PascalCase"
   imports               = "../src/utils/zodParsers"
-  useDecimalJs          = "true"
+  prismaJsonNullability = "true"
   relationModel         = "true"
+  useDecimalJs          = "true"
 }
 
 datasource db {
@@ -226,6 +226,7 @@ model Loads {
   Jobs               Jobs?              @relation(fields: [JobID], references: [ID], onUpdate: SetNull, map: "FK_Loads_Job")
   LoadTypes          LoadTypes?         @relation(fields: [LoadTypeID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_LoadType")
   Trucks             Trucks?            @relation(fields: [TruckID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Truck")
+  Weeklies           Weeklies?          @relation(fields: [WeeklyID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Loads_Weekly")
 
   @@index([CustomerID], map: "FK_Loads_Customer")
   @@index([DeliveryLocationID], map: "FK_Loads_DeliveryLocation")
@@ -234,6 +235,7 @@ model Loads {
   @@index([LoadTypeID], map: "FK_Loads_LoadType")
   @@index([TruckID], map: "FK_Loads_Truck")
   @@index([JobID], map: "FK_Loads_Job")
+  @@index([WeeklyID], map: "FK_Loads_Weekly")
 }
 
 model CustomerDeliveryLocations {
@@ -291,6 +293,7 @@ model Weeklies {
   Revenue     Float     @db.Float
   Customers   Customers @relation(fields: [CustomerID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Customers")
   Invoices    Invoices  @relation(fields: [InvoiceID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Invoices")
+  Loads       Loads[]
 
   @@index([CustomerID], map: "FK_Weeklies_Customers")
   @@index([InvoiceID], map: "FK_Weeklies_Invoices")

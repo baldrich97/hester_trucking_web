@@ -3,20 +3,17 @@ import {z} from "zod";
 import {DailiesModel} from '../../../prisma/zod';
 
 export const weekliesRouter = createRouter()
-    .query("getAll", {
-        async resolve({ctx}) {
-            return ctx.prisma.dailies.findMany({
-                // where: {
-                //     OR: [
-                //         {
-                //             Deleted: false
-                //         },
-                //         {
-                //             Deleted: null
-                //         }
-                //     ],
-                // },
-                take: 10
+    .query("getByCustomer", {
+        input: z.object({
+           CustomerID: z.number(),
+           Week: z.string()
+        }),
+        async resolve({ctx, input}) {
+            return ctx.prisma.weeklies.findMany({
+               where: {
+                   CustomerID: input.CustomerID,
+                   Week: input.Week
+               }
             });
         },
     })

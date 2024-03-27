@@ -9,22 +9,51 @@ import React, {useEffect, useState} from "react";
 import TextField from "@mui/material/TextField";
 import {toast} from "react-toastify";
 import {z} from "zod";
-import {CompleteJobs, LoadsModel, DriversModel} from "../../../prisma/zod";
+import {
+    CompleteJobs,
+    LoadsModel,
+    DriversModel,
+    JobsModel,
+    CustomersModel,
+    TrucksModel,
+    LoadTypesModel, DeliveryLocationsModel,
+    InvoicesModel
+} from "../../../prisma/zod";
 import Tooltip from '@mui/material/Tooltip';
 import {confirmAlert} from "react-confirm-alert";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import {trpc} from "../../utils/trpc";
 
-type Loads = z.infer<typeof LoadsModel>;
-
 type Driver = z.infer<typeof DriversModel>;
 
-interface JobsLoads extends CompleteJobs {
-    Loads: Loads[]
+type Truck = z.infer<typeof TrucksModel>;
+
+type Loads = z.infer<typeof LoadsModel>;
+
+type Invoice = z.infer<typeof InvoicesModel>;
+
+interface LoadsInvoices extends Loads {
+    Invoices: Invoice
 }
 
-interface DriverSheet extends Driver {
-    Jobs: JobsLoads[]
+type Customer = z.infer<typeof CustomersModel>;
+
+type LoadType = z.infer<typeof LoadTypesModel>;
+
+type DeliveryLocation = z.infer<typeof DeliveryLocationsModel>;
+
+interface DriversLoads extends Driver {
+    Loads: LoadsInvoices[],
+    Trucks: Truck
+}
+
+interface Sheet extends LoadType {
+    DeliveryLocations: DeliveryLocation,
+    DriversTrucks: DriversLoads[],
+}
+
+interface CustomerSheet extends Customer {
+    Sheets: Sheet[],
 }
 
 // const printDailySheet = trpc.useMutation("dailies.postPrinted", {
@@ -33,7 +62,11 @@ interface DriverSheet extends Driver {
 //     },
 // });
 
-const WeeklySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: string, forceExpand: boolean }) => {
+const WeeklySheet = ({
+                         customer,
+                         week,
+                         forceExpand
+                     }: { customer: CustomerSheet, week: string, forceExpand: boolean }) => {
     const [isOpen, setIsOpen] = useState(forceExpand);
 
     useEffect(() => {
@@ -68,7 +101,7 @@ const WeeklySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: str
                 </Grid2>
                 <Grid2 xs={"auto"} sx={{display: "flex"}}>
                     <b style={{fontSize: 18, marginLeft: 3}}>
-                        {sheet.FirstName} {sheet.LastName}
+                        {customer.Name}
                     </b>
                 </Grid2>
                 <Grid2 xs={true}></Grid2>
@@ -80,7 +113,7 @@ const WeeklySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: str
                         onClick={async () => {
                             toast("Generating PDF...", {autoClose: 2000, type: "info"});
                             const element = document.createElement("a");
-                            element.href = `/api/getPDF/daily/${sheet.ID}|${week}`;
+                            element.href = `/api/getPDF/daily/${customer.ID}|${week}`;
                             element.download = "daily-download.pdf";
                             document.body.appendChild(element);
                             element.click();
@@ -100,12 +133,11 @@ const WeeklySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: str
                     overflow: "hidden",
                     height: isOpen ? "auto" : 0,
                     paddingBottom: 10,
-                }}
+                }} className={'customer-sheets-container-' + customer.ID}
             >
-                <HeaderRow/>
-                {sheet.Jobs?.map(
-                    (job: JobsLoads) =>
-                        <Job job={job} key={"job-" + job.ID} ownerOperator={sheet.OwnerOperator}/>
+                {customer.Sheets?.map(
+                    (sheet: Sheet, index: number) =>
+                        <Sheet sheet={sheet} key={"sheet-" + index + '-' + customer.ID} week={week}/>
                 )}
             </div>
         </div>
@@ -114,28 +146,52 @@ const WeeklySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: str
 
 export default WeeklySheet;
 
-const Job = ({job, ownerOperator}: { job: JobsLoads, ownerOperator: boolean }) => {
-    const [jobState, setJobState] = useState<JobsLoads>(job);
+const Sheet = ({sheet, week}: { sheet: Sheet, week: string }) => {
+    const [sheetState, setSheetState] = useState<Sheet>(sheet);
 
-    let weightSum = 0;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const sums: any = {};
+
+    for (let i = 0; i < 7; i++) {
+        sums[moment(week).add(i, "days").format("MM/DD")] = 0
+        sheet.DriversTrucks.map((driverTruck) => {
+            sums[moment(week).add(i, "days").format("MM/DD")] += driverTruck.Loads.filter((item) => moment(item.Created).format("MM/DD") === moment(week).add(i, "days").format("MM/DD")).reduce((acc, obj) => {
+                return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
+            }, 0)
+        });
+    }
+
+    const [sumsState, setSumsState] = useState(sums);
+
     return (
-        <div key={"job-" + job.ID}>
-            {jobState.Loads.map((load, index) => {
-                weightSum += load.Weight ? load.Weight : load.Hours ? load.Hours : 0;
-                if (index === job.Loads.length - 1) {
-                    return (
-                        <span key={'job-container' + job.ID}>
-                            {job.Loads.length === 1 &&
-                                <Load load={load} job={job} index={index} key={"load-" + load.ID}/>}
-                            <TotalsRow job={job} index={index} load={load} weightSum={weightSum}
-                                       key={"totalrow-" + job.ID} ownerOperator={ownerOperator}/>
-                        </span>
-                    )
-                } else {
-                    return (
-                        <Load load={load} job={job} index={index} key={"load-" + load.ID}/>
-                    )
-                }
+        <div key={"sheet-" + sheet.ID + '|' + sheet.DeliveryLocations?.ID} style={{paddingBottom: 10}}>
+
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                paddingTop: 15,
+                paddingLeft: 5,
+                paddingRight: 5
+            }}>
+                <b style={{fontSize: 22}}>Material Delivered - {sheet.Description}</b>
+                <b style={{fontSize: 22}}>Job Site - {sheet.DeliveryLocations?.Description}</b>
+            </div>
+
+            <HeaderRow week={week}/>
+            {sheetState.DriversTrucks.map((driverTruck, index) => {
+                return (
+                    <span key={'sheet-container' + driverTruck.ID}>
+
+                        <DriverTruck driverTruck={driverTruck} index={index} week={week}
+                                     key={"drivertruck-" + driverTruck.ID}/>
+
+                        {index === sheetState.DriversTrucks.length - 1 &&
+                            <TotalsRow sheet={sheet} index={index} sums={sums} key={"totalrow-" + driverTruck.ID}
+                                       week={week} driverTruck={driverTruck}/>}
+
+                    </span>
+                )
             })}
         </div>
     );
@@ -143,28 +199,27 @@ const Job = ({job, ownerOperator}: { job: JobsLoads, ownerOperator: boolean }) =
 
 const TotalsRow = ({
                        index,
-                       job,
-                       load,
-                       weightSum,
-                       ownerOperator
-                   }: { index: number, job: JobsLoads, load: Loads, weightSum: number, ownerOperator: boolean }) => {
-    const [jobState, setJobState] = useState(job);
-    const [isClosed, setIsClosed] = useState(job.TruckingRevenue !== null || job.CompanyRevenue !== null);
-    const [isPaidOut, setIsPaidOut] = useState(job.PaidOut)
+                       sheet,
+                       sums,
+                       week,
+                       driverTruck
+                   }: { index: number, sheet: Sheet, sums: any[], week: string, driverTruck: DriversLoads }) => {
+    const [sheetState, setSheetState] = useState(sheet);
+    const [isInvoiced, setIsInvoiced] = useState(driverTruck.Loads[0]?.Invoiced);
+    const [isPaid, setIsPaid] = useState(driverTruck.Loads[0]?.Invoices?.Paid)
 
 
-    const postJobClosed = trpc.useMutation("jobs.postClosed", {
-        async onSuccess() {
-            toast("Success!", {autoClose: 2000, type: "success"});
-        },
-    });
-
-    const postJobPaid = trpc.useMutation("jobs.postPaid", {
-        async onSuccess() {
-            toast("Success!", {autoClose: 2000, type: "success"});
-        },
-    });
-
+    // const postJobClosed = trpc.useMutation("jobs.postClosed", {
+    //     async onSuccess() {
+    //         toast("Success!", {autoClose: 2000, type: "success"});
+    //     },
+    // });
+    //
+    // const postJobPaid = trpc.useMutation("jobs.postPaid", {
+    //     async onSuccess() {
+    //         toast("Success!", {autoClose: 2000, type: "success"});
+    //     },
+    // });
 
     return (
         <Grid2
@@ -173,101 +228,10 @@ const TotalsRow = ({
             sx={{
                 border: "1px solid black",
                 marginTop: 1,
-                backgroundColor: isPaidOut ? "#88ff83" : isClosed ? "#8991ff" : "#bababa",
+                backgroundColor: isPaid ? "#88ff83" : isInvoiced ? "#8991ff" : "#bababa",
             }}
         >
-
-            <b style={{width: 50, display: 'grid', alignItems: 'center', justifyItems: 'center'}}>
-                <Tooltip
-                    title={isPaidOut ? 'This job has already been paid.' : isClosed ? 'Mark this job as paid out.' : 'Close this job.'}>
-                    <span>
-                        <Button
-                            variant="contained"
-                            color={"primary"}
-                            style={{backgroundColor: isPaidOut ? "#0aa201" : isClosed ? "#88ff83" : "#181eff"}}
-                            sx={{minWidth: 30, minHeight: 30, maxWidth: 30, maxHeight: 30}}
-                            disabled={isPaidOut}
-                            onClick={async () => {
-                                if (isClosed) {
-                                    if (ownerOperator) {
-                                        confirmAlert({
-                                            title: "Confirm Owner Operator Payment",
-                                            message: "Doing this will mark the job as paid out. This cannot be undone. Are you sure?",
-                                            //TODO once pay stubs are set up add in here that it will automatically be done once a paystub is generated
-                                            buttons: [
-                                                {
-                                                    label: "Yes",
-                                                    onClick: async () => {
-                                                        await postJobPaid.mutateAsync({
-                                                            ...jobState,
-                                                            PaidOut: true,
-                                                        });
-                                                        setIsPaidOut(true)
-                                                    },
-                                                },
-                                                {
-                                                    label: "No",
-                                                    //onClick: () => {}
-                                                },
-                                            ],
-                                        });
-                                    } else {
-                                        confirmAlert({
-                                            title: "Confirm Company Employee Payment",
-                                            message: "Doing this will mark the job as paid out. This cannot be undone. Are you sure?",
-                                            //TODO once pay stubs are set up add in here that it will be automatically done once a paystub is generated
-                                            buttons: [
-                                                {
-                                                    label: "Yes",
-                                                    onClick: async () => {
-                                                        await postJobPaid.mutateAsync({
-                                                            ...jobState,
-                                                            PaidOut: true,
-                                                        });
-                                                        setIsPaidOut(true)
-                                                    },
-                                                },
-                                                {
-                                                    label: "No",
-                                                    //onClick: () => {}
-                                                },
-                                            ],
-                                        });
-                                    }
-                                } else {
-                                    confirmAlert({
-                                        title: "Confirm Job Closure",
-                                        message: "This will close the job. It will now be available to be invoiced, and any future loads similar to this job will be on their own job. Are you sure?",
-                                        buttons: [
-                                            {
-                                                label: "Yes",
-                                                onClick: async () => {
-                                                    const data = await postJobClosed.mutateAsync({
-                                                        ...jobState,
-                                                        TruckingRevenue: weightSum * (load.MaterialRate ? load.MaterialRate : 0),
-                                                        CompanyRevenue: weightSum * (load.TruckRate ? load.TruckRate : 0)
-                                                    });
-                                                    setJobState(prevState => ({
-                                                        ...prevState,
-                                                        ...data
-                                                    }));
-                                                    setIsClosed(true);
-                                                },
-                                            },
-                                            {
-                                                label: "No",
-                                                //onClick: () => {}
-                                            },
-                                        ],
-                                    });
-                                }
-                            }}
-                        >
-                        {job.PaidOut || isClosed ? <AttachMoney/> : <DoneIcon/>}
-                    </Button>
-                    </span>
-                </Tooltip>
-            </b>
+            <b style={{marginLeft: 5, paddingRight: 5, width: 65, fontSize: 21}}></b>
             <Grid2
                 sx={{
                     textAlign: "center",
@@ -276,219 +240,77 @@ const TotalsRow = ({
                 }}
                 xs={2}
             >
-                {index === 0 && job.Loads.length > 1
-                    ? job.LoadTypes?.Description ?? "N/A"
-                    : ""}
+                <b style={{fontSize: 21}}></b>
             </Grid2>
+
+            {["MON", "TUE", "WED", "THUR", "FRI", "SAT", "SUN"].map((day, index) =>
+
+                    <Grid2
+                        sx={{textAlign: "center", borderRight: "2px solid black"}}
+                        xs={true}
+                        key={'day-totals-' + day}
+                    >
+
+                        {/*                    eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
+                        {/*@ts-ignore*/}
+                        <b style={{fontSize: 17}}>{sums[moment(week).add(index, "days").format("MM/DD")]}</b>
+
+                    </Grid2>
+
+                )}
+
             <Grid2
-                sx={{
-                    textAlign: "center",
-                    borderRight: "2px solid black",
-                }}
-                xs={2}
-            >
-                {index === 0 && job.Loads.length > 1
-                    ? job.Customers?.Name ?? "N/A"
-                    : ""}
-            </Grid2>
-            <Grid2
-                sx={{
-                    textAlign: "center",
-                    borderRight: "2px solid black",
-                }}
-                xs={2}
-            >
-                {index === 0 && job.Loads.length > 1
-                    ? job.DeliveryLocations?.Description ?? "N/A"
-                    : ""}
-            </Grid2>
-            <Grid2
-                sx={{
-                    textAlign: "center",
-                    borderRight: "2px solid black",
-                }}
-                xs={1}
-            ></Grid2>
-            <Grid2
-                sx={{
-                    textAlign: "center",
-                    borderRight: "2px solid black",
-                }}
-                xs={1}
-            >
-                {index === 0 && job.Loads.length > 1
-                    ? load.TruckRate ?? "N/A"
-                    : ""}
-            </Grid2>
-            <Grid2
-                sx={{
-                    textAlign: "center",
-                    borderRight: "2px solid black",
-                }}
-                xs={1}
-            >
-                {index === 0 && job.Loads.length > 1
-                    ? load.MaterialRate ?? "N/A"
-                    : ""}
-            </Grid2>
-            <Grid2
-                sx={{
-                    textAlign: "center",
-                    borderRight: "2px solid black",
-                }}
-                xs={1}
-            >
-                {weightSum}
-            </Grid2>
-            <Grid2
-                sx={{textAlign: "center"}}
+                sx={{textAlign: "center", borderRight: "2px solid black"}}
                 xs={true}
-                container
             >
-                <Grid2
-                    sx={{
-                        textAlign: "center",
-                        borderRight: "2px solid black",
-                    }}
-                    xs={6}
-                >
-                    <TextField
-                        variant={'standard'}
-                        value={jobState.TruckingRevenue !== null ? jobState.TruckingRevenue : weightSum * (load.MaterialRate ? load.MaterialRate : 0)}
-                        onChange={(e) => {
-                            setJobState(prevState => ({
-                                ...prevState,
-                                TruckingRevenue: parseFloat(e.currentTarget.value ? e.currentTarget.value : '0')
-                            }));
-                        }}
-                    />
-                </Grid2>
-                <Grid2 sx={{textAlign: "center"}} xs={6}>
-                    <TextField
-                        variant={'standard'}
-                        value={jobState.CompanyRevenue !== null ? jobState.CompanyRevenue : weightSum * (load.TruckRate ? load.TruckRate : 0)}
-                        onChange={(e) => {
-                            setJobState(prevState => ({
-                                ...prevState,
-                                CompanyRevenue: parseFloat(e.currentTarget.value ? e.currentTarget.value : '0')
-                            }));
-                        }}
-                    />
-                </Grid2>
+
+
+                <b style={{fontSize: 17}}>{Object.keys(sums).reduce((acc, obj) => {
+                    //eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    //@ts-ignore
+                    return acc + sums[obj]
+                }, 0)}</b>
+
+
+            </Grid2>
+
+            <Grid2
+                sx={{textAlign: "center", borderRight: "2px solid black"}}
+                xs={true}
+            >
+                {/*<TextField*/}
+                {/*    variant={'standard'}*/}
+                {/*    value={jobState.CompanyRevenue !== null ? jobState.CompanyRevenue : weightSum * (load.TruckRate ? load.TruckRate : 0)}*/}
+                {/*    onChange={(e) => {*/}
+                {/*        setJobState(prevState => ({*/}
+                {/*            ...prevState,*/}
+                {/*            CompanyRevenue: parseFloat(e.currentTarget.value ? e.currentTarget.value : '0')*/}
+                {/*        }));*/}
+                {/*    }}*/}
+                {/*/>*/}
             </Grid2>
         </Grid2>
     )
 }
 
-const Load = ({load, index, job}: { load: Loads, index: number, job: JobsLoads }) => {
-    return (
-        <>
-            <Grid2
-                container
-                rowSpacing={2}
-                sx={{border: "1px solid black", marginTop: 1}}
-            >
-                <b
-                    style={{marginLeft: 5, paddingRight: 5, width: 45}}
-                >
-                    {moment(load.StartDate).format("M/D")}
-                </b>
-                <Grid2
-                    sx={{
-                        textAlign: "center",
-                        borderRight: "2px solid black",
-                        borderLeft: "2px solid black",
-                    }}
-                    xs={2}
-                >
-                    {index === 0
-                        ? job.LoadTypes?.Description ?? "N/A"
-                        : ""}
-                </Grid2>
-                <Grid2
-                    sx={{
-                        textAlign: "center",
-                        borderRight: "2px solid black",
-                    }}
-                    xs={2}
-                >
-                    {index === 0 ? job.Customers?.Name ?? "N/A" : ""}
-                </Grid2>
-                <Grid2
-                    sx={{
-                        textAlign: "center",
-                        borderRight: "2px solid black",
-                    }}
-                    xs={2}
-                >
-                    {index === 0
-                        ? job.DeliveryLocations?.Description ?? "N/A"
-                        : ""}
-                </Grid2>
-                <Grid2
-                    sx={{
-                        textAlign: "center",
-                        borderRight: "2px solid black",
-                    }}
-                    xs={1}
-                >
-                    {load.TicketNumber ?? "N/A"}
-                </Grid2>
-                <Grid2
-                    sx={{
-                        textAlign: "center",
-                        borderRight: "2px solid black",
-                    }}
-                    xs={1}
-                >
-                    {index === 0 ? load.TruckRate ?? "N/A" : ""}
-                </Grid2>
-                <Grid2
-                    sx={{
-                        textAlign: "center",
-                        borderRight: "2px solid black",
-                    }}
-                    xs={1}
-                >
-                    {index === 0 ? load.MaterialRate ?? "N/A" : ""}
-                </Grid2>
-                <Grid2
-                    sx={{
-                        textAlign: "center",
-                        borderRight: "2px solid black",
-                    }}
-                    xs={1}
-                >
-                    {load.Weight
-                        ? load.Weight
-                        : load.Hours
-                            ? load.Hours
-                            : "N/A"}
-                </Grid2>
-                <Grid2 sx={{textAlign: "center"}} xs={true} container>
-                    <Grid2
-                        sx={{
-                            textAlign: "center",
-                            borderRight: "2px solid black",
-                        }}
-                        xs={6}
-                    ></Grid2>
-                    <Grid2 sx={{textAlign: "center"}} xs={6}></Grid2>
-                </Grid2>
-            </Grid2>
+const DriverTruck = ({
+                         driverTruck,
+                         index,
+                         week,
 
-        </>
-    );
-}
-
-const HeaderRow = () => {
+                     }: { driverTruck: DriversLoads, index: number, week: string }) => {
     return (
         <Grid2
             container
             rowSpacing={2}
-            sx={{border: "1px solid black", marginTop: 2}}
+            sx={{border: "1px solid black", marginTop: 1}}
         >
-            <b style={{marginLeft: 5, paddingRight: 5, width: 45}}>Date</b>
+            <b style={{
+                marginLeft: 5,
+                paddingRight: 5,
+                width: 65,
+                fontSize: 16
+            }}>{driverTruck.Trucks?.Notes ? driverTruck.Trucks?.Notes.split('#').length > 1 ? driverTruck.Trucks?.Notes.split('#')[1] : 'N/A' : 'N/A'}</b>
             <Grid2
                 sx={{
                     textAlign: "center",
@@ -497,68 +319,110 @@ const HeaderRow = () => {
                 }}
                 xs={2}
             >
-                <b>Material Received</b>
+                <b style={{fontSize: 17}}>{driverTruck.FirstName + " " + driverTruck.LastName}</b>
             </Grid2>
+
+            {["MON", "TUE", "WED", "THUR", "FRI", "SAT", "SUN"].map((day, index) =>
+                    <Grid2
+                        sx={{textAlign: "center", borderRight: "2px solid black"}}
+                        xs={true}
+                        key={'day-data-' + day}
+                    >
+
+                        {/*                    eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
+                        {/*@ts-ignore*/}
+                        <b style={{fontSize: 17}}>{driverTruck.Loads.filter((item) => moment(item.Created).format("MM/DD") === moment(week).add(index, "days").format("MM/DD")).reduce((acc, obj) => {
+                            return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
+                        }, 0)}</b>
+
+                    </Grid2>
+                )}
+
             <Grid2
                 sx={{textAlign: "center", borderRight: "2px solid black"}}
+                xs={true}
+            >
+
+                <b style={{fontSize: 17}}>{driverTruck.Loads.reduce((acc, obj) => {
+                    return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
+                }, 0)}</b>
+
+            </Grid2>
+
+            <Grid2
+                sx={{textAlign: "center", borderRight: "2px solid black"}}
+                xs={true}
+            >
+
+                <b style={{fontSize: 17}}>{/*textfield for rate?*/}</b>
+
+            </Grid2>
+        </Grid2>
+    );
+}
+
+const HeaderRow = ({week}: { week: string }) => {
+    return (
+        <Grid2
+            container
+            rowSpacing={2}
+            sx={{border: "1px solid black", marginTop: 1}}
+        >
+            <b style={{marginLeft: 5, paddingRight: 5, width: 65, fontSize: 16}}>TRK #</b>
+            <Grid2
+                sx={{
+                    textAlign: "center",
+                    borderRight: "2px solid black",
+                    borderLeft: "2px solid black",
+                    padding: 0
+                }}
                 xs={2}
             >
-                <b>Receiver</b>
+                <b style={{fontSize: 21}}>Driver</b>
             </Grid2>
-            <Grid2
-                sx={{textAlign: "center", borderRight: "2px solid black"}}
-                xs={2}
-            >
-                <b>Destination</b>
-            </Grid2>
-            <Grid2
-                sx={{textAlign: "center", borderRight: "2px solid black"}}
-                xs={1}
-            >
-                <b>Ticket#</b>
-            </Grid2>
-            <Grid2
-                sx={{textAlign: "center", borderRight: "2px solid black"}}
-                xs={1}
-            >
-                <b>Company Rate</b>
-            </Grid2>
-            <Grid2
-                sx={{textAlign: "center", borderRight: "2px solid black"}}
-                xs={1}
-            >
-                <b>Trucking Rate</b>
-            </Grid2>
-            <Grid2
-                sx={{textAlign: "center", borderRight: "2px solid black"}}
-                xs={1}
-            >
-                <b>Weight</b>
-            </Grid2>
-            <Grid2 sx={{textAlign: "center"}} xs={true} container>
-                <Grid2 xs={12} sx={{padding: 0}}>
-                    <b style={{fontSize: 17}}>Total Revenue</b>
-                </Grid2>
+
+            {["MON", "TUE", "WED", "THUR", "FRI", "SAT", "SUN"].map((day, index) =>
                 <Grid2
-                    sx={{
-                        textAlign: "center",
-                        borderRight: "2px solid black",
-                        borderTop: "2px solid black",
-                        padding: 0,
-                    }}
-                    xs={6}
+                    sx={{textAlign: "center", borderRight: "2px solid black", padding: 0}}
+                    xs={true}
+                    key={"day-" + day}
                 >
-                    <b style={{fontSize: 12}}>Company Rate</b>
+                    <Grid2 sx={{textAlign: "center"}} xs={true} container>
+                        <Grid2 xs={12} sx={{padding: 0, borderBottom: 2}}>
+                            <b style={{fontSize: 17}}>{day}</b>
+                        </Grid2>
+                        <Grid2 xs={12} sx={{padding: 0}}>
+                            <b style={{fontSize: 17}}>{moment(week).add(index, "days").format("MM/DD")}</b>
+                        </Grid2>
+                    </Grid2>
                 </Grid2>
-                <Grid2
-                    sx={{
-                        textAlign: "center",
-                        borderTop: "2px solid black",
-                        padding: 0,
-                    }}
-                    xs={6}
-                >
-                    <b style={{fontSize: 12}}>Trucking Rate</b>
+            )}
+
+            <Grid2
+                sx={{textAlign: "center", borderRight: "2px solid black", padding: 0}}
+                xs={true}
+            >
+                <Grid2 sx={{textAlign: "center"}} xs={true} container>
+                    <Grid2 xs={12} sx={{padding: 0, borderBottom: 2}}>
+                        <b style={{fontSize: 17}}>Total</b>
+                    </Grid2>
+                    <Grid2 xs={12} sx={{padding: 0}}>
+                        <b style={{fontSize: 17}}>Weight</b>
+                    </Grid2>
+                </Grid2>
+            </Grid2>
+
+            <Grid2
+                sx={{textAlign: "center", borderRight: "2px solid black", padding: 0}}
+                xs={true}
+            >
+                <Grid2 sx={{textAlign: "center"}} xs={true} container>
+                    <Grid2 xs={12} sx={{padding: 0, borderBottom: 2}}>
+                        <b style={{fontSize: 17}}>Mult</b>
+                    </Grid2>
+                    <Grid2 xs={12} sx={{padding: 0}}>
+                        <b style={{fontSize: 17}}>{/*textfield for rate?*/}</b>
+                    </Grid2>
                 </Grid2>
             </Grid2>
         </Grid2>

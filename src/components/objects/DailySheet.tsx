@@ -111,7 +111,6 @@ const DailySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: stri
 export default DailySheet;
 
 const Job = ({job, ownerOperator}: { job: CompleteJobs, ownerOperator: boolean }) => {
-    console.log('JOB', job.Loads)
     const [jobState, setJobState] = useState<CompleteJobs>(job);
 
     let weightSum = 0;
@@ -120,7 +119,7 @@ const Job = ({job, ownerOperator}: { job: CompleteJobs, ownerOperator: boolean }
             {jobState.Loads.map((load, index) => {
                 weightSum += load.Weight ? load.Weight : load.Hours ? load.Hours : 0;
                 return (
-                    <span key={'job-container' + job.ID}>
+                    <span key={'job-container' + load.ID}>
                            <Load load={load} job={job} index={index} key={"load-" + load.ID}/>
                         {index === jobState.Loads.length - 1 &&
                             <TotalsRow job={job} index={index} load={load} weightSum={weightSum}
@@ -310,7 +309,7 @@ const TotalsRow = ({
                 }}
                 xs={1}
             >
-                
+
             </Grid2>
             <Grid2
                 sx={{

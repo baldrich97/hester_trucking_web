@@ -1,13 +1,44 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import {JobsModel, DriversModel, LoadsModel} from '../../../prisma/zod';
+import {
+    JobsModel,
+    DriversModel,
+    LoadsModel,
+    CustomersModel,
+    TrucksModel,
+    LoadTypesModel,
+    DeliveryLocationsModel,
+    InvoicesModel,
+    WeekliesModel
+} from '../../../prisma/zod';
 import moment from "moment";
 
 type Driver = z.infer<typeof DriversModel>;
 
+type Weekly = z.infer<typeof WeekliesModel>;
+
+type Truck = z.infer<typeof TrucksModel>;
+
 type Jobs = z.infer<typeof JobsModel>;
 
 type Loads = z.infer<typeof LoadsModel>;
+
+type Invoice = z.infer<typeof InvoicesModel>;
+
+interface LoadsInvoices extends Loads {
+    Invoices: Invoice | null
+}
+
+type Customer = z.infer<typeof CustomersModel>;
+
+type LoadType = z.infer<typeof LoadTypesModel>;
+
+type DeliveryLocation = z.infer<typeof DeliveryLocationsModel>;
+
+interface DriversLoads extends Driver {
+    Loads: LoadsInvoices[],
+    Trucks: Truck
+}
 
 interface JobsLoads extends Jobs {
     Loads: Loads[]
@@ -15,6 +46,15 @@ interface JobsLoads extends Jobs {
 
 interface DriverSheet extends Driver {
     Jobs: JobsLoads[]
+}
+
+interface Sheet extends LoadType {
+    DeliveryLocations: DeliveryLocation,
+    DriversTrucks: DriversLoads[],
+}
+
+interface CustomerSheet extends Customer {
+    Sheets: Sheet[],
 }
 
 export const jobsRouter = createRouter()
@@ -71,7 +111,8 @@ export const jobsRouter = createRouter()
                     }
                 },
                 include: {
-                    Customers: true, Drivers: true, DeliveryLocations: true, LoadTypes: true, Jobs: true
+                    Customers: true, Drivers: true, DeliveryLocations: true, LoadTypes: true, Jobs: true, Trucks: true,
+                    Invoices: true, Weeklies: true
                 }
             })
 
@@ -97,6 +138,13 @@ export const jobsRouter = createRouter()
                                 //set the job's loads = it's loads plus the new one, then set the sheet's job to the job, then set the sheet in the array to the new sheet
                                 job.Loads = [...job.Loads, {...rest}]
                                 sheet.Jobs[foundJob] = job;
+                                sheets[foundSheet] = sheet;
+                            } else {
+                                if (!Jobs) {
+                                    return;
+                                }
+                                //add the new job to the Jobs
+                                sheet.Jobs = [...sheet.Jobs, {...Jobs, Loads: [{...rest}]}]
                                 sheets[foundSheet] = sheet;
                             }
                         } else {
@@ -134,7 +182,66 @@ export const jobsRouter = createRouter()
 
                 return sheets;
             } else {
+                const sheets: CustomerSheet[] = [];
+                await Promise.all(loads.map((load) => {
+                    const {Drivers, Customers, DeliveryLocations, LoadTypes, Jobs, Trucks, Weeklies, ...rest} = load;
+                    const foundSheet = sheets.findIndex((item) => item.ID === load.CustomerID)
+                    if (foundSheet !== -1) {
+                        //if a sheet already exists for this driver, set sheet to the found sheet
+                        const sheet = sheets[foundSheet];
+                        if (!sheet) {
+                            return;
+                        }
+                        if (sheet.Sheets) {
+                            const foundJob = sheet.Sheets.findIndex((item) => item.ID === load.LoadTypeID && item.DeliveryLocations?.ID === load.DeliveryLocationID)
+                            if (foundJob !== -1) {
+                                //if the existing sheet already had a job that matches this load's jobid, set job to the found job
+                                const job = sheet.Sheets[foundJob];
+                                if (!job || !Trucks || !Drivers) {
+                                    return;
+                                }
+                                //set the job's loads = it's loads plus the new one, then set the sheet's job to the job, then set the sheet in the array to the new sheet
 
+                                const foundDriverTruck = job.DriversTrucks.findIndex((item) => item.ID === load.DriverID && item.Trucks?.ID === load.TruckID);
+                                if (foundDriverTruck !== -1) {
+                                    const driverTruck = job.DriversTrucks[foundDriverTruck];
+                                    if (!driverTruck) {
+                                        return;
+                                    }
+                                    driverTruck.Loads = [...driverTruck.Loads, {...rest}]
+                                } else {
+                                    job.DriversTrucks = [...job.DriversTrucks, {...Drivers, Trucks: Trucks, Loads: [{...rest}]}]
+                                }
+
+                                sheet.Sheets[foundJob] = job;
+                                sheets[foundSheet] = sheet;
+                            } else {
+                                if (!Jobs || !Drivers || !Trucks || !DeliveryLocations || !LoadTypes) {
+                                    return;
+                                }
+                                //add the new job to the Jobs
+
+                                sheet.Sheets = [...sheet.Sheets, {...LoadTypes, DeliveryLocations: DeliveryLocations, DriversTrucks: [{...Drivers, Trucks: Trucks, Loads: [{...rest}]}]}]
+                                sheets[foundSheet] = sheet;
+                            }
+                        } else {
+                            if (!Jobs || !Drivers || !Trucks || !DeliveryLocations || !LoadTypes) {
+                                return;
+                            }
+                            sheet.Sheets = [{...LoadTypes, DeliveryLocations: DeliveryLocations, DriversTrucks: [{...Drivers, Trucks: Trucks, Loads: [{...rest}]}]}]
+                        }
+                    } else {
+                        if (!Jobs || !Drivers || !Trucks || !DeliveryLocations || !LoadTypes) {
+                            return;
+                        }
+                        sheets.push({
+                            ...Customers,
+                            Sheets: [{...LoadTypes, DeliveryLocations: DeliveryLocations, DriversTrucks: [{...Drivers, Trucks: Trucks, Loads: [{...rest}]}]}]
+                        })
+                    }
+                }))
+
+                return sheets;
             }
 
             // let shouldReturn = false;

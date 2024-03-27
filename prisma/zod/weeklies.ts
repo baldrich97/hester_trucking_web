@@ -1,6 +1,6 @@
 import * as z from "zod"
 import * as imports from "../../src/utils/zodParsers"
-import { CompleteCustomers, RelatedCustomersModel, CompleteInvoices, RelatedInvoicesModel } from "./index"
+import { CompleteCustomers, RelatedCustomersModel, CompleteInvoices, RelatedInvoicesModel, CompleteLoads, RelatedLoadsModel } from "./index"
 
 export const WeekliesModel = z.object({
   ID: z.number().int(),
@@ -14,6 +14,7 @@ export const WeekliesModel = z.object({
 export interface CompleteWeeklies extends z.infer<typeof WeekliesModel> {
   Customers: CompleteCustomers
   Invoices: CompleteInvoices
+  Loads: CompleteLoads[]
 }
 
 /**
@@ -24,4 +25,5 @@ export interface CompleteWeeklies extends z.infer<typeof WeekliesModel> {
 export const RelatedWeekliesModel: z.ZodSchema<CompleteWeeklies> = z.lazy(() => WeekliesModel.extend({
   Customers: RelatedCustomersModel,
   Invoices: RelatedInvoicesModel,
+  Loads: RelatedLoadsModel.array(),
 }))

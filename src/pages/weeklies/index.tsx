@@ -8,27 +8,55 @@ import React from "react";
 import LoadingModal from "elements/LoadingModal";
 import moment from "moment";
 import {trpc} from "utils/trpc";
-import DailySheet from "components/objects/DailySheet";
+import WeeklySheet from "components/objects/WeeklySheet";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import Tooltip from "@mui/material/Tooltip";
 import {z} from "zod";
-import {CompleteJobs, DriversModel, LoadsModel} from "../../../prisma/zod";
-
-type Loads = z.infer<typeof LoadsModel>;
+import {
+    CompleteJobs,
+    CustomersModel, DeliveryLocationsModel,
+    DriversModel, InvoicesModel,
+    JobsModel,
+    LoadsModel,
+    LoadTypesModel,
+    TrucksModel
+} from "../../../prisma/zod";
 
 type Driver = z.infer<typeof DriversModel>;
 
-interface JobsLoads extends CompleteJobs {
-    Loads: Loads[]
+type Truck = z.infer<typeof TrucksModel>;
+
+type Loads = z.infer<typeof LoadsModel>;
+
+type Invoice = z.infer<typeof InvoicesModel>;
+
+interface LoadsInvoices extends Loads {
+    Invoices: Invoice
 }
 
-interface DriverSheet extends Driver {
-    Jobs: JobsLoads[]
+type Customer = z.infer<typeof CustomersModel>;
+
+type LoadType = z.infer<typeof LoadTypesModel>;
+
+type DeliveryLocation = z.infer<typeof DeliveryLocationsModel>;
+
+interface DriversLoads extends Driver {
+    Loads: LoadsInvoices[],
+    Trucks: Truck
+}
+
+interface Sheet extends LoadType {
+    DeliveryLocations: DeliveryLocation,
+    DriversTrucks: DriversLoads[],
+}
+
+interface CustomerSheet extends Customer {
+    Sheets: Sheet[],
 }
 
 type YearWeekFormat = `${number}-W${number}`;
 
-export default function Dailies() {
+export default function Weeklies() {
 
     const date = new Date();
     const defaultWeek = formatDateToWeek(date);
@@ -219,8 +247,8 @@ export default function Dailies() {
                     <hr style={{height: 1, width: "100%"}}/>
                 </Grid2>
 
-                {data.map((sheet: DriverSheet, index: number) => (
-                    <DailySheet key={'sheet-' + index} sheet={sheet} week={week} forceExpand={forceExpand}/>
+                {data.map((customer: CustomerSheet, index: number) => (
+                    <WeeklySheet key={'sheet-' + index} customer={customer} week={week} forceExpand={forceExpand}/>
                 ))}
                 {/* <EnhancedTableToolbar
             numSelected={selected.length}
