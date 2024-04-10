@@ -1,20 +1,25 @@
 import * as z from "zod"
 import * as imports from "../../src/utils/zodParsers"
-import { CompleteCustomers, RelatedCustomersModel, CompleteInvoices, RelatedInvoicesModel, CompleteLoads, RelatedLoadsModel } from "./index"
+import { CompleteCustomers, RelatedCustomersModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteInvoices, RelatedInvoicesModel, CompleteLoadTypes, RelatedLoadTypesModel, CompleteJobs, RelatedJobsModel } from "./index"
 
 export const WeekliesModel = z.object({
   ID: z.number().int(),
   Week: z.string(),
   CustomerID: z.number().int(),
-  InvoiceID: z.number().int(),
-  CompanyRate: z.number(),
-  Revenue: z.number(),
+  InvoiceID: z.number().int().nullish(),
+  CompanyRate: z.number().nullish(),
+  Revenue: z.number().nullish(),
+  LoadTypeID: z.number().int(),
+  DeliveryLocationID: z.number().int(),
+  LastPrinted: z.date().nullish(),
 })
 
 export interface CompleteWeeklies extends z.infer<typeof WeekliesModel> {
   Customers: CompleteCustomers
-  Invoices: CompleteInvoices
-  Loads: CompleteLoads[]
+  DeliveryLocations: CompleteDeliveryLocations
+  Invoices?: CompleteInvoices | null
+  LoadTypes: CompleteLoadTypes
+  Jobs: CompleteJobs[]
 }
 
 /**
@@ -24,6 +29,8 @@ export interface CompleteWeeklies extends z.infer<typeof WeekliesModel> {
  */
 export const RelatedWeekliesModel: z.ZodSchema<CompleteWeeklies> = z.lazy(() => WeekliesModel.extend({
   Customers: RelatedCustomersModel,
-  Invoices: RelatedInvoicesModel,
-  Loads: RelatedLoadsModel.array(),
+  DeliveryLocations: RelatedDeliveryLocationsModel,
+  Invoices: RelatedInvoicesModel.nullish(),
+  LoadTypes: RelatedLoadTypesModel,
+  Jobs: RelatedJobsModel.array(),
 }))

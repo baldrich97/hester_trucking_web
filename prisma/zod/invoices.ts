@@ -29,6 +29,8 @@ export interface CompleteInvoices extends z.infer<typeof InvoicesModel> {
  *
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
 export const RelatedInvoicesModel: z.ZodSchema<CompleteInvoices> = z.lazy(() => InvoicesModel.extend({
   Customers: RelatedCustomersModel,
   Loads: RelatedLoadsModel.array(),

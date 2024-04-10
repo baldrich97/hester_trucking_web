@@ -5,12 +5,12 @@ generator client {
 
 generator zod {
   provider              = "zod-prisma"
-  modelSuffix           = "Model"
-  modelCase             = "PascalCase"
-  imports               = "../src/utils/zodParsers"
-  prismaJsonNullability = "true"
-  relationModel         = "true"
   useDecimalJs          = "true"
+  relationModel         = "true"
+  modelSuffix           = "Model"
+  imports               = "../src/utils/zodParsers"
+  modelCase             = "PascalCase"
+  prismaJsonNullability = "true"
 }
 
 datasource db {
@@ -78,6 +78,7 @@ model DeliveryLocations {
   CustomerDeliveryLocations CustomerDeliveryLocations[]
   Jobs                      Jobs[]
   Loads                     Loads[]
+  Weeklies                  Weeklies[]
 
   @@index([CustomerID], map: "FK_DeliveryLocations_Customers")
   @@fulltext([Description])
@@ -147,6 +148,7 @@ model LoadTypes {
   CustomerLoadTypes CustomerLoadTypes[]
   Jobs              Jobs[]
   Loads             Loads[]
+  Weeklies          Weeklies[]
 
   @@fulltext([Description, Notes])
 }
@@ -189,6 +191,7 @@ model Loads {
   ID                 Int                @id @default(autoincrement())
   /// @zod.custom(imports.parseDate)
   StartDate          DateTime           @db.DateTime(0)
+  /// @zod.custom(imports.parseDate)
   Created            DateTime           @default(now()) @db.DateTime(0)
   /// @zod.custom(imports.isNumber)
   Weight             Float?
@@ -216,17 +219,15 @@ model Loads {
   TruckID            Int?
   DriverID           Int?
   Deleted            Boolean?
-  DailyID            Int?
-  WeeklyID           Int?
   JobID              Int?
+  Week               String             @db.VarChar(20)
   Customers          Customers          @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_Loads_Customer")
   DeliveryLocations  DeliveryLocations? @relation(fields: [DeliveryLocationID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_DeliveryLocation")
   Drivers            Drivers?           @relation(fields: [DriverID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Driver")
   Invoices           Invoices?          @relation(fields: [InvoiceID], references: [ID], onUpdate: Restrict, map: "FK_Loads_Invoice")
-  Jobs               Jobs?              @relation(fields: [JobID], references: [ID], onUpdate: SetNull, map: "FK_Loads_Job")
-  LoadTypes          LoadTypes?         @relation(fields: [LoadTypeID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_LoadType")
-  Trucks             Trucks?            @relation(fields: [TruckID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Truck")
-  Weeklies           Weeklies?          @relation(fields: [WeeklyID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Loads_Weekly")
+  Jobs               Jobs?              @relation(fields: [JobID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Loads_Job")
+  LoadTypes          LoadTypes?         @relation(fields: [LoadTypeID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Loads_LoadType")
+  Trucks             Trucks?            @relation(fields: [TruckID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Loads_Truck")
 
   @@index([CustomerID], map: "FK_Loads_Customer")
   @@index([DeliveryLocationID], map: "FK_Loads_DeliveryLocation")
@@ -235,7 +236,6 @@ model Loads {
   @@index([LoadTypeID], map: "FK_Loads_LoadType")
   @@index([TruckID], map: "FK_Loads_Truck")
   @@index([JobID], map: "FK_Loads_Job")
-  @@index([WeeklyID], map: "FK_Loads_Weekly")
 }
 
 model CustomerDeliveryLocations {
@@ -257,6 +257,7 @@ model Dailies {
   Week        String    @db.VarChar(20)
   LastPrinted DateTime? @db.DateTime(0)
   Drivers     Drivers   @relation(fields: [DriverID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Dailies_Driver")
+  Jobs        Jobs[]
 
   @@index([DriverID], map: "FK_Dailies_Driver")
 }
@@ -272,29 +273,42 @@ model Jobs {
   TruckingRate       Float             @db.Float
   CompanyRate        Float             @db.Float
   DeliveryLocationID Int
+  WeeklyID           Int
+  DailyID            Int
   Customers          Customers         @relation(fields: [CustomerID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_Customers")
+  Dailies            Dailies           @relation(fields: [DailyID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_Dailies")
   DeliveryLocations  DeliveryLocations @relation(fields: [DeliveryLocationID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_DeliveryLocations")
   Drivers            Drivers           @relation(fields: [DriverID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_Drivers")
   LoadTypes          LoadTypes         @relation(fields: [LoadTypeID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_LoadTypes")
+  Weeklies           Weeklies          @relation(fields: [WeeklyID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_Weeklies")
   Loads              Loads[]
 
   @@index([CustomerID], map: "FK_Jobs_Customers")
   @@index([DeliveryLocationID], map: "FK_Jobs_DeliveryLocations")
   @@index([DriverID], map: "FK_Jobs_Drivers")
   @@index([LoadTypeID], map: "FK_Jobs_LoadTypes")
+  @@index([DailyID], map: "FK_Jobs_Dailies")
+  @@index([WeeklyID], map: "FK_Jobs_Weeklies")
 }
 
 model Weeklies {
-  ID          Int       @id @default(autoincrement())
-  Week        String    @db.VarChar(20)
-  CustomerID  Int
-  InvoiceID   Int
-  CompanyRate Float     @db.Float
-  Revenue     Float     @db.Float
-  Customers   Customers @relation(fields: [CustomerID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Customers")
-  Invoices    Invoices  @relation(fields: [InvoiceID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Invoices")
-  Loads       Loads[]
+  ID                 Int               @id @default(autoincrement())
+  Week               String            @db.VarChar(20)
+  CustomerID         Int
+  InvoiceID          Int?
+  CompanyRate        Float?            @db.Float
+  Revenue            Float?            @db.Float
+  LoadTypeID         Int
+  DeliveryLocationID Int
+  LastPrinted        DateTime?         @db.DateTime(0)
+  Customers          Customers         @relation(fields: [CustomerID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Customers")
+  DeliveryLocations  DeliveryLocations @relation(fields: [DeliveryLocationID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_DeliveryLocations")
+  Invoices           Invoices?         @relation(fields: [InvoiceID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Invoices")
+  LoadTypes          LoadTypes         @relation(fields: [LoadTypeID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_LoadTypes")
+  Jobs               Jobs[]
 
   @@index([CustomerID], map: "FK_Weeklies_Customers")
   @@index([InvoiceID], map: "FK_Weeklies_Invoices")
+  @@index([DeliveryLocationID], map: "FK_Weeklies_DeliveryLocations")
+  @@index([LoadTypeID], map: "FK_Weeklies_LoadTypes")
 }

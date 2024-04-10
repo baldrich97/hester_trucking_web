@@ -33,10 +33,15 @@ import {
   CustomerLoadTypes,
   TrucksDriven,
 } from "@prisma/client";
+import {formatDateToWeek} from "../../utils/UtilityFunctions";
+
+const date = new Date();
+const defaultWeek = formatDateToWeek(date);
 
 const defaultValues = {
   StartDate: new Date(),
   Created: new Date(),
+  Week: defaultWeek,
   CustomerID: undefined,
   LoadTypeID: null,
   DeliveryDescriptionID: null,
@@ -299,7 +304,7 @@ function Load({
     },
     {
       name: "StartDate",
-      size: 6,
+      size: 4,
       required: false,
       type: "date",
       label: "Delivered On",
@@ -308,9 +313,16 @@ function Load({
       name: "TicketNumber",
       required: false,
       type: "textfield",
-      size: 6,
+      size: 4,
       number: true,
       label: "Ticket Number",
+    },
+    {
+      name: "Week",
+      size: 4,
+      required: false,
+      type: "week",
+      label: "Daily Week",
     },
     {
       name: "DriverID",

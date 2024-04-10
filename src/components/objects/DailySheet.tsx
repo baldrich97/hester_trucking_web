@@ -9,17 +9,21 @@ import React, {useEffect, useState} from "react";
 import TextField from "@mui/material/TextField";
 import {toast} from "react-toastify";
 import {z} from "zod";
-import {CompleteJobs, LoadsModel, DriversModel} from "../../../prisma/zod";
+import {CompleteJobs, LoadsModel, DriversModel, DailiesModel} from "../../../prisma/zod";
 import Tooltip from '@mui/material/Tooltip';
 import {confirmAlert} from "react-confirm-alert";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import {trpc} from "../../utils/trpc";
+import NextLink from "next/link";
 
 type Loads = z.infer<typeof LoadsModel>;
 
 type Driver = z.infer<typeof DriversModel>;
 
-interface DriverSheet extends Driver {
+type Daily = z.infer<typeof DailiesModel>;
+
+interface DriverSheet extends Daily {
+    Drivers: Driver,
     Jobs: CompleteJobs[]
 }
 
@@ -64,7 +68,7 @@ const DailySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: stri
                 </Grid2>
                 <Grid2 xs={"auto"} sx={{display: "flex"}}>
                     <b style={{fontSize: 18, marginLeft: 3}}>
-                        {sheet.FirstName} {sheet.LastName}
+                        {sheet.Drivers.FirstName} {sheet.Drivers.LastName}
                     </b>
                 </Grid2>
                 <Grid2 xs={true}></Grid2>
@@ -101,7 +105,7 @@ const DailySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: stri
                 <HeaderRow/>
                 {sheet.Jobs?.map(
                     (job: CompleteJobs) =>
-                        <Job job={job} key={"job-" + job.ID} ownerOperator={sheet.OwnerOperator}/>
+                        <Job job={job} key={"job-" + job.ID} ownerOperator={sheet.Drivers.OwnerOperator}/>
                 )}
             </div>
         </div>
@@ -232,16 +236,17 @@ const TotalsRow = ({
                                             {
                                                 label: "Yes",
                                                 onClick: async () => {
-                                                    const data = await postJobClosed.mutateAsync({
-                                                        ...jobState,
-                                                        TruckingRevenue: weightSum * (load.MaterialRate ? load.MaterialRate : 0),
-                                                        CompanyRevenue: weightSum * (load.TruckRate ? load.TruckRate : 0)
-                                                    });
-                                                    setJobState(prevState => ({
-                                                        ...prevState,
-                                                        ...data
-                                                    }));
-                                                    setIsClosed(true);
+                                                    console.log(jobState)
+                                                    // const data = await postJobClosed.mutateAsync({
+                                                    //     ...jobState,
+                                                    //     TruckingRevenue: weightSum * (load.MaterialRate ? load.MaterialRate : 0),
+                                                    //     CompanyRevenue: weightSum * (load.TruckRate ? load.TruckRate : 0)
+                                                    // });
+                                                    // setJobState(prevState => ({
+                                                    //     ...prevState,
+                                                    //     ...data
+                                                    // }));
+                                                    // setIsClosed(true);
                                                 },
                                             },
                                             {
@@ -325,10 +330,27 @@ const TotalsRow = ({
                 xs={true}
                 container
             >
+                <Grid2 sx={{textAlign: "center", borderRight: "2px solid black",}} xs={6}>
+                    <TextField
+                        variant={'standard'}
+                        value={jobState.CompanyRevenue !== null ? jobState.CompanyRevenue : weightSum * (load.TruckRate ? load.TruckRate : 0)}
+                        onChange={(e) => {
+                            let value = 0;
+                            if (e.currentTarget?.value) {
+                                value = parseFloat(e.currentTarget.value)
+                            } else {
+                                value = 0;
+                            }
+                            setJobState(prevState => ({
+                                ...prevState,
+                                CompanyRevenue: value,
+                            }));
+                        }}
+                    />
+                </Grid2>
                 <Grid2
                     sx={{
                         textAlign: "center",
-                        borderRight: "2px solid black",
                     }}
                     xs={6}
                 >
@@ -336,25 +358,20 @@ const TotalsRow = ({
                         variant={'standard'}
                         value={jobState.TruckingRevenue !== null ? jobState.TruckingRevenue : weightSum * (load.MaterialRate ? load.MaterialRate : 0)}
                         onChange={(e) => {
+                            let value = 0;
+                            if (e.currentTarget?.value) {
+                                value = parseFloat(e.currentTarget.value)
+                            } else {
+                                value = 0;
+                            }
                             setJobState(prevState => ({
                                 ...prevState,
-                                TruckingRevenue: parseFloat(e.currentTarget.value ? e.currentTarget.value : '0')
+                                TruckingRevenue: value,
                             }));
                         }}
                     />
                 </Grid2>
-                <Grid2 sx={{textAlign: "center"}} xs={6}>
-                    <TextField
-                        variant={'standard'}
-                        value={jobState.CompanyRevenue !== null ? jobState.CompanyRevenue : weightSum * (load.TruckRate ? load.TruckRate : 0)}
-                        onChange={(e) => {
-                            setJobState(prevState => ({
-                                ...prevState,
-                                CompanyRevenue: parseFloat(e.currentTarget.value ? e.currentTarget.value : '0')
-                            }));
-                        }}
-                    />
-                </Grid2>
+
             </Grid2>
         </Grid2>
     )
@@ -412,7 +429,8 @@ const Load = ({load, index, job}: { load: Loads, index: number, job: CompleteJob
                     }}
                     xs={1}
                 >
-                    {load.TicketNumber ?? "N/A"}
+                    <a href={`/loads/${load.ID}`} target={'_blank'}
+                       style={{color: 'blue', fontWeight: 'bolder'}} rel="noreferrer">{load.TicketNumber ?? "N/A"}</a>
                 </Grid2>
                 <Grid2
                     sx={{

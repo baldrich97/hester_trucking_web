@@ -19,6 +19,8 @@ export interface CompleteTrucksDriven extends z.infer<typeof TrucksDrivenModel> 
  *
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
 export const RelatedTrucksDrivenModel: z.ZodSchema<CompleteTrucksDriven> = z.lazy(() => TrucksDrivenModel.extend({
   Drivers: RelatedDriversModel,
   Trucks: RelatedTrucksModel,

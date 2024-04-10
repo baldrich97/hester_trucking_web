@@ -12,13 +12,17 @@ import DailySheet from "components/objects/DailySheet";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import Tooltip from "@mui/material/Tooltip";
 import {z} from "zod";
-import {CompleteJobs, DriversModel, LoadsModel} from "../../../prisma/zod";
+import {CompleteJobs, DailiesModel, DriversModel, LoadsModel} from "../../../prisma/zod";
+import {formatDateToWeek, getWeekNumber} from "../../utils/UtilityFunctions";
 
 type Loads = z.infer<typeof LoadsModel>;
 
 type Driver = z.infer<typeof DriversModel>;
 
-interface DriverSheet extends Driver {
+type Daily = z.infer<typeof DailiesModel>;
+
+interface DriverSheet extends Daily {
+    Drivers: Driver,
     Jobs: CompleteJobs[]
 }
 
@@ -38,7 +42,7 @@ export default function Dailies() {
         setShouldRefresh(true);
     }, [week]);
 
-    trpc.useQuery(["jobs.getByWeek", {week: week, forDaily: true}], {
+    trpc.useQuery(["dailies.getByWeek", {week: week}], {
         enabled: shouldRefresh,
         onSuccess(data) {
             setData(data ?? []);
@@ -48,28 +52,7 @@ export default function Dailies() {
         },
     });
 
-    function formatDateToWeek(date: Date): YearWeekFormat {
-        const year = date.getFullYear();
-        const weekNumber = getWeekNumber(date);
-        let returnable = `${year}-W`;
-        if (weekNumber < 10) {
-            returnable += `0${weekNumber}`;
-        } else {
-            returnable += weekNumber;
-        }
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        return returnable;
-    }
 
-    function getWeekNumber(date: Date): number {
-        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-        const millisecondsInDay = 86400000;
-        const currentDayOfYear = Math.ceil(
-            (date.getTime() - firstDayOfYear.getTime()) / millisecondsInDay
-        );
-        return Math.ceil(currentDayOfYear / 7);
-    }
 
     const [forceExpand, setforceExpand] = React.useState(true);
     return (
