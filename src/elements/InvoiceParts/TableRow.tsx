@@ -76,17 +76,17 @@ const TableRow = ({load, invoice = null}: { load?: CompleteLoads, invoice?: Comp
                         textAlign: 'left', ...styles.padding, ...styles.text
                     }}>{load.DeliveryLocations?.Description ?? 'N/A'}</Text>
                     <Text style={{
-                        width: '8%',
+                        width: '10%',
                         textAlign: 'right', ...styles.padding, ...styles.text,
                         paddingRight: 5
                     }}>{load.Weight ? (Math.round(load.Weight * 100) / 100).toString() : '0'}</Text>
                     <Text style={{
-                        width: '10%',
+                        width: '6%',
                         textAlign: 'right', ...styles.padding, ...styles.text,
                         paddingRight: 5
                     }}>{load.Hours ? (Math.round(load.Hours * 100) / 100).toString() : '0'}</Text>
                     <Text style={{
-                        width: '6%',
+                        width: '8%',
                         textAlign: 'right', ...styles.padding, ...styles.text,
                         paddingRight: 5
                     }}>{load.TotalRate ? (Math.round(load.TotalRate * 100) / 100).toString() : '0'}</Text>
