@@ -68,7 +68,7 @@ const TableRow = ({load, invoice = null}: { load?: CompleteLoads, invoice?: Comp
                         textAlign: 'left', ...styles.padding, ...styles.text
                     }}>{load.Trucks?.Notes ? load.Trucks?.Notes.split('#').length > 1 ? load.Trucks?.Notes.split('#')[1] : load.Trucks?.Notes.split('#')[0] : 'N/A'}</Text>
                     <Text style={{
-                        width: '22%',
+                        width: '20%',
                         textAlign: 'left', ...styles.padding, ...styles.text
                     }}>{load.LoadTypes?.Description ?? 'N/A'}</Text>
                     <Text style={{
@@ -81,17 +81,17 @@ const TableRow = ({load, invoice = null}: { load?: CompleteLoads, invoice?: Comp
                         paddingRight: 5
                     }}>{load.Weight ? (Math.round(load.Weight * 100) / 100).toString() : '0'}</Text>
                     <Text style={{
-                        width: '8%',
+                        width: '10%',
                         textAlign: 'right', ...styles.padding, ...styles.text,
                         paddingRight: 5
                     }}>{load.Hours ? (Math.round(load.Hours * 100) / 100).toString() : '0'}</Text>
                     <Text style={{
-                        width: '8%',
+                        width: '6%',
                         textAlign: 'right', ...styles.padding, ...styles.text,
                         paddingRight: 5
                     }}>{load.TotalRate ? (Math.round(load.TotalRate * 100) / 100).toString() : '0'}</Text>
                     <Text style={{
-                        width: '10%',
+                        width: '12%',
                         textAlign: 'right', ...styles.text,
                         paddingRight: 5
                     }}>${load.TotalAmount ? (Math.round(load.TotalAmount * 100) / 100).toString() : 'N/A'}</Text>
