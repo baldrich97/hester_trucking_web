@@ -6,7 +6,7 @@ import TextField from "@mui/material/TextField";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CustomersModel, InvoicesModel, LoadsModel } from "../../../prisma/zod";
+import {CustomersModel, InvoicesModel, LoadsModel, WeekliesModel} from "../../../prisma/zod";
 import { trpc } from "../../utils/trpc";
 import { useRouter } from "next/router";
 import { FormFieldsType, SelectDataType } from "../../utils/types";
@@ -30,6 +30,7 @@ import ConsolidatedInvoices from "components/collections/ConsolidatedInvoices";
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
+type WeekliesType = z.infer<typeof WeekliesModel>;
 
 const defaultValues = {
   InvoiceDate: new Date(),
@@ -49,6 +50,7 @@ const Invoice = ({
   initialInvoice = null,
   lastInvoice = 0,
   invoices = null,
+    weeklies = null
 }: {
   customers: CustomersType[];
   loads?: LoadsType[];
@@ -56,6 +58,7 @@ const Invoice = ({
   refreshData?: any;
   lastInvoice?: number;
   invoices?: null | InvoicesType[];
+  weeklies?: null | WeekliesType[];
 }) => {
   const [customer, setCustomer] = useState(0);
 
@@ -539,6 +542,7 @@ const Invoice = ({
             <InvoiceLoads
               readOnly={!!initialInvoice}
               rows={loads.length > 0 ? loads : customerLoads}
+              weeklies={weeklies}
               updateTotal={(newTotal: number) => {
                 setValue("TotalAmount", newTotal);
               }}

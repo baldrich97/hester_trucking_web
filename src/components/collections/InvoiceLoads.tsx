@@ -352,11 +352,13 @@ export default function InvoiceLoads({
   rows,
   updateTotal,
   updateSelected,
+    weeklies
 }: {
   readOnly: boolean;
   rows: any[];
   updateTotal: any;
   updateSelected: any;
+  weeklies: any;
 }) {
   const [order, setOrder] = React.useState<Order>("asc");
   const [orderBy, setOrderBy] = React.useState<keyof Data>("TicketNumber");

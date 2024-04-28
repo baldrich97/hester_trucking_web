@@ -5,11 +5,6 @@ import TableHeader from "./TableHeader";
 import TableRow from "./TableRow";
 import {z} from "zod";
 
-type Loads = z.infer<typeof LoadsModel>;
-
-interface JobsLoads extends CompleteJobs {
-    Loads: Loads[]
-}
 
 const styles = StyleSheet.create({
 
@@ -21,7 +16,7 @@ const styles = StyleSheet.create({
 });
 
 
-const Table = ({jobs}: {jobs: JobsLoads[]}) => {
+const Table = ({jobs}: {jobs: CompleteJobs[]}) => {
     return (
         <View style={styles.container}>
             <TableHeader />

@@ -265,7 +265,8 @@ export const loadsRouter = createRouter()
                         CustomerID: CustomerID,
                         Week: Week,
                         DeliveryLocationID: DeliveryLocationID,
-                        LoadTypeID: LoadTypeID
+                        LoadTypeID: LoadTypeID,
+                        Revenue: null
                     }
                 })
 
@@ -276,7 +277,8 @@ export const loadsRouter = createRouter()
                             Week: Week,
                             CustomerID: CustomerID,
                             LoadTypeID: LoadTypeID,
-                            DeliveryLocationID: DeliveryLocationID
+                            DeliveryLocationID: DeliveryLocationID,
+                            CompanyRate: TruckRate
                         }
                     })
                 }

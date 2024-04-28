@@ -122,6 +122,7 @@ const Job = ({job, ownerOperator}: { job: CompleteJobs, ownerOperator: boolean }
         <div key={"job-" + job.ID}>
             {jobState.Loads.map((load, index) => {
                 weightSum += load.Weight ? load.Weight : load.Hours ? load.Hours : 0;
+                weightSum = Math.round(weightSum * 100) / 100
                 return (
                     <span key={'job-container' + load.ID}>
                            <Load load={load} job={job} index={index} key={"load-" + load.ID}/>
@@ -173,7 +174,7 @@ const TotalsRow = ({
 
             <b style={{width: 50, display: 'grid', alignItems: 'center', justifyItems: 'center'}}>
                 <Tooltip
-                    title={isPaidOut ? 'This job has already been paid.' : isClosed ? 'Mark this job as paid out.' : 'Close this job.'}>
+                    title={isPaidOut ? 'This job has already been paid.' : isClosed ? 'Mark this job as paid out.' : 'Save the revenues for this job..'}>
                     <span>
                         <Button
                             variant="contained"
@@ -231,22 +232,21 @@ const TotalsRow = ({
                                 } else {
                                     confirmAlert({
                                         title: "Confirm Job Closure",
-                                        message: "This will close the job. It will now be available to be invoiced, and any future loads similar to this job will be on their own job. Are you sure?",
+                                        message: "This will close the job. Any future loads similar to this job will be on their own job. To invoice this job, please close the weekly associated with it. This cannot be undone, are you sure?",
                                         buttons: [
                                             {
                                                 label: "Yes",
                                                 onClick: async () => {
-                                                    console.log(jobState)
-                                                    // const data = await postJobClosed.mutateAsync({
-                                                    //     ...jobState,
-                                                    //     TruckingRevenue: weightSum * (load.MaterialRate ? load.MaterialRate : 0),
-                                                    //     CompanyRevenue: weightSum * (load.TruckRate ? load.TruckRate : 0)
-                                                    // });
-                                                    // setJobState(prevState => ({
-                                                    //     ...prevState,
-                                                    //     ...data
-                                                    // }));
-                                                    // setIsClosed(true);
+                                                    const data = await postJobClosed.mutateAsync({
+                                                        ...jobState,
+                                                        TruckingRevenue: jobState.TruckingRevenue ? jobState.TruckingRevenue : (Math.round(weightSum * (load.DriverRate != load.TruckRate ? load.DriverRate ?? 0 : load.TruckRate ?? 0) * 100) / 100),
+                                                        CompanyRevenue: jobState.CompanyRevenue ? jobState.CompanyRevenue : (Math.round(weightSum * (load.TotalRate ? load.TotalRate : 0) * 100) / 100)
+                                                    });
+                                                    setJobState(prevState => ({
+                                                        ...prevState,
+                                                        ...data
+                                                    }));
+                                                    setIsClosed(true);
                                                 },
                                             },
                                             {
@@ -269,7 +269,7 @@ const TotalsRow = ({
                     borderRight: "2px solid black",
                     borderLeft: "2px solid black",
                 }}
-                xs={2}
+                xs={1.5}
             >
 
             </Grid2>
@@ -278,7 +278,7 @@ const TotalsRow = ({
                     textAlign: "center",
                     borderRight: "2px solid black",
                 }}
-                xs={2}
+                xs={1.5}
             >
 
             </Grid2>
@@ -287,7 +287,7 @@ const TotalsRow = ({
                     textAlign: "center",
                     borderRight: "2px solid black",
                 }}
-                xs={2}
+                xs={1.5}
             >
 
             </Grid2>
@@ -303,7 +303,7 @@ const TotalsRow = ({
                     textAlign: "center",
                     borderRight: "2px solid black",
                 }}
-                xs={1}
+                xs={true}
             >
 
             </Grid2>
@@ -312,7 +312,7 @@ const TotalsRow = ({
                     textAlign: "center",
                     borderRight: "2px solid black",
                 }}
-                xs={1}
+                xs={true}
             >
 
             </Grid2>
@@ -321,19 +321,37 @@ const TotalsRow = ({
                     textAlign: "center",
                     borderRight: "2px solid black",
                 }}
-                xs={1}
+                xs={true}
+            >
+
+            </Grid2>
+            <Grid2
+                sx={{
+                    textAlign: "center",
+                    borderRight: "2px solid black",
+                }}
+                xs={true}
+            >
+
+            </Grid2>
+            <Grid2
+                sx={{
+                    textAlign: "center",
+                    borderRight: "2px solid black",
+                }}
+                xs={true}
             >
                 {weightSum}
             </Grid2>
             <Grid2
                 sx={{textAlign: "center"}}
-                xs={true}
+                xs={1.5}
                 container
             >
                 <Grid2 sx={{textAlign: "center", borderRight: "2px solid black",}} xs={6}>
                     <TextField
                         variant={'standard'}
-                        value={jobState.CompanyRevenue !== null ? jobState.CompanyRevenue : weightSum * (load.TruckRate ? load.TruckRate : 0)}
+                        value={jobState.CompanyRevenue !== null ? jobState.CompanyRevenue : (Math.round(weightSum * (load.TotalRate ? load.TotalRate : 0) * 100) / 100)}
                         onChange={(e) => {
                             let value = 0;
                             if (e.currentTarget?.value) {
@@ -356,7 +374,7 @@ const TotalsRow = ({
                 >
                     <TextField
                         variant={'standard'}
-                        value={jobState.TruckingRevenue !== null ? jobState.TruckingRevenue : weightSum * (load.MaterialRate ? load.MaterialRate : 0)}
+                        value={jobState.TruckingRevenue !== null ? jobState.TruckingRevenue : (Math.round(weightSum * (load.DriverRate != load.TruckRate ? load.DriverRate ?? 0 : load.TruckRate ?? 0) * 100) / 100)}
                         onChange={(e) => {
                             let value = 0;
                             if (e.currentTarget?.value) {
@@ -396,7 +414,7 @@ const Load = ({load, index, job}: { load: Loads, index: number, job: CompleteJob
                         borderRight: "2px solid black",
                         borderLeft: "2px solid black",
                     }}
-                    xs={2}
+                    xs={1.5}
                 >
                     {index === 0
                         ? job.LoadTypes?.Description ?? "N/A"
@@ -407,7 +425,7 @@ const Load = ({load, index, job}: { load: Loads, index: number, job: CompleteJob
                         textAlign: "center",
                         borderRight: "2px solid black",
                     }}
-                    xs={2}
+                    xs={1.5}
                 >
                     {index === 0 ? job.Customers?.Name ?? "N/A" : ""}
                 </Grid2>
@@ -416,7 +434,7 @@ const Load = ({load, index, job}: { load: Loads, index: number, job: CompleteJob
                         textAlign: "center",
                         borderRight: "2px solid black",
                     }}
-                    xs={2}
+                    xs={1.5}
                 >
                     {index === 0
                         ? job.DeliveryLocations?.Description ?? "N/A"
@@ -437,16 +455,7 @@ const Load = ({load, index, job}: { load: Loads, index: number, job: CompleteJob
                         textAlign: "center",
                         borderRight: "2px solid black",
                     }}
-                    xs={1}
-                >
-                    {index === 0 ? load.TruckRate ?? "N/A" : ""}
-                </Grid2>
-                <Grid2
-                    sx={{
-                        textAlign: "center",
-                        borderRight: "2px solid black",
-                    }}
-                    xs={1}
+                    xs={true}
                 >
                     {index === 0 ? load.MaterialRate ?? "N/A" : ""}
                 </Grid2>
@@ -455,7 +464,34 @@ const Load = ({load, index, job}: { load: Loads, index: number, job: CompleteJob
                         textAlign: "center",
                         borderRight: "2px solid black",
                     }}
-                    xs={1}
+                    xs={true}
+                >
+                    {index === 0 ? load.TruckRate ?? "N/A" : ""}
+                </Grid2>
+                <Grid2
+                    sx={{
+                        textAlign: "center",
+                        borderRight: "2px solid black",
+                    }}
+                    xs={true}
+                >
+                    {index === 0 ? load.DriverRate ?? "N/A" : ""}
+                </Grid2>
+                <Grid2
+                    sx={{
+                        textAlign: "center",
+                        borderRight: "2px solid black",
+                    }}
+                    xs={true}
+                >
+                    {index === 0 ? load.TotalRate ?? "N/A" : ""}
+                </Grid2>
+                <Grid2
+                    sx={{
+                        textAlign: "center",
+                        borderRight: "2px solid black",
+                    }}
+                    xs={true}
                 >
                     {load.Weight
                         ? load.Weight
@@ -463,7 +499,7 @@ const Load = ({load, index, job}: { load: Loads, index: number, job: CompleteJob
                             ? load.Hours
                             : "N/A"}
                 </Grid2>
-                <Grid2 sx={{textAlign: "center"}} xs={true} container>
+                <Grid2 sx={{textAlign: "center"}} xs={1.5} container>
                     <Grid2
                         sx={{
                             textAlign: "center",
@@ -493,19 +529,19 @@ const HeaderRow = () => {
                     borderRight: "2px solid black",
                     borderLeft: "2px solid black",
                 }}
-                xs={2}
+                xs={1.5}
             >
                 <b>Material Received</b>
             </Grid2>
             <Grid2
                 sx={{textAlign: "center", borderRight: "2px solid black"}}
-                xs={2}
+                xs={1.5}
             >
                 <b>Receiver</b>
             </Grid2>
             <Grid2
                 sx={{textAlign: "center", borderRight: "2px solid black"}}
-                xs={2}
+                xs={1.5}
             >
                 <b>Destination</b>
             </Grid2>
@@ -517,23 +553,35 @@ const HeaderRow = () => {
             </Grid2>
             <Grid2
                 sx={{textAlign: "center", borderRight: "2px solid black"}}
-                xs={1}
+                xs={true}
             >
-                <b>Company Rate</b>
+                <b>Material Rate</b>
             </Grid2>
             <Grid2
                 sx={{textAlign: "center", borderRight: "2px solid black"}}
-                xs={1}
+                xs={true}
             >
                 <b>Trucking Rate</b>
             </Grid2>
             <Grid2
                 sx={{textAlign: "center", borderRight: "2px solid black"}}
-                xs={1}
+                xs={true}
             >
-                <b>Weight</b>
+                <b>Driver Rate</b>
             </Grid2>
-            <Grid2 sx={{textAlign: "center"}} xs={true} container>
+            <Grid2
+                sx={{textAlign: "center", borderRight: "2px solid black"}}
+                xs={true}
+            >
+                <b>Company Rate</b>
+            </Grid2>
+            <Grid2
+                sx={{textAlign: "center", borderRight: "2px solid black"}}
+                xs={true}
+            >
+                <b>Weight / Hours</b>
+            </Grid2>
+            <Grid2 sx={{textAlign: "center"}} xs={1.5} container>
                 <Grid2 xs={12} sx={{padding: 0}}>
                     <b style={{fontSize: 17}}>Total Revenue</b>
                 </Grid2>
@@ -546,7 +594,7 @@ const HeaderRow = () => {
                     }}
                     xs={6}
                 >
-                    <b style={{fontSize: 12}}>Company Rate</b>
+                    <b style={{fontSize: 12}}>Company Rev</b>
                 </Grid2>
                 <Grid2
                     sx={{
@@ -556,7 +604,7 @@ const HeaderRow = () => {
                     }}
                     xs={6}
                 >
-                    <b style={{fontSize: 12}}>Trucking Rate</b>
+                    <b style={{fontSize: 12}}>Trucking Rev</b>
                 </Grid2>
             </Grid2>
         </Grid2>

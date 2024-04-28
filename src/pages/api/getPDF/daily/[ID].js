@@ -14,7 +14,7 @@ const handler = async (req, res) => {
         return;
     }
 
-    const input = {week: ID.split('|')[1], driver: ID.split('|')[0]}
+    const input = {week: ID.split('|')[1], sheet: ID.split('|')[0]}
 
     const week = moment(input.week).format("l") + " - " + moment(input.week).add(6, "days").format("l")
 
@@ -36,26 +36,39 @@ export default handler;
 const processLoads = async (input) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const start = new Date(moment(input.week).format("YYYY-MM-DD 00:00:00"));
-            const end = new Date(moment(input.week).add(6, "days").format("YYYY-MM-DD 23:59:59"));
-
-            const loads = await prisma.loads.findMany({
+            const sheet = await prisma.dailies.findUnique({
                 where: {
-                    Created: {
-                        lte: end,
-                        gte: start
+                    ID: parseInt(input.sheet)
+                },
+                include: {
+                    Jobs: {
+                        include: {
+                            Loads: true,
+                            Customers: true,
+                            Drivers: true,
+                            DeliveryLocations: true,
+                            LoadTypes: true
+                        }
                     },
-                    DriverID: parseInt(input.driver)
+                    Drivers: true
                 }
             });
 
-            const jobs = await groupJobs(loads);
+            if (!sheet) {
+                reject('Missing Sheet');
+            }
 
-            await formatSheet(jobs).then(async (sheet) => {
-                resolve(sheet);
-            }).catch((error) => {
-                reject(error)
-            });
+            resolve(sheet);
+
+            // console.log('IN HERE WTF', loads, start, end, input)
+            //
+            // const jobs = await groupJobs(loads);
+            //
+            // await formatSheet(jobs).then(async (sheet) => {
+            //     resolve(sheet);
+            // }).catch((error) => {
+            //     reject(error)
+            // });
         } catch (error) {
             reject(error);
         }
@@ -81,14 +94,18 @@ const groupJobs = async (loads) => {
     return new Promise(async (resolve, reject) => {
         let jobs = [];
         await Promise.all(loads.map(async (load) => {
+            console.log('LOAD', load)
             const found = jobs.findIndex((job) => job.ID === load.JobID);
             if (found !== -1) {
+                console.log('IN HERE')
                 jobs[found].Loads = [...jobs[found].Loads, load]
             } else {
                 const job = await prisma.jobs.findUnique({
                     where: { ID: load.JobID },
                     include: { Customers: true, Drivers: true, DeliveryLocations: true, LoadTypes: true }
                 });
+                console.log(';ALSDKJ;LASKDF')
+                console.log('JOB', job)
                 job.Loads = [load];
                 jobs.push(job);
             }

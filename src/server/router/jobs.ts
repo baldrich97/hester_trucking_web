@@ -91,158 +91,158 @@ export const jobsRouter = createRouter()
 
     //     }
     // })
-    .query('getByWeek', {
-        input: z.object({
-            week: z.string(),
-            forDaily: z.boolean()
-        }),
-        async resolve({ctx, input}) {
-            const start = new Date(moment(input.week).format("YYYY-MM-DD 00:00:00"))
-            const end = new Date(moment(input.week).add(6, "days").format("YYYY-MM-DD 23:59:59"))
-
-            const loads = await ctx.prisma.loads.findMany({
-                where: {
-                    Created: {
-                        lte: end,
-                        gte: start
-                    },
-                    JobID: {
-                        not: null
-                    }
-                },
-                include: {
-                    Customers: true, Drivers: true, DeliveryLocations: true, LoadTypes: true, Jobs: true, Trucks: true,
-                    Invoices: true, Weeklies: true
-                }
-            })
-
-            if (input.forDaily) {
-                const sheets: DriverSheet[] = [];
-                await Promise.all(loads.map((load) => {
-                    const {Drivers, Customers, DeliveryLocations, LoadTypes, Jobs, ...rest} = load;
-                    const foundSheet = sheets.findIndex((item) => item.ID === load.DriverID)
-                    if (foundSheet !== -1) {
-                        //if a sheet already exists for this driver, set sheet to the found sheet
-                        const sheet = sheets[foundSheet];
-                        if (!sheet) {
-                            return;
-                        }
-                        if (sheet.Jobs) {
-                            const foundJob = sheet.Jobs.findIndex((item) => item.ID === load.JobID)
-                            if (foundJob !== -1) {
-                                //if the existing sheet already had a job that matches this load's jobid, set job to the found job
-                                const job = sheet.Jobs[foundJob];
-                                if (!job) {
-                                    return;
-                                }
-                                //set the job's loads = it's loads plus the new one, then set the sheet's job to the job, then set the sheet in the array to the new sheet
-                                job.Loads = [...job.Loads, {...rest}]
-                                sheet.Jobs[foundJob] = job;
-                                sheets[foundSheet] = sheet;
-                            } else {
-                                if (!Jobs) {
-                                    return;
-                                }
-                                //add the new job to the Jobs
-                                sheet.Jobs = [...sheet.Jobs, {...Jobs, Loads: [{...rest}]}]
-                                sheets[foundSheet] = sheet;
-                            }
-                        } else {
-                            if (!Jobs) {
-                                return;
-                            }
-                            sheet.Jobs = [{
-                                ...Jobs,
-                                Loads: [{...rest}],
-                                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                // @ts-ignore
-                                Customers: Customers,
-                                DeliveryLocations: DeliveryLocations,
-                                LoadTypes: LoadTypes
-                            }]
-                        }
-                    } else {
-                        if (!Jobs || !Drivers) {
-                            return;
-                        }
-                        sheets.push({
-                            ...Drivers,
-                            Jobs: [{
-                                ...Jobs,
-                                Loads: [{...rest}],
-                                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                // @ts-ignore
-                                Customers: Customers,
-                                DeliveryLocations: DeliveryLocations,
-                                LoadTypes: LoadTypes
-                            }]
-                        })
-                    }
-                }))
-
-                return sheets;
-            } else {
-                const sheets: CustomerSheet[] = [];
-                await Promise.all(loads.map((load) => {
-                    const {Drivers, Customers, DeliveryLocations, LoadTypes, Jobs, Trucks, Weeklies, ...rest} = load;
-                    const foundSheet = sheets.findIndex((item) => item.ID === load.CustomerID)
-                    if (foundSheet !== -1) {
-                        //if a sheet already exists for this driver, set sheet to the found sheet
-                        const sheet = sheets[foundSheet];
-                        if (!sheet) {
-                            return;
-                        }
-                        if (sheet.Sheets) {
-                            const foundJob = sheet.Sheets.findIndex((item) => item.ID === load.LoadTypeID && item.DeliveryLocations?.ID === load.DeliveryLocationID)
-                            if (foundJob !== -1) {
-                                //if the existing sheet already had a job that matches this load's jobid, set job to the found job
-                                const job = sheet.Sheets[foundJob];
-                                if (!job || !Trucks || !Drivers) {
-                                    return;
-                                }
-                                //set the job's loads = it's loads plus the new one, then set the sheet's job to the job, then set the sheet in the array to the new sheet
-
-                                const foundDriverTruck = job.DriversTrucks.findIndex((item) => item.ID === load.DriverID && item.Trucks?.ID === load.TruckID);
-                                if (foundDriverTruck !== -1) {
-                                    const driverTruck = job.DriversTrucks[foundDriverTruck];
-                                    if (!driverTruck) {
-                                        return;
-                                    }
-                                    driverTruck.Loads = [...driverTruck.Loads, {...rest}]
-                                } else {
-                                    job.DriversTrucks = [...job.DriversTrucks, {...Drivers, Trucks: Trucks, Loads: [{...rest}]}]
-                                }
-
-                                sheet.Sheets[foundJob] = job;
-                                sheets[foundSheet] = sheet;
-                            } else {
-                                if (!Jobs || !Drivers || !Trucks || !DeliveryLocations || !LoadTypes) {
-                                    return;
-                                }
-                                //add the new job to the Jobs
-
-                                sheet.Sheets = [...sheet.Sheets, {...LoadTypes, DeliveryLocations: DeliveryLocations, DriversTrucks: [{...Drivers, Trucks: Trucks, Loads: [{...rest}]}]}]
-                                sheets[foundSheet] = sheet;
-                            }
-                        } else {
-                            if (!Jobs || !Drivers || !Trucks || !DeliveryLocations || !LoadTypes) {
-                                return;
-                            }
-                            sheet.Sheets = [{...LoadTypes, DeliveryLocations: DeliveryLocations, DriversTrucks: [{...Drivers, Trucks: Trucks, Loads: [{...rest}]}]}]
-                        }
-                    } else {
-                        if (!Jobs || !Drivers || !Trucks || !DeliveryLocations || !LoadTypes) {
-                            return;
-                        }
-                        sheets.push({
-                            ...Customers,
-                            Sheets: [{...LoadTypes, DeliveryLocations: DeliveryLocations, DriversTrucks: [{...Drivers, Trucks: Trucks, Loads: [{...rest}]}]}]
-                        })
-                    }
-                }))
-
-                return sheets;
-            }
+    // .query('getByWeek', {
+    //     input: z.object({
+    //         week: z.string(),
+    //         forDaily: z.boolean()
+    //     }),
+    //     async resolve({ctx, input}) {
+    //         const start = new Date(moment(input.week).format("YYYY-MM-DD 00:00:00"))
+    //         const end = new Date(moment(input.week).add(6, "days").format("YYYY-MM-DD 23:59:59"))
+    //
+    //         const loads = await ctx.prisma.loads.findMany({
+    //             where: {
+    //                 Created: {
+    //                     lte: end,
+    //                     gte: start
+    //                 },
+    //                 JobID: {
+    //                     not: null
+    //                 }
+    //             },
+    //             include: {
+    //                 Customers: true, Drivers: true, DeliveryLocations: true, LoadTypes: true, Jobs: true, Trucks: true,
+    //                 Invoices: true, Weeklies: true
+    //             }
+    //         })
+    //
+    //         if (input.forDaily) {
+    //             const sheets: DriverSheet[] = [];
+    //             await Promise.all(loads.map((load) => {
+    //                 const {Drivers, Customers, DeliveryLocations, LoadTypes, Jobs, ...rest} = load;
+    //                 const foundSheet = sheets.findIndex((item) => item.ID === load.DriverID)
+    //                 if (foundSheet !== -1) {
+    //                     //if a sheet already exists for this driver, set sheet to the found sheet
+    //                     const sheet = sheets[foundSheet];
+    //                     if (!sheet) {
+    //                         return;
+    //                     }
+    //                     if (sheet.Jobs) {
+    //                         const foundJob = sheet.Jobs.findIndex((item) => item.ID === load.JobID)
+    //                         if (foundJob !== -1) {
+    //                             //if the existing sheet already had a job that matches this load's jobid, set job to the found job
+    //                             const job = sheet.Jobs[foundJob];
+    //                             if (!job) {
+    //                                 return;
+    //                             }
+    //                             //set the job's loads = it's loads plus the new one, then set the sheet's job to the job, then set the sheet in the array to the new sheet
+    //                             job.Loads = [...job.Loads, {...rest}]
+    //                             sheet.Jobs[foundJob] = job;
+    //                             sheets[foundSheet] = sheet;
+    //                         } else {
+    //                             if (!Jobs) {
+    //                                 return;
+    //                             }
+    //                             //add the new job to the Jobs
+    //                             sheet.Jobs = [...sheet.Jobs, {...Jobs, Loads: [{...rest}]}]
+    //                             sheets[foundSheet] = sheet;
+    //                         }
+    //                     } else {
+    //                         if (!Jobs) {
+    //                             return;
+    //                         }
+    //                         sheet.Jobs = [{
+    //                             ...Jobs,
+    //                             Loads: [{...rest}],
+    //                             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //                             // @ts-ignore
+    //                             Customers: Customers,
+    //                             DeliveryLocations: DeliveryLocations,
+    //                             LoadTypes: LoadTypes
+    //                         }]
+    //                     }
+    //                 } else {
+    //                     if (!Jobs || !Drivers) {
+    //                         return;
+    //                     }
+    //                     sheets.push({
+    //                         ...Drivers,
+    //                         Jobs: [{
+    //                             ...Jobs,
+    //                             Loads: [{...rest}],
+    //                             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //                             // @ts-ignore
+    //                             Customers: Customers,
+    //                             DeliveryLocations: DeliveryLocations,
+    //                             LoadTypes: LoadTypes
+    //                         }]
+    //                     })
+    //                 }
+    //             }))
+    //
+    //             return sheets;
+    //         } else {
+    //             const sheets: CustomerSheet[] = [];
+    //             await Promise.all(loads.map((load) => {
+    //                 const {Drivers, Customers, DeliveryLocations, LoadTypes, Jobs, Trucks, Weeklies, ...rest} = load;
+    //                 const foundSheet = sheets.findIndex((item) => item.ID === load.CustomerID)
+    //                 if (foundSheet !== -1) {
+    //                     //if a sheet already exists for this driver, set sheet to the found sheet
+    //                     const sheet = sheets[foundSheet];
+    //                     if (!sheet) {
+    //                         return;
+    //                     }
+    //                     if (sheet.Sheets) {
+    //                         const foundJob = sheet.Sheets.findIndex((item) => item.ID === load.LoadTypeID && item.DeliveryLocations?.ID === load.DeliveryLocationID)
+    //                         if (foundJob !== -1) {
+    //                             //if the existing sheet already had a job that matches this load's jobid, set job to the found job
+    //                             const job = sheet.Sheets[foundJob];
+    //                             if (!job || !Trucks || !Drivers) {
+    //                                 return;
+    //                             }
+    //                             //set the job's loads = it's loads plus the new one, then set the sheet's job to the job, then set the sheet in the array to the new sheet
+    //
+    //                             const foundDriverTruck = job.DriversTrucks.findIndex((item) => item.ID === load.DriverID && item.Trucks?.ID === load.TruckID);
+    //                             if (foundDriverTruck !== -1) {
+    //                                 const driverTruck = job.DriversTrucks[foundDriverTruck];
+    //                                 if (!driverTruck) {
+    //                                     return;
+    //                                 }
+    //                                 driverTruck.Loads = [...driverTruck.Loads, {...rest}]
+    //                             } else {
+    //                                 job.DriversTrucks = [...job.DriversTrucks, {...Drivers, Trucks: Trucks, Loads: [{...rest}]}]
+    //                             }
+    //
+    //                             sheet.Sheets[foundJob] = job;
+    //                             sheets[foundSheet] = sheet;
+    //                         } else {
+    //                             if (!Jobs || !Drivers || !Trucks || !DeliveryLocations || !LoadTypes) {
+    //                                 return;
+    //                             }
+    //                             //add the new job to the Jobs
+    //
+    //                             sheet.Sheets = [...sheet.Sheets, {...LoadTypes, DeliveryLocations: DeliveryLocations, DriversTrucks: [{...Drivers, Trucks: Trucks, Loads: [{...rest}]}]}]
+    //                             sheets[foundSheet] = sheet;
+    //                         }
+    //                     } else {
+    //                         if (!Jobs || !Drivers || !Trucks || !DeliveryLocations || !LoadTypes) {
+    //                             return;
+    //                         }
+    //                         sheet.Sheets = [{...LoadTypes, DeliveryLocations: DeliveryLocations, DriversTrucks: [{...Drivers, Trucks: Trucks, Loads: [{...rest}]}]}]
+    //                     }
+    //                 } else {
+    //                     if (!Jobs || !Drivers || !Trucks || !DeliveryLocations || !LoadTypes) {
+    //                         return;
+    //                     }
+    //                     sheets.push({
+    //                         ...Customers,
+    //                         Sheets: [{...LoadTypes, DeliveryLocations: DeliveryLocations, DriversTrucks: [{...Drivers, Trucks: Trucks, Loads: [{...rest}]}]}]
+    //                     })
+    //                 }
+    //             }))
+    //
+    //             return sheets;
+    //         }
 
             // let shouldReturn = false;
             // let shouldGroup = false;
@@ -299,8 +299,8 @@ export const jobsRouter = createRouter()
             //     return grouped;
             // }
 
-        }
-    })
+    //     }
+    // })
     // .query('search', {
     //     input: z.object({
     //         search: z.string(),
@@ -390,6 +390,16 @@ export const jobsRouter = createRouter()
         input: JobsModel,
         async resolve({ctx, input}) {
             const {ID, ...data} = input;
+            // check if weekly is closed and warn/error?
+            const weekly = await ctx.prisma.weeklies.findFirst({
+                where: {
+                    ID: data.WeeklyID
+                }
+            })
+
+            if (!weekly || weekly.Revenue !== null) {
+                //warn/error here
+            }
             // use your ORM of choice
             return ctx.prisma.jobs.update({
                 where: {

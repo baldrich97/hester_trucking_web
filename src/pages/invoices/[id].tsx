@@ -2,23 +2,26 @@ import React from "react";
 import InvoiceObject from "../../components/objects/Invoice";
 import { GetServerSideProps } from "next";
 import { prisma } from "server/db/client";
-import { InvoicesModel, CustomersModel, LoadsModel } from "../../../prisma/zod";
+import {InvoicesModel, CustomersModel, LoadsModel, WeekliesModel} from "../../../prisma/zod";
 import { z } from "zod";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
+type WeekliesType = z.infer<typeof WeekliesModel>;
 
 const Invoice = ({
   initialInvoice,
   loads,
   customers,
   invoices,
+    weeklies
 }: {
   initialInvoice: InvoicesType;
   loads: LoadsType[];
   customers: CustomersType[];
   invoices: InvoicesType[] | null;
+  weeklies: WeekliesType[] | null;
 }) => {
   return (
     <InvoiceObject
@@ -26,6 +29,7 @@ const Invoice = ({
       customers={customers}
       loads={loads}
       invoices={invoices}
+      weeklies={weeklies}
     />
   );
 };
@@ -72,6 +76,26 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     },
   });
 
+  const weeklies = await prisma.weeklies.findMany({
+    where: {
+      InvoiceID: initialInvoice.ID
+    },
+    include: {
+      Jobs: {
+        include: {
+          Loads: {
+            include: {
+              LoadTypes: true,
+              DeliveryLocations: true,
+              Drivers: true,
+              Trucks: true
+            }
+          }
+        }
+      }
+    }
+  })
+
   let invoices = null;
 
   if (initialInvoice.Consolidated) {
@@ -91,6 +115,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       customers,
       loads: JSON.parse(JSON.stringify(loads)),
       invoices: JSON.parse(JSON.stringify(invoices)),
+      weeklies: JSON.parse(JSON.stringify(weeklies)),
     },
   };
 };

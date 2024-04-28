@@ -4,18 +4,15 @@ import DailyParts from "../../elements/DailyParts"
 import Html from 'react-pdf-html';
 import ReactDOMServer from 'react-dom/server';
 import {z} from "zod";
-import {CompleteJobs, LoadsModel, DriversModel} from "../../../prisma/zod";
-
-type Loads = z.infer<typeof LoadsModel>;
+import {CompleteJobs, LoadsModel, DriversModel, DailiesModel} from "../../../prisma/zod";
 
 type Driver = z.infer<typeof DriversModel>;
 
-interface JobsLoads extends CompleteJobs {
-    Loads: Loads[]
-}
+type Daily = z.infer<typeof DailiesModel>;
 
-interface DriverSheet extends Driver {
-    Jobs: JobsLoads[]
+interface DriverSheet extends Daily {
+    Drivers: Driver,
+    Jobs: CompleteJobs[]
 }
 
 
@@ -33,8 +30,8 @@ const styles = StyleSheet.create({
         display: 'flex',
         alignItems: 'center',
         textAlign: 'center',
-        paddingLeft: 5,
-        paddingRight: 5,
+        paddingLeft: 1,
+        paddingRight: 1,
         paddingTop: 10
     }
 });
@@ -52,10 +49,9 @@ const DailySheetFull = ({sheet, week} : {sheet: DriverSheet, week: string}) => {
     return (
         <Document>
             <Page size='A4' style={styles.page} orientation={'landscape'}>
-                <DailyParts.Title driver={sheet.FirstName + ' ' + sheet.LastName} week={week}/>
+                <DailyParts.Title driver={sheet.Drivers.FirstName + ' ' + sheet.Drivers.LastName} week={week}/>
                 <Html>{linebreakhtml}</Html>
                 <DailyParts.Table jobs={sheet.Jobs}/>
-
             </Page>
         </Document>
     )

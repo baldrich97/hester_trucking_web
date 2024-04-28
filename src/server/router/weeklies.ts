@@ -1,20 +1,45 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import {DailiesModel} from '../../../prisma/zod';
+import {DailiesModel, JobsModel, WeekliesModel} from '../../../prisma/zod';
 
 export const weekliesRouter = createRouter()
-    .query("getByCustomer", {
+    .query('getByWeek', {
         input: z.object({
-           CustomerID: z.number(),
-           Week: z.string()
+            week: z.string()
         }),
         async resolve({ctx, input}) {
             return ctx.prisma.weeklies.findMany({
-               where: {
-                   CustomerID: input.CustomerID,
-                   Week: input.Week
-               }
-            });
+                where: {
+                    Week: input.week
+                },
+                include: {
+                    Jobs: {
+                        include: {
+                            Loads:
+                                {
+                                    include: {Trucks: true}
+                                },
+                            Drivers: true
+                        }
+                    },
+                    DeliveryLocations: true,
+                    LoadTypes: true,
+                    Customers: true
+                }
+            })
+        }
+    })
+    .mutation('postClosed', {
+        // validate input with Zod
+        input: WeekliesModel,
+        async resolve({ctx, input}) {
+            const {ID, ...data} = input;
+            // use your ORM of choice
+            return ctx.prisma.weeklies.update({
+                where: {
+                    ID: ID
+                }, data: data
+            })
         },
     })
 // .query('get', {

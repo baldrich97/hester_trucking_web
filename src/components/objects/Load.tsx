@@ -51,9 +51,10 @@ const defaultValues = {
   TotalAmount: undefined,
   TotalRate: undefined,
   TruckRate: undefined,
+  DriverRate: undefined,
   Weight: undefined,
   MaterialRate: undefined,
-  TicketNumber: 0,
+  TicketNumber: undefined,
   onReset: false,
 };
 
@@ -235,6 +236,11 @@ function Load({
           ) / 100
         );
       }
+
+      if (name === "TruckRate") {
+        setValue("DriverRate", value.TruckRate ?? 0)
+      }
+
       if (name === "TotalRate") {
         const hours = value.Hours ?? 0;
         const weight = value.Weight ?? 0;
@@ -311,8 +317,10 @@ function Load({
     },
     {
       name: "TicketNumber",
-      required: false,
+      required: true,
       type: "textfield",
+      shouldErrorOn: ['invalid_type'],
+      errorMessage: 'Ticket number is required.',
       size: 4,
       number: true,
       label: "Ticket Number",
@@ -398,14 +406,22 @@ function Load({
       number: true,
       disabled: !!(watchWeight && watchWeight > 0),
     },
-    { name: "Received", size: 6, required: false, type: "textfield" },
+    { name: "Received", size: 3, required: false, type: "textfield" },
+    {
+      name: "DriverRate",
+      required: false,
+      type: "textfield",
+      size: 3,
+      number: true,
+      label: "Driver Rate",
+    },
     {
       name: "TotalRate",
       required: false,
       type: "textfield",
       size: 3,
       number: true,
-      label: "Total Rate",
+      label: "Company Rate",
     },
     {
       name: "TotalAmount",
@@ -487,6 +503,8 @@ function Load({
       defaultValue: initialLoad ? initialLoad.DriverID : null,
     },
   ];
+
+  console.log(errors)
 
   return (
     <>

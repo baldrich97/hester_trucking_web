@@ -16,42 +16,19 @@ import {
     CompleteJobs,
     CustomersModel, DeliveryLocationsModel,
     DriversModel, InvoicesModel,
-    JobsModel,
+    WeekliesModel,
     LoadsModel,
     LoadTypesModel,
     TrucksModel
 } from "../../../prisma/zod";
 
-type Driver = z.infer<typeof DriversModel>;
-
-type Truck = z.infer<typeof TrucksModel>;
-
-type Loads = z.infer<typeof LoadsModel>;
-
-type Invoice = z.infer<typeof InvoicesModel>;
-
-interface LoadsInvoices extends Loads {
-    Invoices: Invoice
-}
+type Weekly = z.infer<typeof WeekliesModel>;
 
 type Customer = z.infer<typeof CustomersModel>;
 
-type LoadType = z.infer<typeof LoadTypesModel>;
-
-type DeliveryLocation = z.infer<typeof DeliveryLocationsModel>;
-
-interface DriversLoads extends Driver {
-    Loads: LoadsInvoices[],
-    Trucks: Truck
-}
-
-interface Sheet extends LoadType {
-    DeliveryLocations: DeliveryLocation,
-    DriversTrucks: DriversLoads[],
-}
-
-interface CustomerSheet extends Customer {
-    Sheets: Sheet[],
+interface CustomerSheet extends Weekly {
+    Customers: Customer,
+    Jobs: CompleteJobs[]
 }
 
 type YearWeekFormat = `${number}-W${number}`;
@@ -70,11 +47,11 @@ export default function Weeklies() {
         setShouldRefresh(true);
     }, [week]);
 
-    trpc.useQuery(["jobs.getByWeek", {week: week, forDaily: false}], {
+    trpc.useQuery(["weeklies.getByWeek", {week: week}], {
         enabled: shouldRefresh,
         onSuccess(data) {
             setData(data ?? []);
-            console.log(data);
+            console.log('DATAA', data);
             setLoading(false);
             setShouldRefresh(false);
         },
@@ -247,8 +224,10 @@ export default function Weeklies() {
                     <hr style={{height: 1, width: "100%"}}/>
                 </Grid2>
 
-                {data.map((customer: CustomerSheet, index: number) => (
-                    <WeeklySheet key={'sheet-' + index} customer={customer} week={week} forceExpand={forceExpand}/>
+                {data.map((weekly: CustomerSheet, index: number) => (
+                    <>
+                        {weekly.Jobs.length > 0 && <WeeklySheet key={'sheet-' + index} weekly={weekly} week={week} forceExpand={forceExpand}/>}
+                    </>
                 ))}
                 {/* <EnhancedTableToolbar
             numSelected={selected.length}
