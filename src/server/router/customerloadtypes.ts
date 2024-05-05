@@ -32,7 +32,7 @@ export const customerLoadTypesRouter = createRouter()
     })
     .mutation('put', {
         // validate input with Zod
-        input: CustomerLoadTypesModel.omit({ID: true, Deleted: true}),
+        input: CustomerLoadTypesModel.omit({ID: true}),
         async resolve({ctx, input}) {
             // use your ORM of choice
             return ctx.prisma.customerLoadTypes.create({

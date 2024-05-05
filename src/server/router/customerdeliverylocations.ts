@@ -33,7 +33,7 @@ export const customerDeliveryLocationsRouter = createRouter()
     })
     .mutation('put', {
         // validate input with Zod
-        input: CustomerDeliveryLocationsModel.omit({ID: true, Deleted: true}),
+        input: CustomerDeliveryLocationsModel.omit({ID: true}),
         async resolve({ctx, input}) {
             // use your ORM of choice
             return ctx.prisma.customerDeliveryLocations.create({
