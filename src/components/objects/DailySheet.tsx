@@ -40,6 +40,8 @@ const DailySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: stri
         setIsOpen(forceExpand)
     }, [forceExpand])
 
+    const [daily, setDaily] = useState<DriverSheet>(sheet);
+
     return (
         <div style={{padding: 5}}>
             <Grid2 container columnSpacing={2}>
@@ -68,10 +70,13 @@ const DailySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: stri
                 </Grid2>
                 <Grid2 xs={"auto"} sx={{display: "flex"}}>
                     <b style={{fontSize: 18, marginLeft: 3}}>
-                        {sheet.Drivers.FirstName} {sheet.Drivers.LastName}
+                        {daily.Drivers.FirstName} {daily.Drivers.LastName}
                     </b>
                 </Grid2>
                 <Grid2 xs={true}></Grid2>
+                {daily.LastPrinted && <Grid2 xs={"auto"} sx={{display: 'grid', alignItems: 'center'}}>
+                    Last Printed: {moment(daily.LastPrinted).format('MM/DD h:mm A')}
+                </Grid2>}
                 <Grid2 xs={"auto"} sx={{paddingRight: 2}}>
                     <Button
                         variant="contained"
@@ -80,15 +85,12 @@ const DailySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: stri
                         onClick={async () => {
                             toast("Generating PDF...", {autoClose: 2000, type: "info"});
                             const element = document.createElement("a");
-                            element.href = `/api/getPDF/daily/${sheet.ID}|${week}`;
+                            element.href = `/api/getPDF/daily/${daily.ID}|${week}`;
                             element.download = "daily-download.pdf";
                             document.body.appendChild(element);
                             element.click();
                             document.body.removeChild(element);
-                            // await printInvoice.mutateAsync({
-                            //     ...initialInvoice,
-                            //     selected: [],
-                            // });
+                            setDaily({...daily, LastPrinted: new Date})
                         }}
                     >
                         Print Week
@@ -103,9 +105,9 @@ const DailySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: stri
                 }}
             >
                 <HeaderRow/>
-                {sheet.Jobs?.map(
+                {daily.Jobs?.map(
                     (job: CompleteJobs) =>
-                        <Job job={job} key={"job-" + job.ID} ownerOperator={sheet.Drivers.OwnerOperator}/>
+                        <Job job={job} key={"job-" + job.ID} ownerOperator={daily.Drivers.OwnerOperator}/>
                 )}
             </div>
         </div>
@@ -120,7 +122,7 @@ const Job = ({job, ownerOperator}: { job: CompleteJobs, ownerOperator: boolean }
     let weightSum = 0;
     return (
         <div key={"job-" + job.ID}>
-            {jobState.Loads.map((load, index) => {
+            {jobState.Loads.sort((a, b) => a.StartDate.getTime() - b.StartDate.getTime()).map((load, index) => {
                 weightSum += load.Weight ? load.Weight : load.Hours ? load.Hours : 0;
                 weightSum = Math.round(weightSum * 100) / 100
                 return (
@@ -353,6 +355,7 @@ const TotalsRow = ({
                         variant={'standard'}
                         value={jobState.CompanyRevenue !== null ? jobState.CompanyRevenue : (Math.round(weightSum * (load.TotalRate ? load.TotalRate : 0) * 100) / 100)}
                         onChange={(e) => {
+                            setIsClosed(false)
                             let value = 0;
                             if (e.currentTarget?.value) {
                                 value = parseFloat(e.currentTarget.value)

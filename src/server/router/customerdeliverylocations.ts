@@ -58,7 +58,6 @@ export const customerDeliveryLocationsRouter = createRouter()
         input: CustomerDeliveryLocationsModel,
         async resolve({ctx, input}) {
             const {CustomerID, DeliveryLocationID} = input;
-            console.log('INPUT', input)
             // use your ORM of choice
             return await ctx.prisma.customerDeliveryLocations.deleteMany({where: {
                 AND: [

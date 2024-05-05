@@ -43,6 +43,8 @@ export interface CompleteLoads extends z.infer<typeof LoadsModel> {
  *
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
 export const RelatedLoadsModel: z.ZodSchema<CompleteLoads> = z.lazy(() => LoadsModel.extend({
   Customers: RelatedCustomersModel,
   DeliveryLocations: RelatedDeliveryLocationsModel.nullish(),

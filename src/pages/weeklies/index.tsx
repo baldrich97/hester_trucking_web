@@ -19,16 +19,14 @@ import {
     WeekliesModel,
     LoadsModel,
     LoadTypesModel,
-    TrucksModel
+    TrucksModel, CompleteWeeklies, CompleteCustomers, CompleteDeliveryLocations, CompleteLoadTypes
 } from "../../../prisma/zod";
 
-type Weekly = z.infer<typeof WeekliesModel>;
-
-type Customer = z.infer<typeof CustomersModel>;
-
-interface CustomerSheet extends Weekly {
-    Customers: Customer,
-    Jobs: CompleteJobs[]
+interface CustomerSheet extends CompleteWeeklies {
+    Customers: CompleteCustomers,
+    Jobs: CompleteJobs[],
+    DeliveryLocations: CompleteDeliveryLocations,
+    LoadTypes: CompleteLoadTypes
 }
 
 type YearWeekFormat = `${number}-W${number}`;

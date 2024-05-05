@@ -54,6 +54,8 @@ const WeeklySheet = ({
         setIsOpen(forceExpand)
     }, [forceExpand])
 
+    const [sheet, setSheet] = useState<CustomerSheet>(weekly);
+
     return (
         <div style={{padding: 5}}>
             <Grid2 container columnSpacing={2}>
@@ -82,10 +84,13 @@ const WeeklySheet = ({
                 </Grid2>
                 <Grid2 xs={"auto"} sx={{display: "flex"}}>
                     <b style={{fontSize: 18, marginLeft: 3}}>
-                        {weekly.Customers.Name}
+                        {sheet.Customers.Name}
                     </b>
                 </Grid2>
                 <Grid2 xs={true}></Grid2>
+                {sheet.LastPrinted && <Grid2 xs={"auto"} sx={{display: 'grid', alignItems: 'center'}}>
+                    Last Printed: {moment(sheet.LastPrinted).format('MM/DD h:mm A')}
+                </Grid2>}
                 <Grid2 xs={"auto"} sx={{paddingRight: 2}}>
                     <Button
                         variant="contained"
@@ -94,15 +99,12 @@ const WeeklySheet = ({
                         onClick={async () => {
                             toast("Generating PDF...", {autoClose: 2000, type: "info"});
                             const element = document.createElement("a");
-                            element.href = `/api/getPDF/daily/${weekly.ID}|${week}`;
-                            element.download = "daily-download.pdf";
+                            element.href = `/api/getPDF/weekly/${sheet.ID}|${week}`;
+                            element.download = "weekly-download.pdf";
                             document.body.appendChild(element);
                             element.click();
                             document.body.removeChild(element);
-                            // await printInvoice.mutateAsync({
-                            //     ...initialInvoice,
-                            //     selected: [],
-                            // });
+                            setSheet({...weekly, LastPrinted: new Date})
                         }}
                     >
                         Print Week
@@ -114,9 +116,9 @@ const WeeklySheet = ({
                     overflow: "hidden",
                     height: isOpen ? "auto" : 0,
                     paddingBottom: 10,
-                }} className={'weekly-sheets-container-' + weekly.ID}
+                }} className={'weekly-sheets-container-' + sheet.ID}
             >
-                <Sheet weekly={weekly} key={"sheet-" + weekly.ID} week={week}/>
+                <Sheet weekly={sheet} key={"sheet-" + sheet.ID} week={week}/>
             </div>
         </div>
     );
@@ -210,7 +212,7 @@ const TotalsRow = ({
         >
             <b style={{width: 70, display: 'grid', alignItems: 'center', justifyItems: 'center'}}>
                 <Tooltip
-                    title={isClosed ? 'Mark this job as paid out.' : 'Save the revenue for this weekly.'}>
+                    title={isClosed ? 'Revenue already saved.' : 'Save the revenue for this weekly.'}>
                     <span>
                         <Button
                             variant="contained"
@@ -221,7 +223,7 @@ const TotalsRow = ({
                             onClick={async () => {
                                 confirmAlert({
                                     title: "Confirm Weekly Closure",
-                                    message: "This will close the weekly. Any future loads similar to this weekly will be on their own weekly. This weekly will now be available for invoice. This cannot be undone, are you sure?",
+                                    message: "This will close the weekly. Any future loads similar to this weekly will be on their own weekly. This cannot be undone, are you sure?",
                                     buttons: [
                                         {
                                             label: "Yes",
@@ -283,7 +285,7 @@ const TotalsRow = ({
             >
 
 
-                <b style={{fontSize: 17}}>{weightSum}</b>
+                <b style={{fontSize: 17}}>{Math.round(weightSum * 100) / 100}</b>
 
 
             </Grid2>
@@ -297,6 +299,7 @@ const TotalsRow = ({
                     sx={{paddingLeft: 1, fontWeight: 'bolder'}}
                     value={weekly.Revenue !== null ? weekly.Revenue : (Math.round(weightSum * (weekly.CompanyRate ? weekly.CompanyRate : 0) * 100) / 100)}
                     onChange={(e) => {
+                        setIsClosed(false)
                         let value = 0;
                         if (e.currentTarget?.value) {
                             const str = e.currentTarget.value.replace(/[^0-9.]/g, '')

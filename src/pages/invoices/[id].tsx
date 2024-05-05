@@ -14,14 +14,14 @@ const Invoice = ({
   initialInvoice,
   loads,
   customers,
-  invoices,
-    weeklies
+  invoices = [],
+    weeklies = []
 }: {
   initialInvoice: InvoicesType;
   loads: LoadsType[];
   customers: CustomersType[];
-  invoices: InvoicesType[] | null;
-  weeklies: WeekliesType[] | null;
+  invoices: InvoicesType[] | [];
+  weeklies: WeekliesType[] | [];
 }) => {
   return (
     <InvoiceObject
@@ -78,21 +78,24 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   const weeklies = await prisma.weeklies.findMany({
     where: {
-      InvoiceID: initialInvoice.ID
+      InvoiceID: initialInvoice.ID,
+      NOT: {
+        Revenue: null
+      }
     },
     include: {
       Jobs: {
         include: {
+          Drivers: true,
           Loads: {
             include: {
-              LoadTypes: true,
-              DeliveryLocations: true,
-              Drivers: true,
               Trucks: true
             }
           }
         }
-      }
+      },
+      DeliveryLocations: true,
+      LoadTypes: true
     }
   })
 

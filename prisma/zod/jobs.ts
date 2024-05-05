@@ -15,6 +15,8 @@ export const JobsModel = z.object({
   DeliveryLocationID: z.number().int(),
   WeeklyID: z.number().int(),
   DailyID: z.number().int(),
+  MaterialRate: z.number(),
+  DriverRate: z.number(),
 })
 
 export interface CompleteJobs extends z.infer<typeof JobsModel> {

@@ -224,7 +224,7 @@ export const loadsRouter = createRouter()
         // validate input with Zod
         input: LoadsModel.omit({ID: true, Deleted: true}),
         async resolve({ctx, input}) {
-            const {DriverID, TruckID, StartDate, CustomerID, LoadTypeID, DeliveryLocationID, TruckRate, MaterialRate, Week} = input;
+            const {DriverID, TruckID, StartDate, CustomerID, LoadTypeID, DeliveryLocationID, TruckRate, MaterialRate, Week, TotalRate, DriverRate} = input;
 
             if (!DriverID) {
                 throw new TRPCError({
@@ -259,17 +259,21 @@ export const loadsRouter = createRouter()
                 }
             })
 
-            if (daily) {
-                let weekly = await ctx.prisma.weeklies.findFirst({
-                    where: {
-                        CustomerID: CustomerID,
-                        Week: Week,
-                        DeliveryLocationID: DeliveryLocationID,
-                        LoadTypeID: LoadTypeID,
-                        Revenue: null
-                    }
-                })
+            let weekly = await ctx.prisma.weeklies.findFirst({
+                where: {
+                    CustomerID: CustomerID,
+                    Week: Week,
+                    DeliveryLocationID: DeliveryLocationID,
+                    LoadTypeID: LoadTypeID,
+                    //Revenue: null
+                    //should do this eventually but for now we'll see how it goes
+                }
+            })
 
+
+            if (daily) {
+                //if (!weekly || ((Math.round((weekly.CompanyRate ?? 0) * 100)) / 100) !== ((Math.round((TotalRate ?? 0) * 100)) / 100)) {
+                //should implement this at some point but for now is fine?
                 if (!weekly) {
                     //Create a new weekly with the corresponding info
                     weekly = await ctx.prisma.weeklies.create({
@@ -278,7 +282,7 @@ export const loadsRouter = createRouter()
                             CustomerID: CustomerID,
                             LoadTypeID: LoadTypeID,
                             DeliveryLocationID: DeliveryLocationID,
-                            CompanyRate: TruckRate
+                            CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
                         }
                     })
                 }
@@ -297,20 +301,38 @@ export const loadsRouter = createRouter()
 
                 jobs = jobs.filter((item) => {
                     let shouldReturn = true;
-                    if (MaterialRate) {
-                        const loadTR = (Math.round(MaterialRate * 100)) / 100
+                    if (TruckRate) {
+                        const loadTR = (Math.round(TruckRate * 100)) / 100
                         shouldReturn = item.TruckingRate === loadTR
                     } else {
-                        shouldReturn = MaterialRate === item.TruckingRate ?? 0;
+                        shouldReturn = TruckRate === item.TruckingRate ?? 0;
                     }
                     if (!shouldReturn) {
-                        return;
+                        return false;
                     }
-                    if (TruckRate) {
-                        const loadMR = (Math.round(TruckRate * 100)) / 100
-                        shouldReturn = item.CompanyRate === loadMR
+                    if (MaterialRate) {
+                        const loadMR = (Math.round(MaterialRate * 100)) / 100
+                        shouldReturn = item.MaterialRate === loadMR
                     } else {
-                        shouldReturn = TruckRate === item.CompanyRate ?? 0;
+                        shouldReturn = MaterialRate === item.MaterialRate ?? 0;
+                    }
+                    if (!shouldReturn) {
+                        return false;
+                    }
+                    if (DriverRate) {
+                        const loadDR = (Math.round(DriverRate * 100)) / 100
+                        shouldReturn = item.DriverRate === loadDR
+                    } else {
+                        shouldReturn = DriverRate === item.DriverRate ?? 0;
+                    }
+                    if (!shouldReturn) {
+                        return false;
+                    }
+                    if (TotalRate) {
+                        const loadTR = (Math.round(TotalRate * 100)) / 100
+                        shouldReturn = item.CompanyRate === loadTR
+                    } else {
+                        shouldReturn = TotalRate === item.CompanyRate ?? 0;
                     }
                     return shouldReturn;
                 })
@@ -320,13 +342,15 @@ export const loadsRouter = createRouter()
                 //If a job exists, check if that job has been paidout, if the daily/weekly was printed, and if the weekly has been invoiced and warn accordingly
                 if (job) {
                     if (job.PaidOut) {
-                        //Error here that is has been paid out
+                        //Error here that has been paid out
                     } else if (job.CompanyRevenue || job.TruckingRevenue) {
                         //Error here that the revenues have been overridden and will need to be recalcualted
                     } else if (daily.LastPrinted || weekly.LastPrinted) {
                         //Error here that the daily/weekly has been printed already and needs to be reprinted
                     } else if (weekly.InvoiceID) {
                         //Error here that the weekly has already been invoiced and they should remake the invoice?
+                    } else if (weekly.Revenue !== null) {
+                        //Error here that the weekly has a revenue already
                     }
 
                     //Set JobID to this job
@@ -341,8 +365,10 @@ export const loadsRouter = createRouter()
                             CustomerID: CustomerID,
                             LoadTypeID: LoadTypeID,
                             DeliveryLocationID: DeliveryLocationID,
-                            TruckingRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
-                            CompanyRate: (Math.round((TruckRate ?? 0) * 100)) / 100
+                            TruckingRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
+                            CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
+                            DriverRate: (Math.round((DriverRate ?? 0) * 100)) / 100,
+                            MaterialRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
                         }
                     })
 
@@ -357,25 +383,32 @@ export const loadsRouter = createRouter()
                     }
                 })
 
-                const newWeekly = await ctx.prisma.weeklies.create({
-                    data: {
-                        Week: Week,
-                        CustomerID: CustomerID,
-                        LoadTypeID: LoadTypeID,
-                        DeliveryLocationID: DeliveryLocationID
-                    }
-                })
+                let newWeekly = null;
+
+                if (!weekly) {
+                    newWeekly = await ctx.prisma.weeklies.create({
+                        data: {
+                            Week: Week,
+                            CustomerID: CustomerID,
+                            LoadTypeID: LoadTypeID,
+                            DeliveryLocationID: DeliveryLocationID,
+                            CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
+                        }
+                    })
+                }
 
                 const newJob = await ctx.prisma.jobs.create({
                     data: {
                         DriverID: DriverID,
-                        LoadTypeID: LoadTypeID,
-                        CustomerID: CustomerID,
-                        DeliveryLocationID: DeliveryLocationID,
                         DailyID: newDaily.ID,
-                        WeeklyID: newWeekly.ID,
-                        TruckingRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
-                        CompanyRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
+                        WeeklyID: newWeekly ? newWeekly.ID : weekly?.ID ?? 1,
+                        CustomerID: CustomerID,
+                        LoadTypeID: LoadTypeID,
+                        DeliveryLocationID: DeliveryLocationID,
+                        TruckingRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
+                        CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
+                        DriverRate: (Math.round((DriverRate ?? 0) * 100)) / 100,
+                        MaterialRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
                     }
                 })
 
@@ -412,7 +445,7 @@ export const loadsRouter = createRouter()
         async resolve({ctx, input}) {
             const {ID, ...data} = input;
 
-            const {DriverID, CustomerID, LoadTypeID, DeliveryLocationID, TruckRate, MaterialRate, Week} = input;
+            const {DriverID, CustomerID, LoadTypeID, DeliveryLocationID, TruckRate, MaterialRate, Week, TotalRate, DriverRate} = input;
 
             if (!DriverID) {
                 throw new TRPCError({
@@ -464,7 +497,8 @@ export const loadsRouter = createRouter()
                             Week: Week,
                             CustomerID: CustomerID,
                             LoadTypeID: LoadTypeID,
-                            DeliveryLocationID: DeliveryLocationID
+                            DeliveryLocationID: DeliveryLocationID,
+                            CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
                         }
                     })
                 }
@@ -485,20 +519,38 @@ export const loadsRouter = createRouter()
 
                 jobs = jobs.filter((item) => {
                     let shouldReturn = true;
-                    if (MaterialRate) {
-                        const loadTR = (Math.round(MaterialRate * 100)) / 100
+                    if (TruckRate) {
+                        const loadTR = (Math.round(TruckRate * 100)) / 100
                         shouldReturn = item.TruckingRate === loadTR
                     } else {
-                        shouldReturn = MaterialRate === item.TruckingRate ?? 0;
+                        shouldReturn = TruckRate === item.TruckingRate ?? 0;
                     }
                     if (!shouldReturn) {
-                        return;
+                        return false;
                     }
-                    if (TruckRate) {
-                        const loadMR = (Math.round(TruckRate * 100)) / 100
-                        shouldReturn = item.CompanyRate === loadMR
+                    if (MaterialRate) {
+                        const loadMR = (Math.round(MaterialRate * 100)) / 100
+                        shouldReturn = item.MaterialRate === loadMR
                     } else {
-                        shouldReturn = TruckRate === item.CompanyRate ?? 0;
+                        shouldReturn = MaterialRate === item.MaterialRate ?? 0;
+                    }
+                    if (!shouldReturn) {
+                        return false;
+                    }
+                    if (DriverRate) {
+                        const loadDR = (Math.round(DriverRate * 100)) / 100
+                        shouldReturn = item.DriverRate === loadDR
+                    } else {
+                        shouldReturn = DriverRate === item.DriverRate ?? 0;
+                    }
+                    if (!shouldReturn) {
+                        return false;
+                    }
+                    if (TotalRate) {
+                        const loadTR = (Math.round(TotalRate * 100)) / 100
+                        shouldReturn = item.CompanyRate === loadTR
+                    } else {
+                        shouldReturn = TotalRate === item.CompanyRate ?? 0;
                     }
                     return shouldReturn;
                 })
@@ -515,6 +567,8 @@ export const loadsRouter = createRouter()
                         //Error here that the daily/weekly has been printed already and needs to be reprinted
                     } else if (weekly.InvoiceID) {
                         //Error here that the weekly has already been invoiced and they should remake the invoice?
+                    } else if (weekly.Revenue !== null) {
+                        //Error here that the weekly has a revenue already
                     }
 
                     //Set JobID to this job
@@ -529,8 +583,10 @@ export const loadsRouter = createRouter()
                             CustomerID: CustomerID,
                             LoadTypeID: LoadTypeID,
                             DeliveryLocationID: DeliveryLocationID,
-                            TruckingRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
-                            CompanyRate: (Math.round((TruckRate ?? 0) * 100)) / 100
+                            TruckingRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
+                            CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
+                            DriverRate: (Math.round((DriverRate ?? 0) * 100)) / 100,
+                            MaterialRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
                         }
                     })
 
@@ -550,20 +606,23 @@ export const loadsRouter = createRouter()
                         Week: Week,
                         CustomerID: CustomerID,
                         LoadTypeID: LoadTypeID,
-                        DeliveryLocationID: DeliveryLocationID
+                        DeliveryLocationID: DeliveryLocationID,
+                        CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
                     }
                 })
 
                 const newJob = await ctx.prisma.jobs.create({
                     data: {
                         DriverID: DriverID,
-                        LoadTypeID: LoadTypeID,
-                        CustomerID: CustomerID,
-                        DeliveryLocationID: DeliveryLocationID,
                         DailyID: newDaily.ID,
                         WeeklyID: newWeekly.ID,
-                        TruckingRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
-                        CompanyRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
+                        CustomerID: CustomerID,
+                        LoadTypeID: LoadTypeID,
+                        DeliveryLocationID: DeliveryLocationID,
+                        TruckingRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
+                        CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
+                        DriverRate: (Math.round((DriverRate ?? 0) * 100)) / 100,
+                        MaterialRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
                     }
                 })
 

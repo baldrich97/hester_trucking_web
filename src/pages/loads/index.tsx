@@ -112,7 +112,6 @@ const Loads = ({
     {
       enabled: shouldRefresh,
       onSuccess(data) {
-        console.log(data)
         setNewData(JSON.parse(JSON.stringify(data)));
         setShouldRefresh(false);
       },

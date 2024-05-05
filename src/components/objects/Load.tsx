@@ -504,7 +504,6 @@ function Load({
     },
   ];
 
-  console.log(errors)
 
   return (
     <>

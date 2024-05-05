@@ -46,7 +46,6 @@ export default function Dailies() {
         enabled: shouldRefresh,
         onSuccess(data) {
             setData(data ?? []);
-            console.log(data);
             setLoading(false);
             setShouldRefresh(false);
         },

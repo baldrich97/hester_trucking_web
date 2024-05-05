@@ -54,7 +54,6 @@ const Customers = ({states, customers, count}: {states: StatesType[], customers:
     trpc.useQuery(['customers.search', {search, page, orderBy, order}], {
         enabled: shouldSearch,
         onSuccess(data) {
-            console.log(data)
             setData(data);
             setShouldSearch(false);
         },

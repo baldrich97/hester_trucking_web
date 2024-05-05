@@ -42,6 +42,38 @@ export const weekliesRouter = createRouter()
             })
         },
     })
+    .query('getByCustomer', {
+        input: z.object({
+            customer: z.number()
+        }),
+        async resolve({ctx, input}) {
+            return ctx.prisma.weeklies.findMany({
+                where: {
+                    CustomerID: input.customer,
+                    InvoiceID: null,
+                    NOT: {
+                        Revenue: null
+                    }
+                },
+                include: {
+                    Jobs: {
+                        include: {
+                            Drivers: true,
+                            Loads: {
+                                include: {
+                                    Drivers: true,
+                                    Trucks: true
+                                }
+                            }
+                        }
+                    },
+                    DeliveryLocations: true,
+                    LoadTypes: true
+                }
+            })
+
+        }
+    })
 // .query('get', {
 //     input: z.object({
 //         ID: z.number()

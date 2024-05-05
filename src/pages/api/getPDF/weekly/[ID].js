@@ -1,6 +1,6 @@
 import { promisify } from "util";
 import stream from 'stream';
-import DailySheetFull from "../../../../components/objects/DailySheetFull";
+import WeeklySheetFull from "../../../../components/objects/WeeklySheetFull";
 import {prisma} from "../../../../server/db/client";
 import {renderToStream} from "@react-pdf/renderer";
 import moment from "moment";
@@ -16,7 +16,9 @@ const handler = async (req, res) => {
 
     const input = {week: ID.split('|')[1], sheet: ID.split('|')[0]}
 
-    await prisma.dailies.update({
+    const week = moment(input.week).format("l") + " - " + moment(input.week).add(6, "days").format("l")
+
+    await prisma.weeklies.update({
         where: {
             ID: parseInt(input.sheet)
         }, data: {
@@ -24,13 +26,23 @@ const handler = async (req, res) => {
         }
     })
 
-    const week = moment(input.week).format("l") + " - " + moment(input.week).add(6, "days").format("l")
-
     processLoads(input)
         .then(async (sheet) => {
-            const stream = await renderToStream(<DailySheetFull sheet={sheet} week={week}/>)
+            const sums = [];
+
+            await Promise.all(sheet.Jobs.map((job) => {
+                for (let i = 0; i < 7; i++) {
+                    sums[i] = sums[i] ?? 0
+                    sums[i] += job.Loads.filter((item) => moment(item.StartDate).format("MM/DD") === moment(input.week).add(i, "days").format("MM/DD")).reduce((acc, obj) => {
+                        return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
+                    }, 0)
+                }
+                return true;
+            }))
+
+            const stream = await renderToStream(<WeeklySheetFull sheet={sheet} displayWeek={week} week={input.week} sums={sums}/>)
             res.setHeader('Content-Type', 'application/pdf');
-            const filename = "DailySheet-" + 4;
+            const filename = "WeeklySheet-" + 4;
             res.setHeader('Content-Disposition', `attachment; filename=${filename}.pdf`);
             await pipeline(stream, res);
         })
@@ -44,21 +56,24 @@ export default handler;
 const processLoads = async (input) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const sheet = await prisma.dailies.findUnique({
+            const sheet = await prisma.weeklies.findUnique({
                 where: {
                     ID: parseInt(input.sheet)
                 },
                 include: {
                     Jobs: {
                         include: {
-                            Loads: true,
-                            Customers: true,
-                            Drivers: true,
-                            DeliveryLocations: true,
-                            LoadTypes: true
+                            Loads: {
+                                include: {
+                                    Trucks: true
+                                }
+                            },
+                            Drivers: true
                         }
                     },
-                    Drivers: true
+                    Customers: true,
+                    LoadTypes: true,
+                    DeliveryLocations: true
                 }
             });
 
