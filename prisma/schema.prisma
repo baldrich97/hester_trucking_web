@@ -9,7 +9,6 @@ generator zod {
   relationModel         = "true"
   modelSuffix           = "Model"
   prismaJsonNullability = "true"
-  imports               = "../src/utils/zodParsers"
   useDecimalJs          = "true"
 }
 
@@ -30,7 +29,7 @@ model CustomerLoadTypes {
   ID            Int       @id @default(autoincrement())
   CustomerID    Int
   LoadTypeID    Int
-  /// @zod.custom(imports.parseDate)
+  /// @zod.custom(z.coerce.date())
   DateDelivered DateTime  @db.Date
   Customers     Customers @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_CustomerLoadTypes_Customer")
   LoadTypes     LoadTypes @relation(fields: [LoadTypeID], references: [ID], onUpdate: Restrict, map: "FK_CustomerLoadTypes_LoadType")
@@ -115,14 +114,14 @@ model Drivers {
 
 model Invoices {
   ID             Int        @id @default(autoincrement())
-  /// @zod.custom(imports.parseDate)
+  /// @zod.custom(z.coerce.date())
   InvoiceDate    DateTime   @db.DateTime(0)
   Number         Int?
   /// @zod.min(1)
   CustomerID     Int
   /// @zod.min(1)
   TotalAmount    Float
-  /// @zod.custom(imports.parseDate)
+  /// @zod.custom(z.coerce.date())
   PaidDate       DateTime?  @db.DateTime(0)
   CheckNumber    String?    @db.VarChar(255)
   Paid           Boolean?   @default(false)
@@ -178,7 +177,7 @@ model TrucksDriven {
   ID         Int      @id @default(autoincrement())
   TruckID    Int
   DriverID   Int
-  /// @zod.custom(imports.parseDate)
+  /// @zod.custom(z.coerce.date())
   DateDriven DateTime @db.Date
   Drivers    Drivers  @relation(fields: [DriverID], references: [ID], onUpdate: Restrict, map: "FK_TrucksDriven_Driver")
   Trucks     Trucks   @relation(fields: [TruckID], references: [ID], onUpdate: Restrict, map: "FK_TrucksDriven_Truck")
@@ -189,21 +188,21 @@ model TrucksDriven {
 
 model Loads {
   ID                 Int                @id @default(autoincrement())
-  /// @zod.custom(imports.parseDate)
+  /// @zod.custom(z.coerce.date())
   StartDate          DateTime           @db.DateTime(0)
-  /// @zod.custom(imports.parseDate)
+  /// @zod.custom(z.coerce.date())
   Created            DateTime           @default(now()) @db.DateTime(0)
-  /// @zod.custom(imports.isNumber)
+  /// @zod.custom(z.coerce.number())
   Weight             Float?
-  /// @zod.custom(imports.isNumber)
+  /// @zod.custom(z.coerce.number())
   Hours              Float?
-  /// @zod.custom(imports.isNumber)
+  /// @zod.custom(z.coerce.number())
   TotalRate          Float?
-  /// @zod.custom(imports.isNumber)
+  /// @zod.custom(z.coerce.number())
   TotalAmount        Float?
-  /// @zod.custom(imports.isNumber)
+  /// @zod.custom(z.coerce.number())
   TruckRate          Float?
-  /// @zod.custom(imports.isNumber)
+  /// @zod.custom(z.coerce.number())
   MaterialRate       Float?
   Received           String?            @db.VarChar(50)
   Notes              String?            @db.VarChar(255)
@@ -243,7 +242,7 @@ model CustomerDeliveryLocations {
   ID                 Int               @id @default(autoincrement())
   CustomerID         Int
   DeliveryLocationID Int
-  /// @zod.custom(imports.parseDate)
+  /// @zod.custom(z.coerce.date())
   DateUsed           DateTime          @db.Date
   Customers          Customers         @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_CustomerDeliveryLocations_Customer")
   DeliveryLocations  DeliveryLocations @relation(fields: [DeliveryLocationID], references: [ID], onUpdate: Restrict, map: "FK_CustomerDeliveryLocations_DeliveryLocation")

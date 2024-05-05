@@ -1,17 +1,16 @@
 import * as z from "zod"
-import * as imports from "../../src/utils/zodParsers"
 import { CompleteCustomers, RelatedCustomersModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteDrivers, RelatedDriversModel, CompleteInvoices, RelatedInvoicesModel, CompleteJobs, RelatedJobsModel, CompleteLoadTypes, RelatedLoadTypesModel, CompleteTrucks, RelatedTrucksModel } from "./index"
 
 export const LoadsModel = z.object({
   ID: z.number().int(),
-  StartDate: imports.parseDate,
-  Created: imports.parseDate,
-  Weight: imports.isNumber.nullish(),
-  Hours: imports.isNumber.nullish(),
-  TotalRate: imports.isNumber.nullish(),
-  TotalAmount: imports.isNumber.nullish(),
-  TruckRate: imports.isNumber.nullish(),
-  MaterialRate: imports.isNumber.nullish(),
+  StartDate: z.coerce.date(),
+  Created: z.coerce.date(),
+  Weight: z.coerce.number().nullish(),
+  Hours: z.coerce.number().nullish(),
+  TotalRate: z.coerce.number().nullish(),
+  TotalAmount: z.coerce.number().nullish(),
+  TruckRate: z.coerce.number().nullish(),
+  MaterialRate: z.coerce.number().nullish(),
   Received: z.string().nullish(),
   Notes: z.string().nullish(),
   TicketNumber: z.number().int(),

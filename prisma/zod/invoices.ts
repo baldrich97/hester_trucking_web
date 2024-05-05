@@ -1,14 +1,13 @@
 import * as z from "zod"
-import * as imports from "../../src/utils/zodParsers"
 import { CompleteCustomers, RelatedCustomersModel, CompleteLoads, RelatedLoadsModel, CompleteWeeklies, RelatedWeekliesModel } from "./index"
 
 export const InvoicesModel = z.object({
   ID: z.number().int(),
-  InvoiceDate: imports.parseDate,
+  InvoiceDate: z.coerce.date(),
   Number: z.number().int().nullish(),
   CustomerID: z.number().int().min(1),
   TotalAmount: z.number().min(1),
-  PaidDate: imports.parseDate.nullish(),
+  PaidDate: z.coerce.date().nullish(),
   CheckNumber: z.string().nullish(),
   Paid: z.boolean().nullish(),
   Printed: z.boolean().nullish(),

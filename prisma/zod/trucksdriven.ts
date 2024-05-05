@@ -1,12 +1,11 @@
 import * as z from "zod"
-import * as imports from "../../src/utils/zodParsers"
 import { CompleteDrivers, RelatedDriversModel, CompleteTrucks, RelatedTrucksModel } from "./index"
 
 export const TrucksDrivenModel = z.object({
   ID: z.number().int(),
   TruckID: z.number().int(),
   DriverID: z.number().int(),
-  DateDriven: imports.parseDate,
+  DateDriven: z.coerce.date(),
 })
 
 export interface CompleteTrucksDriven extends z.infer<typeof TrucksDrivenModel> {
