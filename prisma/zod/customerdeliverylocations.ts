@@ -6,7 +6,7 @@ export const CustomerDeliveryLocationsModel = z.object({
   ID: z.number().int(),
   CustomerID: z.number().int(),
   DeliveryLocationID: z.number().int(),
-  DateUsed: imports.parseDate,
+  DateUsed: z.coerce.date(),
 })
 
 export interface CompleteCustomerDeliveryLocations extends z.infer<typeof CustomerDeliveryLocationsModel> {
@@ -19,8 +19,6 @@ export interface CompleteCustomerDeliveryLocations extends z.infer<typeof Custom
  *
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
 export const RelatedCustomerDeliveryLocationsModel: z.ZodSchema<CompleteCustomerDeliveryLocations> = z.lazy(() => CustomerDeliveryLocationsModel.extend({
   Customers: RelatedCustomersModel,
   DeliveryLocations: RelatedDeliveryLocationsModel,

@@ -4,11 +4,11 @@ import { CompleteCustomers, RelatedCustomersModel, CompleteLoads, RelatedLoadsMo
 
 export const InvoicesModel = z.object({
   ID: z.number().int(),
-  InvoiceDate: imports.parseDate,
+  InvoiceDate: z.coerce.date(),
   Number: z.number().int().nullish(),
   CustomerID: z.number().int().min(1),
   TotalAmount: z.number().min(1),
-  PaidDate: imports.parseDate.nullish(),
+  PaidDate: z.coerce.date().nullish(),
   CheckNumber: z.string().nullish(),
   Paid: z.boolean().nullish(),
   Printed: z.boolean().nullish(),
@@ -29,8 +29,6 @@ export interface CompleteInvoices extends z.infer<typeof InvoicesModel> {
  *
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
 export const RelatedInvoicesModel: z.ZodSchema<CompleteInvoices> = z.lazy(() => InvoicesModel.extend({
   Customers: RelatedCustomersModel,
   Loads: RelatedLoadsModel.array(),

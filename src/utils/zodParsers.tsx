@@ -8,11 +8,4 @@ export const isNumber =  z.preprocess((val) => {
     return val;
 }, z.number()).nullish();
 
-export const parseDate = z.preprocess((val) => {
-    if (val === '') val = new Date();
-
-    if (typeof(val) === 'string') {
-        val = new Date(val);
-    }
-    return val;
-}, z.date())
+export const parseDate = z.preprocess( arg => typeof arg == 'string' ? new Date( arg ) : new Date(), z.date() )
