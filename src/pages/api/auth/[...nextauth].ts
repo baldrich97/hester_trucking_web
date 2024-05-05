@@ -40,6 +40,8 @@ export const authOptions: NextAuthOptions = {
                 password: {label: "Password", type: "password"},
                 organization: {label: "Organization Name", type: "text"}
             },
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             async authorize(credentials: Credentials | undefined) {
                 if (!credentials) {
                     return null;
