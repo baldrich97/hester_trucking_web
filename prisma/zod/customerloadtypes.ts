@@ -6,7 +6,7 @@ export const CustomerLoadTypesModel = z.object({
   ID: z.number().int(),
   CustomerID: z.number().int(),
   LoadTypeID: z.number().int(),
-  DateDelivered: z.coerce.date(),
+  DateDelivered: imports.parseDate,
 })
 
 export interface CompleteCustomerLoadTypes extends z.infer<typeof CustomerLoadTypesModel> {

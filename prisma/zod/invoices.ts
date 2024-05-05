@@ -4,11 +4,11 @@ import { CompleteCustomers, RelatedCustomersModel, CompleteLoads, RelatedLoadsMo
 
 export const InvoicesModel = z.object({
   ID: z.number().int(),
-  InvoiceDate: z.coerce.date(),
+  InvoiceDate: imports.parseDate,
   Number: z.number().int().nullish(),
   CustomerID: z.number().int().min(1),
   TotalAmount: z.number().min(1),
-  PaidDate: z.coerce.date().nullish(),
+  PaidDate: imports.parseDate.nullish(),
   CheckNumber: z.string().nullish(),
   Paid: z.boolean().nullish(),
   Printed: z.boolean().nullish(),
