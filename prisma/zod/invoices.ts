@@ -1,6 +1,6 @@
 import * as z from "zod"
 import * as imports from "../../src/utils/zodParsers"
-import { CompleteCustomers, RelatedCustomersModel, CompleteLoads, RelatedLoadsModel } from "./index"
+import { CompleteCustomers, RelatedCustomersModel, CompleteLoads, RelatedLoadsModel, CompleteWeeklies, RelatedWeekliesModel } from "./index"
 
 export const InvoicesModel = z.object({
   ID: z.number().int(),
@@ -21,6 +21,7 @@ export const InvoicesModel = z.object({
 export interface CompleteInvoices extends z.infer<typeof InvoicesModel> {
   Customers: CompleteCustomers
   Loads: CompleteLoads[]
+  Weeklies: CompleteWeeklies[]
 }
 
 /**
@@ -28,7 +29,10 @@ export interface CompleteInvoices extends z.infer<typeof InvoicesModel> {
  *
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
 export const RelatedInvoicesModel: z.ZodSchema<CompleteInvoices> = z.lazy(() => InvoicesModel.extend({
   Customers: RelatedCustomersModel,
   Loads: RelatedLoadsModel.array(),
+  Weeklies: RelatedWeekliesModel.array(),
 }))

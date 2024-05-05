@@ -5,7 +5,6 @@ import {TrucksModel} from '../../../prisma/zod';
 export const trucksRouter = createRouter()
     .query("getAll", {
         async resolve({ctx}) {
-            console.log('why am i here')
             return ctx.prisma.trucks.findMany({
                 where: {
                     OR: [

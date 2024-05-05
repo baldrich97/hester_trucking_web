@@ -374,22 +374,23 @@ export const invoicesRouter = createRouter()
         async resolve({ctx, input}) {
             // use your ORM of choice
             const {selected, ...rest} = input;
-            const invoicedLoads = await ctx.prisma.loads.findMany({
-                where: {
-                    AND: [
-                        {ID: { in: selected.map((pkey) => parseInt(pkey))}},
-                        {Invoiced: true}
-                    ]
-                },
-                include: {Invoices: true}
-            })
-
-            if (invoicedLoads.length > 0) {
-                throw new TRPCError({
-                    code: 'INTERNAL_SERVER_ERROR',
-                    message: `Load(s) with ticket number ${invoicedLoads.map((item) => item.TicketNumber ?? 'N/A').join(', ')} have already been invoiced in invoice number(s) ${invoicedLoads.map((item) => item.Invoices?.Number ?? 'N/A').join(', ')}.`,
-                })
-            }
+            console.log('SELECTED', selected)
+            // const invoicedWeeklies = await ctx.prisma.weeklies.findMany({
+            //     where: {
+            //         AND: [
+            //             {ID: { in: selected.map((pkey) => parseInt(pkey))}},
+            //             {InvoiceID: null}
+            //         ]
+            //     },
+            //     include: {Invoices: true}
+            // })
+            //
+            // if (invoicedWeeklies.length > 0) {
+            //     throw new TRPCError({
+            //         code: 'INTERNAL_SERVER_ERROR',
+            //         message: `Weekly(ies) with ID's ${invoicedWeeklies.map((item) => item.ID ?? 'N/A').join(', ')} have already been invoiced in invoice number(s) ${invoicedWeeklies.map((item) => item.Invoices?.Number ?? 'N/A').join(', ')}.`,
+            //     })
+            // }
 
             const dupeInvoice = await ctx.prisma.invoices.findMany({where: {Number: input.Number}})
 
@@ -404,16 +405,44 @@ export const invoicesRouter = createRouter()
                 data: rest
             })
 
-            for (const loadPkey of selected) {
-                await ctx.prisma.loads.update({
+            for (const weeklyPkey of selected) {
+                await ctx.prisma.weeklies.update({
                     where: {
-                        ID: parseInt(loadPkey)
+                        ID: parseInt(weeklyPkey)
                     },
                     data: {
-                        Invoiced: true,
                         InvoiceID: returnable.ID
                     }
                 })
+                const job = await ctx.prisma.jobs.findFirst({
+                    where: {
+                        WeeklyID: parseInt(weeklyPkey)
+                    }
+                })
+
+                if (!job) {
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: `Missing job for weekly ${weeklyPkey}.`,
+                    })
+                }
+
+                const loads = await ctx.prisma.loads.findMany({
+                    where: {
+                        JobID: job.ID
+                    }
+                })
+
+                for (const load of loads) {
+                    await ctx.prisma.loads.update({
+                        where: {
+                            ID: load.ID
+                        },
+                        data: {
+                            ...load, Invoiced: true, InvoiceID: returnable.ID
+                        }
+                    })
+                }
             }
 
             return returnable;
@@ -440,7 +469,6 @@ export const invoicesRouter = createRouter()
                         }
                     })
                     if (item) {
-                        console.log('TOTAL', item.TotalAmount)
                         newTotal += (Math.round((item.TotalAmount + Number.EPSILON) * 100) / 100)
                         customerID = item.CustomerID
                     }

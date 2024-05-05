@@ -6,7 +6,7 @@ import TextField from "@mui/material/TextField";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { CustomersModel, InvoicesModel, LoadsModel } from "../../../prisma/zod";
+import {CustomersModel, InvoicesModel, LoadsModel, WeekliesModel} from "../../../prisma/zod";
 import { trpc } from "../../utils/trpc";
 import { useRouter } from "next/router";
 import { FormFieldsType, SelectDataType } from "../../utils/types";
@@ -21,6 +21,7 @@ import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Button from "@mui/material/Button";
 import InvoiceLoads from "../collections/InvoiceLoads";
+import InvoiceWeeklies from "../collections/InvoiceWeeklies";
 import { toast } from "react-toastify";
 import RHAutocomplete from "elements/RHAutocomplete";
 import { confirmAlert } from "react-confirm-alert";
@@ -30,6 +31,7 @@ import ConsolidatedInvoices from "components/collections/ConsolidatedInvoices";
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
+type WeekliesType = z.infer<typeof WeekliesModel>;
 
 const defaultValues = {
   InvoiceDate: new Date(),
@@ -48,14 +50,16 @@ const Invoice = ({
   loads = [],
   initialInvoice = null,
   lastInvoice = 0,
-  invoices = null,
+  invoices = [],
+    weeklies = []
 }: {
   customers: CustomersType[];
   loads?: LoadsType[];
   initialInvoice?: null | InvoicesType;
   refreshData?: any;
   lastInvoice?: number;
-  invoices?: null | InvoicesType[];
+  invoices?: [] | InvoicesType[];
+  weeklies?: [] | WeekliesType[];
 }) => {
   const [customer, setCustomer] = useState(0);
 
@@ -63,7 +67,11 @@ const Invoice = ({
 
   const [shouldFetchLoads, setShouldFetchLoads] = useState(false);
 
+  const [shouldFetchWeeklies, setShouldFetchWeeklies] = useState(false);
+
   const [customerLoads, setCustomerLoads] = useState<any>([]);
+
+  const [customerWeeklies, setCustomerWeeklies] = useState<any>([]);
 
   const [selected, setSelected] = useState<any>(
     !initialInvoice ? [] : loads?.map((load) => load.ID.toString())
@@ -152,6 +160,18 @@ const Invoice = ({
     },
   });
 
+  trpc.useQuery(["weeklies.getByCustomer", { customer }], {
+    enabled: shouldFetchWeeklies,
+    onSuccess(data) {
+      setCustomerWeeklies(data);
+      setShouldFetchWeeklies(false);
+      setValue("TotalAmount", 0);
+    },
+    onError(error) {
+      console.warn(error);
+    },
+  });
+
   const onSubmit = async (data: ValidationSchema) => {
     toast("Submitting...", { autoClose: 2000, type: "info" });
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -161,6 +181,7 @@ const Invoice = ({
       await router.replace(router.asPath);
     }
     setShouldFetchLoads(true);
+    setShouldFetchWeeklies(true);
   };
 
   const deleteInvoice = trpc.useMutation("invoices.delete", {
@@ -181,6 +202,7 @@ const Invoice = ({
         const customerID = value.CustomerID ?? 0;
         setCustomer(customerID);
         setShouldFetchLoads(true);
+        setShouldFetchWeeklies(true)
       } else if (["CustomerID"].includes(name ?? "") && type === "change") {
         const newPaid = value.Paid ?? false;
         setPaid(newPaid);
@@ -533,22 +555,36 @@ const Invoice = ({
         {fields1.map((field, index) => renderFields(field, index))}
 
         <Grid2 xs={12}>
-          {invoices !== null && invoices !== undefined ? (
+          {invoices !== null && invoices !== undefined && invoices.length > 0 ? (
             <ConsolidatedInvoices rows={invoices} />
+          ) : (weeklies !== null && weeklies !== undefined && weeklies.length > 0) || (customerWeeklies !== null && customerWeeklies !== undefined && customerWeeklies.length > 0) ? (
+              <InvoiceWeeklies
+                  readOnly={!!initialInvoice}
+                  rows={weeklies.length > 0 ? weeklies : customerWeeklies}
+                  updateTotal={(newTotal: number) => {
+                    setValue("TotalAmount", newTotal);
+                  }}
+                  updateSelected={(newSelected: string[]) => {
+                    setSelected(newSelected);
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    setValue("selected", newSelected);
+                  }}
+              />
           ) : (
-            <InvoiceLoads
-              readOnly={!!initialInvoice}
-              rows={loads.length > 0 ? loads : customerLoads}
-              updateTotal={(newTotal: number) => {
-                setValue("TotalAmount", newTotal);
-              }}
-              updateSelected={(newSelected: string[]) => {
-                setSelected(newSelected);
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                setValue("selected", newSelected);
-              }}
-            />
+              <InvoiceLoads
+                  readOnly={!!initialInvoice}
+                  rows={loads.length > 0 ? loads : customerLoads}
+                  updateTotal={(newTotal: number) => {
+                    setValue("TotalAmount", newTotal);
+                  }}
+                  updateSelected={(newSelected: string[]) => {
+                    setSelected(newSelected);
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    setValue("selected", newSelected);
+                  }}
+              />
           )}
         </Grid2>
 
@@ -606,7 +642,7 @@ const Invoice = ({
                 onClick={async () => {
                   toast("Generating PDF...", { autoClose: 2000, type: "info" });
                   const element = document.createElement("a");
-                  element.href = "/api/getPDF/" + initialInvoice.ID?.toString();
+                  element.href = "/api/getPDF/invoice/" + initialInvoice.ID?.toString();
                   element.download = "invoice-download.pdf";
                   document.body.appendChild(element);
                   element.click();

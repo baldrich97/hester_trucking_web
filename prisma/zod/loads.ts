@@ -1,11 +1,11 @@
 import * as z from "zod"
 import * as imports from "../../src/utils/zodParsers"
-import { CompleteCustomers, RelatedCustomersModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteDrivers, RelatedDriversModel, CompleteInvoices, RelatedInvoicesModel, CompleteLoadTypes, RelatedLoadTypesModel, CompleteTrucks, RelatedTrucksModel } from "./index"
+import { CompleteCustomers, RelatedCustomersModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteDrivers, RelatedDriversModel, CompleteInvoices, RelatedInvoicesModel, CompleteJobs, RelatedJobsModel, CompleteLoadTypes, RelatedLoadTypesModel, CompleteTrucks, RelatedTrucksModel } from "./index"
 
 export const LoadsModel = z.object({
   ID: z.number().int(),
   StartDate: imports.parseDate,
-  EndDate: imports.parseDate,
+  Created: imports.parseDate,
   Weight: imports.isNumber.nullish(),
   Hours: imports.isNumber.nullish(),
   TotalRate: imports.isNumber.nullish(),
@@ -14,7 +14,7 @@ export const LoadsModel = z.object({
   MaterialRate: imports.isNumber.nullish(),
   Received: z.string().nullish(),
   Notes: z.string().nullish(),
-  TicketNumber: z.number().int().nullish(),
+  TicketNumber: z.number().int(),
   Invoiced: z.boolean().nullish(),
   CustomerID: z.number().int().min(1),
   InvoiceID: z.number().int().min(1).nullish(),
@@ -23,6 +23,9 @@ export const LoadsModel = z.object({
   TruckID: z.number().int().nullish(),
   DriverID: z.number().int().nullish(),
   Deleted: z.boolean().nullish(),
+  JobID: z.number().int().nullish(),
+  Week: z.string(),
+  DriverRate: z.number().nullish(),
 })
 
 export interface CompleteLoads extends z.infer<typeof LoadsModel> {
@@ -30,6 +33,7 @@ export interface CompleteLoads extends z.infer<typeof LoadsModel> {
   DeliveryLocations?: CompleteDeliveryLocations | null
   Drivers?: CompleteDrivers | null
   Invoices?: CompleteInvoices | null
+  Jobs?: CompleteJobs | null
   LoadTypes?: CompleteLoadTypes | null
   Trucks?: CompleteTrucks | null
 }
@@ -39,11 +43,14 @@ export interface CompleteLoads extends z.infer<typeof LoadsModel> {
  *
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
 export const RelatedLoadsModel: z.ZodSchema<CompleteLoads> = z.lazy(() => LoadsModel.extend({
   Customers: RelatedCustomersModel,
   DeliveryLocations: RelatedDeliveryLocationsModel.nullish(),
   Drivers: RelatedDriversModel.nullish(),
   Invoices: RelatedInvoicesModel.nullish(),
+  Jobs: RelatedJobsModel.nullish(),
   LoadTypes: RelatedLoadTypesModel.nullish(),
   Trucks: RelatedTrucksModel.nullish(),
 }))

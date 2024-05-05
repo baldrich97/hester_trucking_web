@@ -19,7 +19,7 @@ export type FormFieldsType = {
   label?: string;
   required: boolean;
   errorMessage?: string;
-  type: "textfield" | "select" | "checkbox" | "date" | "padding";
+  type: "textfield" | "select" | "checkbox" | "date" | "padding" | "week";
   shouldErrorOn?: string[];
   multiline?: boolean;
   maxRows?: number;

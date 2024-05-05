@@ -19,8 +19,8 @@ const styles = StyleSheet.create({
         display: 'flex',
         alignItems: 'center',
         textAlign: 'center',
-        paddingLeft: 2,
-        paddingRight: 2
+        paddingLeft: 1,
+        paddingRight: 1
     }
 });
 

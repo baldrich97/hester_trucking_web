@@ -3,11 +3,12 @@ import Grid2 from "@mui/material/Unstable_Grid2";
 import RHTextfield from "./RHTextfield";
 import RHSelect from "./RHSelect";
 import RHDatePicker from "./RHDatePicker";
-import { Control } from "react-hook-form";
+import {Control, Controller} from "react-hook-form";
 import Button from "@mui/material/Button";
 import { FormFieldsType, SelectDataType } from "../utils/types";
 import RHCheckbox from "./RHCheckbox";
 import RHAutocomplete from "./RHAutocomplete";
+import TextField from "@mui/material/TextField";
 
 const GenericForm = ({
   errors = [],
@@ -108,6 +109,26 @@ const GenericForm = ({
                   label={field.label}
                 />
               </Grid2>
+            );
+          }
+          case "week": {
+            return (
+                <Grid2
+                    xs={field.size}
+                    key={"form-" + index.toString() + "-" + field.name + "-grid"}
+                >
+                  <RHDatePicker
+                      name={field.name}
+                      control={control}
+                      required={field.required}
+                      shouldError={field.shouldErrorOn?.includes(
+                          errors[field.name]?.type
+                      )}
+                      errorMessage={field.errorMessage}
+                      label={field.label}
+                      week={true}
+                  />
+                </Grid2>
             );
           }
           case "checkbox": {

@@ -33,10 +33,15 @@ import {
   CustomerLoadTypes,
   TrucksDriven,
 } from "@prisma/client";
+import {formatDateToWeek} from "../../utils/UtilityFunctions";
+
+const date = new Date();
+const defaultWeek = formatDateToWeek(date);
 
 const defaultValues = {
   StartDate: new Date(),
-  EndDate: new Date(),
+  Created: new Date(),
+  Week: defaultWeek,
   CustomerID: undefined,
   LoadTypeID: null,
   DeliveryDescriptionID: null,
@@ -46,9 +51,10 @@ const defaultValues = {
   TotalAmount: undefined,
   TotalRate: undefined,
   TruckRate: undefined,
+  DriverRate: undefined,
   Weight: undefined,
   MaterialRate: undefined,
-  TicketNumber: 0,
+  TicketNumber: undefined,
   onReset: false,
 };
 
@@ -106,6 +112,14 @@ function Load({
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       initialLoad && reset(data);
+    },
+    async onError(error) {
+      toast(
+        "There was an issue creating or updating this load. The issue was: " +
+          error.message,
+        { autoClose: 100000, type: "error" }
+      );
+      return;
     },
   });
 
@@ -200,7 +214,6 @@ function Load({
 
   React.useEffect(() => {
     const subscription = watch((value, { name, type }) => {
-      console.log(value, name, type);
       if (
         ["MaterialRate", "TruckRate", "Hours", "Weight"].includes(name ?? "") &&
         type === "change"
@@ -223,6 +236,11 @@ function Load({
           ) / 100
         );
       }
+
+      if (name === "TruckRate") {
+        setValue("DriverRate", value.TruckRate ?? 0)
+      }
+
       if (name === "TotalRate") {
         const hours = value.Hours ?? 0;
         const weight = value.Weight ?? 0;
@@ -255,9 +273,6 @@ function Load({
         } else {
           tdsetData([]);
         }
-      }
-      if (name === "StartDate" && value.StartDate) {
-        setValue("EndDate", value.StartDate);
       }
     });
 
@@ -298,22 +313,24 @@ function Load({
       size: 4,
       required: false,
       type: "date",
-      label: "Start Date",
-    },
-    {
-      name: "EndDate",
-      size: 4,
-      required: false,
-      type: "date",
-      label: "End Date",
+      label: "Delivered On",
     },
     {
       name: "TicketNumber",
-      required: false,
+      required: true,
       type: "textfield",
+      shouldErrorOn: ['invalid_type'],
+      errorMessage: 'Ticket number is required.',
       size: 4,
       number: true,
       label: "Ticket Number",
+    },
+    {
+      name: "Week",
+      size: 4,
+      required: false,
+      type: "week",
+      label: "Daily Week",
     },
     {
       name: "DriverID",
@@ -389,14 +406,22 @@ function Load({
       number: true,
       disabled: !!(watchWeight && watchWeight > 0),
     },
-    { name: "Received", size: 6, required: false, type: "textfield" },
+    { name: "Received", size: 3, required: false, type: "textfield" },
+    {
+      name: "DriverRate",
+      required: false,
+      type: "textfield",
+      size: 3,
+      number: true,
+      label: "Driver Rate",
+    },
     {
       name: "TotalRate",
       required: false,
       type: "textfield",
       size: 3,
       number: true,
-      label: "Total Rate",
+      label: "Company Rate",
     },
     {
       name: "TotalAmount",
@@ -478,6 +503,7 @@ function Load({
       defaultValue: initialLoad ? initialLoad.DriverID : null,
     },
   ];
+
 
   return (
     <>

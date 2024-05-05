@@ -13,6 +13,9 @@ import {customerLoadTypesRouter} from './customerloadtypes';
 import {customerDeliveryLocationsRouter} from './customerdeliverylocations';
 import {statesRouter} from './states';
 import {trucksDrivenRouter} from './trucksdriven';
+import {dailiesRouter} from './dailies';
+import {weekliesRouter} from './weeklies';
+import {jobsRouter} from './jobs';
 import {protectedExampleRouter} from "./protected-example-router";
 
 export const appRouter = createRouter()
@@ -28,6 +31,9 @@ export const appRouter = createRouter()
     .merge("loads.", loadsRouter)
     .merge("states.", statesRouter)
     .merge("trucksdriven.", trucksDrivenRouter)
+    .merge("dailies.", dailiesRouter)
+    .merge("weeklies.", weekliesRouter)
+    .merge("jobs.", jobsRouter)
     .merge("auth.", protectedExampleRouter);
 
 // export type definition of API
