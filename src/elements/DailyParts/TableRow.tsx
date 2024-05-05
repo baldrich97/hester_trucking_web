@@ -76,7 +76,7 @@ const TableRow = ({job}: {job: CompleteJobs}) => {
                 <Text style={{width: '10.5%', textAlign: 'center', ...styles.padding, ...styles.text, paddingRight: 5}}></Text>
                 <Text style={{width: '10.5%', textAlign: 'center', ...styles.padding, ...styles.text, paddingRight: 5}}></Text>
                 <Text style={{width: '10.5%', textAlign: 'center', ...styles.padding, ...styles.text, paddingRight: 5}}></Text>
-                <Text style={{width: '10.5%', textAlign: 'center', ...styles.padding, ...styles.text, paddingRight: 5, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', fontSize: 15}}>{weight}</Text>
+                <Text style={{width: '10.5%', textAlign: 'center', ...styles.padding, ...styles.text, paddingRight: 5, display: 'flex', justifyContent: 'center', alignItems: 'flex-end', fontSize: 15}}>{(Math.round(weight * 100) / 100)}</Text>
                 <Text style={{width: '15%', textAlign: 'center', ...styles.padding, ...styles.text, fontSize: 13, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end'}}>
                     ${job.CompanyRevenue ? job.CompanyRevenue : (Math.round(weight * (job?.Loads[0]?.TotalRate ? job?.Loads[0]?.TotalRate : 0) * 100) / 100)}</Text>
                 <Text style={{width: '15%', textAlign: 'center', ...styles.padding, ...styles.text, fontSize: 13, borderRight: 0, display: 'flex', justifyContent: 'flex-end', alignItems: 'flex-end'}}>
