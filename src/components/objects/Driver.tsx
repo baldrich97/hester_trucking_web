@@ -26,7 +26,8 @@ const defaultValues = {
     Phone: '',
     Email: '',
     HireDate: '',
-    Notes: ''
+    Notes: '',
+    OwnerOperator: false
 };
 
 
@@ -42,6 +43,7 @@ const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDr
         resolver: zodResolver(validationSchema),
         defaultValues: initialDriver ?? defaultValues
     });
+
     const key = initialDriver ? 'drivers.post' : 'drivers.put';
 
     const addOrUpdateDriver = trpc.useMutation(key, {
@@ -70,8 +72,9 @@ const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDr
         {name: 'DOB', size: 4, required: false, shouldErrorOn: ['invalid_type'], errorMessage: 'DOB is required.', type: 'date'},
         {name: 'License', size: 4, required: false, type: 'textfield'},
         {name: 'Phone', size: 4, required: false, type: 'textfield'},
-        {name: 'Email', size: 6, required: false, type: 'textfield', shouldErrorOn: ['invalid_string'], errorMessage: 'Please enter a valid email.'},
-        {name: 'HireDate', size: 6, label: 'Hire Date', required: false, type: 'textfield'},
+        {name: 'Email', size: 4, required: false, type: 'textfield', shouldErrorOn: ['invalid_string'], errorMessage: 'Please enter a valid email.'},
+        {name: 'HireDate', size: 4, label: 'Hire Date', required: false, type: 'textfield'},
+        {name: "O. Operator", size: 4, required: false, type: "checkbox", disabled: false},
         {name: 'Notes', size: 12, required: false, type: 'textfield', multiline: true},
     ]
 

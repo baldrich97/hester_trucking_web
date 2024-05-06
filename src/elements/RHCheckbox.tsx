@@ -3,7 +3,8 @@ import {Control, Controller} from "react-hook-form";
 import Checkbox from "@mui/material/Checkbox";
 import FormHelperText from "@mui/material/FormHelperText"
 import FormControl from "@mui/material/FormControl"
-import InputLabel from "@mui/material/InputLabel"
+import FormControlLabel from '@mui/material/FormControlLabel';
+
 
 const RHCheckbox = ({ name, control, required = false, defaultValue = false, shouldError = false, errorMessage = '', label = name, disabled = false}: {name: string, control: Control<any>, required?: boolean, defaultValue?: boolean, shouldError?: boolean, errorMessage?: string, label?: string, disabled?: boolean}) => {
     return (
@@ -13,7 +14,10 @@ const RHCheckbox = ({ name, control, required = false, defaultValue = false, sho
             rules={{required: required}}
             defaultValue={defaultValue}
             render={({ field }) =>  <FormControl fullWidth={true} error={shouldError} size={'small'}>
-                <InputLabel id={label + "-label"}>{label}</InputLabel><Checkbox {...field} checked={field.value} disabled={disabled}/>{shouldError && <FormHelperText>{errorMessage}</FormHelperText>}
+                <FormControlLabel
+                    label={label}
+                    control={<Checkbox {...field} checked={field.value} disabled={disabled} />}
+                />{shouldError && <FormHelperText>{errorMessage}</FormHelperText>}
             </FormControl>}
         />
     )

@@ -35,8 +35,8 @@ import {
 } from "@prisma/client";
 import {formatDateToWeek} from "../../utils/UtilityFunctions";
 
-const date = new Date();
-const defaultWeek = formatDateToWeek(date);
+const today = new Date();
+const defaultWeek = formatDateToWeek(new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000));
 
 const defaultValues = {
   StartDate: new Date(),
