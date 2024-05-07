@@ -89,7 +89,7 @@ const TotalsRow = ({sums, revenue, rate}: { sums: any, revenue: number, rate: nu
                     textAlign: 'center', ...styles.padding, ...styles.text,
                     fontSize: 12,
                     borderRight: 2
-                }}>{day === 'weight' ? (Math.round(weightSum * 100) / 100) : day === 'total' ? revenue ? revenue : (Math.round((weightSum * rate) * 100) / 100) : sums[index]}</Text>
+                }}>{day === 'weight' ? (Math.round(weightSum * 100) / 100) : day === 'total' ? revenue ? revenue : (Math.round((weightSum * rate) * 100) / 100) : (Math.round(sums[index] * 100) / 100)}</Text>
             )}
         </View>
     )
