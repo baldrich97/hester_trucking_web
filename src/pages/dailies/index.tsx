@@ -38,6 +38,7 @@ export default function Dailies() {
     const [data, setData] = React.useState<any>([]);
 
     React.useEffect(() => {
+        setData([])
         setLoading(true);
         setShouldRefresh(true);
     }, [week]);

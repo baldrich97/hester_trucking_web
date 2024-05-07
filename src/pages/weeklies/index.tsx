@@ -42,6 +42,7 @@ export default function Weeklies() {
 
     React.useEffect(() => {
         setLoading(true);
+        setData([]);
         setShouldRefresh(true);
     }, [week]);
 
@@ -49,7 +50,6 @@ export default function Weeklies() {
         enabled: shouldRefresh,
         onSuccess(data) {
             setData(data ?? []);
-            console.log('DATAA', data);
             setLoading(false);
             setShouldRefresh(false);
         },
