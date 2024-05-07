@@ -51,7 +51,7 @@ const TableHeader = ({week, rate} : {week: string, rate: number}) => {
         ["SAT", moment(week).add(5, "days").format("MM/DD")],
         ["SUN", moment(week).add(6, "days").format("MM/DD")],
         ["Total", "Weight"],
-        ["C. Rate", rate]
+        ["C. Rate", (Math.round(rate * 100) / 100)]
     ]
 
     return (

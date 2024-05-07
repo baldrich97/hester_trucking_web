@@ -75,7 +75,7 @@ const TableRow = ({job, week, rate}: { job: CompleteJobs, week: string, rate: nu
                     textAlign: 'center', ...styles.padding, ...styles.text,
                     fontSize: 12,
                     borderRight: 2
-                }}>{day === 'weight' ? weight : day === 'total' ? (Math.round((weight * rate) * 100) / 100) : (Math.round(job.Loads.filter((item) => moment(item.StartDate).format("MM/DD") === moment(week).add(index, "days").format("MM/DD")).reduce((acc, obj) => {
+                }}>{day === 'weight' ? (Math.round(weight * 100) / 100) : day === 'total' ? (Math.round((weight * rate) * 100) / 100) : (Math.round(job.Loads.filter((item) => moment(item.StartDate).format("MM/DD") === moment(week).add(index, "days").format("MM/DD")).reduce((acc, obj) => {
                     return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
                 }, 0) * 100) / 100)}</Text>
             )}
