@@ -580,7 +580,7 @@ export const invoicesRouter = createRouter()
             //make related consolidated invoices unlinked if needed
             if (input.Consolidated) {
                 const consolidatedChildren = await ctx.prisma.invoices.findMany({where: {ConsolidatedID: ID}})
-                consolidatedChildren.forEach(async (consInv) => {
+                await Promise.all(consolidatedChildren.map(async (consInv) => {
                     await ctx.prisma.invoices.update({
                         where: {
                             ID: consInv.ID
@@ -588,13 +588,20 @@ export const invoicesRouter = createRouter()
                             ConsolidatedID: null
                         }
                     })
-                })
+                }))
             }
             //make related loads available again
             await ctx.prisma.loads.findMany({where: {InvoiceID: ID}}).then(async (loads) => {
-                loads.forEach(async (load) => {
+                await Promise.all(loads.map(async (load) => {
                     ctx.prisma.loads.update({where: {ID: load.ID}, data: {Invoiced: false, InvoiceID: null}}).then();
-                })
+                }))
+            });
+
+            //make related weeklies available again
+            await ctx.prisma.weeklies.findMany({where: {InvoiceID: ID}}).then(async (weeklies) => {
+               await Promise.all( weeklies.map(async (weekly) => {
+                   ctx.prisma.weeklies.update({where: {ID: weekly.ID}, data: {InvoiceID: null}}).then();
+               }))
             });
 
             // use your ORM of choice
