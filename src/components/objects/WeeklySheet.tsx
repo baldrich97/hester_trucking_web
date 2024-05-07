@@ -84,7 +84,7 @@ const WeeklySheet = ({
                 </Grid2>
                 <Grid2 xs={"auto"} sx={{display: "flex"}}>
                     <b style={{fontSize: 18, marginLeft: 3}}>
-                        {sheet.Customers.Name}
+                        {sheet.Customers.Name} | {sheet.LoadTypes.Description} | {sheet.DeliveryLocations.Description}
                     </b>
                 </Grid2>
                 <Grid2 xs={true}></Grid2>
