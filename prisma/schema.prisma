@@ -5,11 +5,11 @@ generator client {
 
 generator zod {
   provider              = "zod-prisma"
-  relationModel         = "true"
-  useDecimalJs          = "true"
   prismaJsonNullability = "true"
-  modelSuffix           = "Model"
   modelCase             = "PascalCase"
+  useDecimalJs          = "true"
+  relationModel         = "true"
+  modelSuffix           = "Model"
 }
 
 datasource db {
@@ -115,7 +115,7 @@ model Drivers {
 model Invoices {
   ID             Int        @id @default(autoincrement())
   /// @zod.custom(z.coerce.date())
-  InvoiceDate    DateTime   @db.DateTime(0)
+  InvoiceDate    DateTime   @db.Date
   Number         Int?
   /// @zod.min(1)
   CustomerID     Int
@@ -189,9 +189,9 @@ model TrucksDriven {
 model Loads {
   ID                 Int                @id @default(autoincrement())
   /// @zod.custom(z.coerce.date())
-  StartDate          DateTime           @db.DateTime(0)
+  StartDate          DateTime           @db.Date
   /// @zod.custom(z.coerce.date())
-  Created            DateTime           @default(now()) @db.DateTime(0)
+  Created            DateTime           @default(now()) @db.Date
   /// @zod.custom(z.coerce.number())
   Weight             Float?
   /// @zod.custom(z.coerce.number())
