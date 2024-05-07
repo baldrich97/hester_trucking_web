@@ -31,6 +31,12 @@ const handler = async (req, res) => {
                     DeliveryLocations: true
                 }
             },
+            Weeklies: {
+                include: {
+                    LoadTypes: true,
+                    DeliveryLocations: true
+                }
+            }
         }
     })
 

@@ -5,11 +5,11 @@ generator client {
 
 generator zod {
   provider              = "zod-prisma"
-  modelCase             = "PascalCase"
   relationModel         = "true"
-  modelSuffix           = "Model"
-  prismaJsonNullability = "true"
   useDecimalJs          = "true"
+  prismaJsonNullability = "true"
+  modelSuffix           = "Model"
+  modelCase             = "PascalCase"
 }
 
 datasource db {
@@ -303,6 +303,7 @@ model Weeklies {
   LoadTypeID         Int
   DeliveryLocationID Int
   LastPrinted        DateTime?         @db.DateTime(0)
+  TotalWeight        Float?            @db.Float
   Customers          Customers         @relation(fields: [CustomerID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Customers")
   DeliveryLocations  DeliveryLocations @relation(fields: [DeliveryLocationID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_DeliveryLocations")
   Invoices           Invoices?         @relation(fields: [InvoiceID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Invoices")

@@ -1,6 +1,6 @@
 import React from 'react';
 import {View, StyleSheet} from '@react-pdf/renderer';
-import {CompleteInvoices, CompleteLoads} from "../../../prisma/zod";
+import {CompleteInvoices, CompleteLoads, CompleteWeeklies} from "../../../prisma/zod";
 import TableHeader from "./TableHeader";
 import TableRow from "./TableRow";
 import TableFooter from "./TableFooter";
@@ -16,23 +16,29 @@ const styles = StyleSheet.create({
 });
 
 
-const Table = ({loads, total, invoices = null}: {loads: CompleteLoads[], total: number, invoices: CompleteInvoices[] | null}) => {
+const Table = ({loads, total, invoices = null, weeklies = null, totalWeight = null}: {loads: CompleteLoads[], total: number, invoices: CompleteInvoices[] | null, weeklies: CompleteWeeklies[] | null, totalWeight: number | null}) => {
     return (
         <View style={styles.container}>
-            <TableHeader isConsolidated={invoices !== null}/>
+            <TableHeader isConsolidated={invoices !== null} hasWeeklies={weeklies !== null && weeklies?.length > 0}/>
             {invoices !== null ? invoices.map((invoice, index) =>
                 (
                     <View key={'invoice-row-' + index.toString()} style={{top: '-7px'}}>
                         <TableRow invoice={invoice}/>
                     </View>
                 )
-            ) : loads.map((load, index) =>
-            (
-                <View key={'invoice-row-' + index.toString()} style={{top: '-7px'}}>
-                    <TableRow load={load}/>
-                </View>
-            )
-        )}
+            ) : weeklies !== null && weeklies?.length > 0 ?  weeklies.map((weekly, index) =>
+                (
+                    <View key={'invoice-row-' + index.toString()} style={{top: '-7px'}}>
+                        <TableRow weekly={weekly}/>
+                    </View>
+                )
+            ) :  loads.map((load, index) =>
+                (
+                    <View key={'invoice-row-' + index.toString()} style={{top: '-7px'}}>
+                        <TableRow load={load}/>
+                    </View>
+                )
+            )}
             <TableFooter total={total}/>
         </View>
     )

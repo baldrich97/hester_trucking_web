@@ -64,18 +64,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   const customers = await prisma.customers.findMany({});
 
-  const loads = await prisma.loads.findMany({
-    where: {
-      InvoiceID: initialInvoice.ID,
-    },
-    include: {
-      LoadTypes: true,
-      DeliveryLocations: true,
-      Drivers: true,
-      Trucks: true,
-    },
-  });
-
   const weeklies = await prisma.weeklies.findMany({
     where: {
       InvoiceID: initialInvoice.ID,
@@ -98,6 +86,20 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       LoadTypes: true
     }
   })
+
+  const loads = !weeklies || weeklies.length === 0 ? await prisma.loads.findMany({
+    where: {
+      InvoiceID: initialInvoice.ID,
+    },
+    include: {
+      LoadTypes: true,
+      DeliveryLocations: true,
+      Drivers: true,
+      Trucks: true,
+    },
+  }) : [];
+
+
 
   let invoices = null;
 

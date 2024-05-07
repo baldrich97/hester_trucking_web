@@ -230,7 +230,8 @@ const TotalsRow = ({
                                             onClick: async () => {
                                                 const data = await postWeeklyClosed.mutateAsync({
                                                     ...weekly,
-                                                    Revenue: weekly.Revenue ? weekly.Revenue : (weightSum * (weekly.CompanyRate ? weekly.CompanyRate : 0) * 100) / 100
+                                                    Revenue: weekly.Revenue ? weekly.Revenue : (Math.round(weightSum * (weekly.CompanyRate ? weekly.CompanyRate : 0) * 100) / 100),
+                                                    TotalWeight: (Math.round(weightSum * 100) / 100)
                                                 });
                                                 setSheetState((prevState: any) => ({
                                                     ...prevState,

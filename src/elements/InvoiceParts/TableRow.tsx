@@ -1,6 +1,7 @@
 import React from 'react';
 import {Text, View, StyleSheet} from '@react-pdf/renderer';
-import {CompleteInvoices, CompleteLoads} from "../../../prisma/zod";
+import {CompleteInvoices, CompleteLoads, CompleteWeeklies} from "../../../prisma/zod";
+import moment from "moment/moment";
 
 const styles = StyleSheet.create({
 
@@ -33,7 +34,7 @@ const styles = StyleSheet.create({
 });
 
 
-const TableRow = ({load, invoice = null}: { load?: CompleteLoads, invoice?: CompleteInvoices | null }) => {
+const TableRow = ({load, invoice = null, weekly = null}: { load?: CompleteLoads, invoice?: CompleteInvoices | null, weekly?: CompleteWeeklies | null }) => {
     let date = load ? new Date(load.StartDate).toLocaleDateString() : new Date().toLocaleDateString();
     if (!date) {
         date = new Date().toLocaleDateString()
@@ -59,6 +60,33 @@ const TableRow = ({load, invoice = null}: { load?: CompleteLoads, invoice?: Comp
                         textAlign: 'right', ...styles.text,
                         paddingRight: 5
                     }}>${invoice.TotalAmount ? (Math.round(invoice.TotalAmount * 100) / 100).toString() : 'N/A'}</Text>
+                </> : weekly ? <>
+                    {/* // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore*/}
+                    <View style={{width: '15%', ...styles.leftAlignNoPadding, display: 'flex', flexDirection: 'column'}}><Text style={{...styles.text}}>{moment(weekly.Week).format("l")} -{" "}{moment(weekly.Week).add(6, "days").format("l")}</Text></View>
+                    <Text style={{
+                        width: '25%',
+                        textAlign: 'left', ...styles.padding, ...styles.text
+                    }}>{weekly.LoadTypes?.Description ?? 'N/A'}</Text>
+                    <Text style={{
+                        width: '22%',
+                        textAlign: 'left', ...styles.padding, ...styles.text
+                    }}>{weekly.DeliveryLocations?.Description ?? 'N/A'}</Text>
+                    <Text style={{
+                        width: '12%',
+                        textAlign: 'right', ...styles.padding, ...styles.text,
+                        paddingRight: 5
+                    }}>{weekly.TotalWeight ? (Math.round(weekly.TotalWeight * 100) / 100).toString() : '0'}</Text>
+                    <Text style={{
+                        width: '10%',
+                        textAlign: 'right', ...styles.padding, ...styles.text,
+                        paddingRight: 5
+                    }}>{weekly.CompanyRate ? (Math.round(weekly.CompanyRate * 100) / 100).toString() : '0'}</Text>
+                    <Text style={{
+                        width: '12%',
+                        textAlign: 'right', ...styles.text,
+                        paddingRight: 5
+                    }}>${weekly.Revenue ? (Math.round(weekly.Revenue * 100) / 100).toString() : 'N/A'}</Text>
                 </> : load ? <>
                     {/* // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore*/}

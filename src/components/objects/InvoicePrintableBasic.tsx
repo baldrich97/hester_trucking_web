@@ -35,9 +35,18 @@ const dividerhtml = ReactDOMServer.renderToStaticMarkup(divider);
 const InvoicePrintableBasic = ({invoice, invoices = null}: { invoice: CompleteInvoices, invoices: CompleteInvoices[] | null }) => {
     const total = invoices !== null ? invoices.reduce((acc, obj) => {
         return acc + (obj.TotalAmount ? obj.TotalAmount : 0)
+    }, 0) : invoice.Weeklies.length > 0 ? invoice.Weeklies.reduce((acc, obj) => {
+        return acc + (obj.Revenue ? obj.Revenue : 0)
     }, 0) : invoice.Loads.reduce((acc, obj) => {
         return acc + (obj.TotalAmount ? obj.TotalAmount : 0)
     }, 0)
+
+    const totalWeight = invoice.Weeklies.length > 0 ? invoice.Weeklies.reduce((acc, obj) => {
+        return acc + (obj.TotalWeight ? obj.TotalWeight : 0)
+    }, 0) : invoice.Loads.reduce((acc, obj) => {
+        return acc + (obj.Weight ? obj.Weight : obj.Hours ? obj.Hours : 0)
+    }, 0)
+
     return (
         <Document>
             <Page size='A4' style={styles.page}>
@@ -46,7 +55,7 @@ const InvoicePrintableBasic = ({invoice, invoices = null}: { invoice: CompleteIn
                 <InvoiceParts.Header customer={invoice.Customers}
                                      invoiceDate={new Date(invoice.InvoiceDate).toLocaleDateString('en-US', {timeZone: 'UTC'})}
                                      invoiceNumber={invoice.Number ? invoice.Number.toString() : 'N/A'}/>
-                <InvoiceParts.Table loads={invoice.Loads} total={total} invoices={invoices}/>
+                <InvoiceParts.Table loads={invoice.Loads} total={total} invoices={invoices} weeklies={invoice.Weeklies} totalWeight={totalWeight}/>
                 {/*<View wrap={false}>*/}
                 {/*</View>*/}
                 <Html>{linebreakhtml}</Html>

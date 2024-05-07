@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
 });
 
 
-const TableHeader = ({isConsolidated = false}: { isConsolidated: boolean }) => (
+const TableHeader = ({isConsolidated = false, hasWeeklies = false}: { isConsolidated: boolean, hasWeeklies: boolean }) => (
     <View style={styles.container}>
         {isConsolidated ? <>
             <Text style={{width: '8%', ...styles.leftAlignNoPadding, ...styles.text}}>Date</Text>
@@ -42,7 +42,14 @@ const TableHeader = ({isConsolidated = false}: { isConsolidated: boolean }) => (
             <Text style={{width: '73%', textAlign: 'left', ...styles.padding, ...styles.text}}>Loads Included In Invoice</Text>
             <Text style={{width: '8%', textAlign: 'right', ...styles.text, paddingRight: 5}}>Total</Text>
         </> : 
-        <>
+        hasWeeklies ? <>
+            <Text style={{width: '15%', ...styles.leftAlignNoPadding, ...styles.text}}>Date Range</Text>
+            <Text style={{width: '25%', textAlign: 'left', ...styles.padding, ...styles.text}}>Material</Text>
+            <Text style={{width: '22%', textAlign: 'left', ...styles.padding, ...styles.text}}>Location</Text>
+            <Text style={{width: '12%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>Weight/Hours</Text>
+            <Text style={{width: '10%', textAlign: 'right', ...styles.padding, ...styles.text, paddingRight: 5}}>Rate</Text>
+            <Text style={{width: '12%', textAlign: 'right', ...styles.text, paddingRight: 5}}>Total</Text>
+        </> : <>
             <Text style={{width: '8%', ...styles.leftAlignNoPadding, ...styles.text}}>Date</Text>
             <Text style={{width: '10%', textAlign: 'left', ...styles.padding, ...styles.text}}>Truck</Text>
             <Text style={{width: '20%', textAlign: 'left', ...styles.padding, ...styles.text}}>Material</Text>

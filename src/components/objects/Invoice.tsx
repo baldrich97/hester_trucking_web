@@ -69,7 +69,7 @@ const Invoice = ({
 
   const [shouldFetchWeeklies, setShouldFetchWeeklies] = useState(false);
 
-  const [customerLoads, setCustomerLoads] = useState<any>([]);
+  //const [customerLoads, setCustomerLoads] = useState<any>([]);
 
   const [customerWeeklies, setCustomerWeeklies] = useState<any>([]);
 
@@ -148,17 +148,17 @@ const Invoice = ({
     },
   });
 
-  trpc.useQuery(["loads.getByCustomer", { customer }], {
-    enabled: shouldFetchLoads,
-    onSuccess(data) {
-      setCustomerLoads(data);
-      setShouldFetchLoads(false);
-      setValue("TotalAmount", 0);
-    },
-    onError(error) {
-      console.warn(error);
-    },
-  });
+  // trpc.useQuery(["loads.getByCustomer", { customer }], {
+  //   enabled: shouldFetchLoads,
+  //   onSuccess(data) {
+  //     setCustomerLoads(data);
+  //     setShouldFetchLoads(false);
+  //     setValue("TotalAmount", 0);
+  //   },
+  //   onError(error) {
+  //     console.warn(error);
+  //   },
+  // });
 
   trpc.useQuery(["weeklies.getByCustomer", { customer }], {
     enabled: shouldFetchWeeklies,
@@ -180,7 +180,7 @@ const Invoice = ({
     if (key === "invoices.put") {
       await router.replace(router.asPath);
     }
-    setShouldFetchLoads(true);
+    //setShouldFetchLoads(true);
     setShouldFetchWeeklies(true);
   };
 
@@ -201,7 +201,7 @@ const Invoice = ({
       if (["CustomerID"].includes(name ?? "") && type === "change") {
         const customerID = value.CustomerID ?? 0;
         setCustomer(customerID);
-        setShouldFetchLoads(true);
+        //setShouldFetchLoads(true);
         setShouldFetchWeeklies(true)
       } else if (["CustomerID"].includes(name ?? "") && type === "change") {
         const newPaid = value.Paid ?? false;
@@ -557,10 +557,10 @@ const Invoice = ({
         <Grid2 xs={12}>
           {invoices !== null && invoices !== undefined && invoices.length > 0 ? (
             <ConsolidatedInvoices rows={invoices} />
-          ) : (weeklies !== null && weeklies !== undefined && weeklies.length > 0) || (customerWeeklies !== null && customerWeeklies !== undefined && customerWeeklies.length > 0) ? (
-              <InvoiceWeeklies
+          ) : loads.length > 0 ? (
+              <InvoiceLoads
                   readOnly={!!initialInvoice}
-                  rows={weeklies.length > 0 ? weeklies : customerWeeklies}
+                  rows={loads.length > 0 ? loads : []}
                   updateTotal={(newTotal: number) => {
                     setValue("TotalAmount", newTotal);
                   }}
@@ -572,9 +572,9 @@ const Invoice = ({
                   }}
               />
           ) : (
-              <InvoiceLoads
+              <InvoiceWeeklies
                   readOnly={!!initialInvoice}
-                  rows={loads.length > 0 ? loads : customerLoads}
+                  rows={weeklies.length > 0 ? weeklies : customerWeeklies ?? []}
                   updateTotal={(newTotal: number) => {
                     setValue("TotalAmount", newTotal);
                   }}

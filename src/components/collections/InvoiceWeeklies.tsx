@@ -68,19 +68,19 @@ const headCells: readonly HeadCell[] = [
         id: "LoadTypeID",
         numeric: false,
         disablePadding: true,
-        label: "Ticket",
+        label: "Load Type",
     },
     {
         id: "DeliveryLocationID",
         numeric: false,
         disablePadding: false,
-        label: "Date",
+        label: "Location",
     },
     {
         id: "Revenue",
         numeric: false,
         disablePadding: true,
-        label: "T. Rate",
+        label: "T. Rev",
     }
 ];
 

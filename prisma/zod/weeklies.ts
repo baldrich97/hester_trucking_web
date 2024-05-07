@@ -11,6 +11,7 @@ export const WeekliesModel = z.object({
   LoadTypeID: z.number().int(),
   DeliveryLocationID: z.number().int(),
   LastPrinted: z.date().nullish(),
+  TotalWeight: z.number().nullish(),
 })
 
 export interface CompleteWeeklies extends z.infer<typeof WeekliesModel> {
