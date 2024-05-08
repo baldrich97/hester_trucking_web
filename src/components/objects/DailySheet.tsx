@@ -409,7 +409,7 @@ const Load = ({load, index, job}: { load: Loads, index: number, job: CompleteJob
                 <b
                     style={{marginLeft: 5, paddingRight: 5, width: 45}}
                 >
-                    {moment(load.StartDate).format("M/D")}
+                    {moment.utc(load.StartDate, "YYYY-MM-DD").format('M/D')}
                 </b>
                 <Grid2
                     sx={{

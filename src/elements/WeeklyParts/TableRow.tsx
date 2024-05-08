@@ -48,7 +48,7 @@ const TableRow = ({job, week, rate}: { job: CompleteJobs, week: string, rate: nu
     let weight = 0;
 
     for (let i = 0; i < 7; i++) {
-        weight += job.Loads.filter((item) => moment(item.StartDate).format("MM/DD") === moment(week).add(i, "days").format("MM/DD")).reduce((acc, obj) => {
+        weight += job.Loads.filter((item) => moment.utc(item.StartDate, "YYYY-MM-DD").format("MM/DD") === moment(week).add(i, "days").format("MM/DD")).reduce((acc, obj) => {
             return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
         }, 0)
     }
@@ -75,7 +75,7 @@ const TableRow = ({job, week, rate}: { job: CompleteJobs, week: string, rate: nu
                     textAlign: 'center', ...styles.padding, ...styles.text,
                     fontSize: 12,
                     borderRight: 2
-                }}>{day === 'weight' ? (Math.round(weight * 100) / 100) : day === 'total' ? (Math.round((weight * rate) * 100) / 100) : (Math.round(job.Loads.filter((item) => moment(item.StartDate).format("MM/DD") === moment(week).add(index, "days").format("MM/DD")).reduce((acc, obj) => {
+                }}>{day === 'weight' ? (Math.round(weight * 100) / 100) : day === 'total' ? (Math.round((weight * rate) * 100) / 100) : (Math.round(job.Loads.filter((item) => moment.utc(item.StartDate, "YYYY-MM-DD").format("MM/DD") === moment(week).add(index, "days").format("MM/DD")).reduce((acc, obj) => {
                     return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
                 }, 0) * 100) / 100)}</Text>
             )}

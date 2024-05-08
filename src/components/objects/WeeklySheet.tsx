@@ -366,7 +366,7 @@ const Job = ({
 
                         {/*                    eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
                         {/*@ts-ignore*/}
-                        <b style={{fontSize: 17}}>{(Math.round(job.Loads.filter((item) => moment(item.StartDate).format("MM/DD") === moment(week).add(index, "days").format("MM/DD")).reduce((acc, obj) => {
+                        <b style={{fontSize: 17}}>{(Math.round(job.Loads.filter((item) => moment.utc(item.StartDate, "YYYY-MM-DD").format("MM/DD") === moment(week).add(index, "days").format("MM/DD")).reduce((acc, obj) => {
                             return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
                         }, 0) * 100) / 100)}</b>
 

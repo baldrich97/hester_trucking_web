@@ -59,15 +59,15 @@ const defaultValues = {
 };
 
 function Load({
-  customers,
-  loadTypes,
-  deliveryLocations,
-  trucks,
-  drivers,
-  initialLoad = null,
-  refreshData,
-  resetButton = false,
-}: {
+                customers,
+                loadTypes,
+                deliveryLocations,
+                trucks,
+                drivers,
+                initialLoad = null,
+                refreshData,
+                resetButton = false,
+              }: {
   customers: CustomersType[];
   loadTypes: LoadTypesType[];
   deliveryLocations: DeliveryLocationsType[];
@@ -87,8 +87,8 @@ function Load({
   const router = useRouter();
 
   const validationSchema = initialLoad
-    ? LoadsModel
-    : LoadsModel.omit({ ID: true });
+      ? LoadsModel
+      : LoadsModel.omit({ ID: true });
 
   type ValidationSchema = z.infer<typeof validationSchema>;
 
@@ -115,9 +115,9 @@ function Load({
     },
     async onError(error) {
       toast(
-        "There was an issue creating or updating this load. The issue was: " +
+          "There was an issue creating or updating this load. The issue was: " +
           error.message,
-        { autoClose: 100000, type: "error" }
+          { autoClose: 100000, type: "error" }
       );
       return;
     },
@@ -138,15 +138,15 @@ function Load({
   };
 
   const [customer, setCustomer] = useState(
-    initialLoad ? (initialLoad.CustomerID ? initialLoad.CustomerID : 0) : 0
+      initialLoad ? (initialLoad.CustomerID ? initialLoad.CustomerID : 0) : 0
   );
 
   const [driver, setDriver] = useState(
-    initialLoad ? (initialLoad.DriverID ? initialLoad.DriverID : 0) : 0
+      initialLoad ? (initialLoad.DriverID ? initialLoad.DriverID : 0) : 0
   );
 
   const [truck, setTruck] = useState(
-    initialLoad ? (initialLoad.TruckID ? initialLoad.TruckID : 0) : 0
+      initialLoad ? (initialLoad.TruckID ? initialLoad.TruckID : 0) : 0
   );
 
   const [lttrpcData, ltsetData] = useState<CustomerLoadTypes[]>([]);
@@ -215,25 +215,25 @@ function Load({
   React.useEffect(() => {
     const subscription = watch((value, { name, type }) => {
       if (
-        ["MaterialRate", "TruckRate", "Hours", "Weight"].includes(name ?? "") &&
-        type === "change"
+          ["MaterialRate", "TruckRate", "Hours", "Weight"].includes(name ?? "") &&
+          type === "change"
       ) {
         const hours = value.Hours ?? 0;
         const weight = value.Weight ?? 0;
         let totalRate = value.TotalRate;
         setValue(
-          "TotalRate",
-          Math.round(
-            ((value.MaterialRate ?? 0) + (value.TruckRate ?? 0)) * 100
-          ) / 100
+            "TotalRate",
+            Math.round(
+                ((value.MaterialRate ?? 0) + (value.TruckRate ?? 0)) * 100
+            ) / 100
         );
         totalRate = (value.MaterialRate ?? 0) + (value.TruckRate ?? 0);
         setValue(
-          "TotalAmount",
-          Math.round(
-            ((totalRate ?? 0) * (hours > 0 ? hours : weight) + Number.EPSILON) *
-              100
-          ) / 100
+            "TotalAmount",
+            Math.round(
+                ((totalRate ?? 0) * (hours > 0 ? hours : weight) + Number.EPSILON) *
+                100
+            ) / 100
         );
       }
 
@@ -245,12 +245,12 @@ function Load({
         const hours = value.Hours ?? 0;
         const weight = value.Weight ?? 0;
         setValue(
-          "TotalAmount",
-          Math.round(
-            ((value.TotalRate ?? 0) * (hours > 0 ? hours : weight) +
-              Number.EPSILON) *
-              100
-          ) / 100
+            "TotalAmount",
+            Math.round(
+                ((value.TotalRate ?? 0) * (hours > 0 ? hours : weight) +
+                    Number.EPSILON) *
+                100
+            ) / 100
         );
       }
       if (name === "CustomerID" && type === "change") {
@@ -475,14 +475,14 @@ function Load({
     {
       key: "TruckID",
       data:
-        tdtrpcData.length > 0
-          ? tdtrpcData
-              .map((item) => item.Trucks)
-              .filter((item) => item !== undefined)
-              .filter((value, index, self) => {
-                return index === self.findIndex((t) => t.ID === value.ID);
-              })
-          : trucks,
+          tdtrpcData.length > 0
+              ? tdtrpcData
+                  .map((item) => item.Trucks)
+                  .filter((item) => item !== undefined)
+                  .filter((value, index, self) => {
+                    return index === self.findIndex((t) => t.ID === value.ID);
+                  })
+              : trucks,
       optionValue: "ID",
       optionLabel: "Name+|+Notes",
       defaultValue: initialLoad ? initialLoad.TruckID : null,
@@ -490,14 +490,14 @@ function Load({
     {
       key: "DriverID",
       data:
-        tdtrpcData.length > 0
-          ? tdtrpcData
-              .map((item) => item.Drivers)
-              .filter((item) => item !== undefined)
-              .filter((value, index, self) => {
-                return index === self.findIndex((t) => t.ID === value.ID);
-              })
-          : drivers,
+          tdtrpcData.length > 0
+              ? tdtrpcData
+                  .map((item) => item.Drivers)
+                  .filter((item) => item !== undefined)
+                  .filter((value, index, self) => {
+                    return index === self.findIndex((t) => t.ID === value.ID);
+                  })
+              : drivers,
       optionValue: "ID",
       optionLabel: "FirstName+LastName",
       defaultValue: initialLoad ? initialLoad.DriverID : null,
@@ -506,54 +506,54 @@ function Load({
 
 
   return (
-    <>
-      <Box
-        component="form"
-        autoComplete="off"
-        noValidate
-        onSubmit={handleSubmit(onSubmit)}
-        sx={{
-          paddingLeft: 2.5,
-        }}
-      >
-        <GenericForm
-          errors={errors}
-          control={control}
-          fields={fields}
-          selectData={selectData}
-          selectedCustomer={customer}
-          onReset={
-            resetButton
-              ? () => {
-                  reset(defaultValues);
-                }
-              : null
-          }
-          onDelete={
-            initialLoad
-              ? () => {
-                  confirmAlert({
-                    title: "Confirm Deletion",
-                    message: "Are you sure you want to delete this load?",
-                    buttons: [
-                      {
-                        label: "Yes",
-                        onClick: async () => {
-                          onDelete(initialLoad).then();
-                        },
-                      },
-                      {
-                        label: "No",
-                        //onClick: () => {}
-                      },
-                    ],
-                  });
-                }
-              : null
-          }
-        />
-      </Box>
-    </>
+      <>
+        <Box
+            component="form"
+            autoComplete="off"
+            noValidate
+            onSubmit={handleSubmit(onSubmit)}
+            sx={{
+              paddingLeft: 2.5,
+            }}
+        >
+          <GenericForm
+              errors={errors}
+              control={control}
+              fields={fields}
+              selectData={selectData}
+              selectedCustomer={customer}
+              onReset={
+                resetButton
+                    ? () => {
+                      reset(defaultValues);
+                    }
+                    : null
+              }
+              onDelete={
+                initialLoad
+                    ? () => {
+                      confirmAlert({
+                        title: "Confirm Deletion",
+                        message: "Are you sure you want to delete this load?",
+                        buttons: [
+                          {
+                            label: "Yes",
+                            onClick: async () => {
+                              onDelete(initialLoad).then();
+                            },
+                          },
+                          {
+                            label: "No",
+                            //onClick: () => {}
+                          },
+                        ],
+                      });
+                    }
+                    : null
+              }
+          />
+        </Box>
+      </>
   );
 }
 

@@ -51,7 +51,7 @@ const TableRow = ({job}: {job: CompleteJobs}) => {
                 weight += load.Weight ? load.Weight : load.Hours ? load.Hours : 0;
                 return (
                     <View style={{...styles.container, borderTop: index === 0 ? 2 : 0, borderBottom: 2, borderBottomStyle: 'solid', borderBottomColor: 'black', minHeight: 30}} wrap={false} key={'row-' + index}>
-                        <Text style={{width: '5%', ...styles.leftAlignNoPadding, ...styles.text, fontWeight: 'bold'}}>{moment(load.StartDate).format("M/D")}</Text>
+                        <Text style={{width: '5%', ...styles.leftAlignNoPadding, ...styles.text, fontWeight: 'bold'}}>{moment.utc(load.StartDate, "YYYY-MM-DD").format('M/D')}</Text>
                         <Text style={{width: '18%', textAlign: 'center', ...styles.padding, ...styles.text}}>{job.LoadTypes?.Description}</Text>
                         <Text style={{width: '18%', textAlign: 'center', ...styles.padding, ...styles.text}}>{job.Customers.Name}</Text>
                         <Text style={{width: '18%', textAlign: 'center', ...styles.padding, ...styles.text}}>{job.DeliveryLocations?.Description}</Text>
