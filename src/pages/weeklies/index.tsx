@@ -49,7 +49,7 @@ export default function Weeklies() {
     trpc.useQuery(["weeklies.getByWeek", {week: week}], {
         enabled: shouldRefresh,
         onSuccess(data) {
-            setData(data ?? []);
+            setData(data ? data.filter((sheet) => sheet.Jobs.filter((job) => job.Loads.length !== 0).length > 0).sort((a, b) => a.Customers.Name.localeCompare(b.Customers.Name)) : []);
             setLoading(false);
             setShouldRefresh(false);
         },

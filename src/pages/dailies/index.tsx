@@ -46,7 +46,7 @@ export default function Dailies() {
     trpc.useQuery(["dailies.getByWeek", {week: week}], {
         enabled: shouldRefresh,
         onSuccess(data) {
-            setData(data ?? []);
+            setData(data ? data.filter((sheet) => sheet.Jobs.filter((job) => job.Loads.length !== 0).length > 0).sort((a, b) => a.Drivers.FirstName.localeCompare(b.Drivers.FirstName)) : []);
             setLoading(false);
             setShouldRefresh(false);
         },
@@ -198,9 +198,7 @@ export default function Dailies() {
                     <hr style={{height: 1, width: "100%"}}/>
                 </Grid2>
 
-                {data.map((sheet: DriverSheet, index: number) => (
-                    <DailySheet key={'sheet-' + index} sheet={sheet} week={week} forceExpand={forceExpand}/>
-                ))}
+                {data.map((sheet: DriverSheet, index: number) => <DailySheet key={'sheet-' + index} sheet={sheet} week={week} forceExpand={forceExpand}/>)}
                 {/* <EnhancedTableToolbar
             numSelected={selected.length}
             readOnly={readOnly}
@@ -224,7 +222,7 @@ export default function Dailies() {
                 {rows.sort(getComparator(order, orderBy)).map((row, index) => {
                   const isItemSelected = isSelected(row.ID.toString());
                   const labelId = `enhanced-table-checkbox-${index}`;
-  
+
                   return (
                     <Row
                       key={row.ID.toString()}
