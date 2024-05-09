@@ -34,6 +34,7 @@ import {
   TrucksDriven,
 } from "@prisma/client";
 import {formatDateToWeek} from "../../utils/UtilityFunctions";
+import $ from "jquery";
 
 const today = new Date();
 const defaultWeek = formatDateToWeek(new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000));
@@ -99,7 +100,7 @@ function Load({
     resetField,
     reset,
     watch,
-    setValue,
+    setValue
   } = useForm<ValidationSchema>({
     resolver: zodResolver(validationSchema),
     defaultValues: initialLoad ?? defaultValues,
@@ -131,6 +132,7 @@ function Load({
       resetField("Hours");
       resetField("TotalAmount");
       resetField("TicketNumber");
+      $('[name="TicketNumber"]').focus();
       if (refreshData) {
         refreshData();
       }
@@ -214,6 +216,9 @@ function Load({
 
   React.useEffect(() => {
     const subscription = watch((value, { name, type }) => {
+      if (name === "StartDate" && type === "change") {
+        setValue("Week", formatDateToWeek(value.StartDate ? value.StartDate : new Date()))
+      }
       if (
           ["MaterialRate", "TruckRate", "Hours", "Weight"].includes(name ?? "") &&
           type === "change"
@@ -309,30 +314,6 @@ function Load({
       searchQuery: "customers",
     },
     {
-      name: "StartDate",
-      size: 4,
-      required: false,
-      type: "date",
-      label: "Delivered On",
-    },
-    {
-      name: "TicketNumber",
-      required: true,
-      type: "textfield",
-      shouldErrorOn: ['invalid_type'],
-      errorMessage: 'Ticket number is required.',
-      size: 4,
-      number: true,
-      label: "Ticket Number",
-    },
-    {
-      name: "Week",
-      size: 4,
-      required: false,
-      type: "week",
-      label: "Daily Week",
-    },
-    {
       name: "DriverID",
       size: 6,
       required: false,
@@ -375,20 +356,28 @@ function Load({
       groupByNames: "Used by Customer|New for Customer",
     },
     {
-      name: "MaterialRate",
+      name: "StartDate",
+      size: 4,
       required: false,
-      type: "textfield",
-      size: 3,
-      number: true,
-      label: "Material Rate",
+      type: "date",
+      label: "Delivered On",
     },
     {
-      name: "TruckRate",
+      name: "Week",
+      size: 4,
       required: false,
+      type: "week",
+      label: "Daily Week",
+    },
+    {
+      name: "TicketNumber",
+      required: true,
       type: "textfield",
-      size: 3,
+      shouldErrorOn: ['invalid_type'],
+      errorMessage: 'Ticket number is required.',
+      size: 4,
       number: true,
-      label: "Truck Rate",
+      label: "Ticket Number",
     },
     {
       name: "Weight",
@@ -406,6 +395,23 @@ function Load({
       number: true,
       disabled: !!(watchWeight && watchWeight > 0),
     },
+    {
+      name: "MaterialRate",
+      required: false,
+      type: "textfield",
+      size: 3,
+      number: true,
+      label: "Material Rate",
+    },
+    {
+      name: "TruckRate",
+      required: false,
+      type: "textfield",
+      size: 3,
+      number: true,
+      label: "Truck Rate",
+    },
+
     { name: "Received", size: 3, required: false, type: "textfield" },
     {
       name: "DriverRate",

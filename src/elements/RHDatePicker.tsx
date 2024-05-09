@@ -40,7 +40,8 @@ const RHDatePicker = ({ name, control, required = false, defaultValue = '', shou
                     padding: 8,
                     fontSize: 16,
                     outline: 'none',
-                    backgroundColor: '#F5F5F5'
+                    backgroundColor: '#F5F5F5',
+                    width: '100%'
                 }} {...field}/>
             </div>}
         />
