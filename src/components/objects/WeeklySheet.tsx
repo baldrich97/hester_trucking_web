@@ -207,7 +207,7 @@ const TotalsRow = ({
             sx={{
                 border: "1px solid black",
                 marginTop: 1,
-                backgroundColor: "#bababa",
+                backgroundColor: weekly.InvoiceID ? "#88ff83" : isClosed ? "#8991ff" : "#bababa",
             }}
         >
             <b style={{width: 70, display: 'grid', alignItems: 'center', justifyItems: 'center'}}>
@@ -217,7 +217,7 @@ const TotalsRow = ({
                         <Button
                             variant="contained"
                             color={"primary"}
-                            style={{backgroundColor: "#181eff"}}
+                            style={{backgroundColor: weekly.InvoiceID ? "#0aa201" : isClosed ? "#88ff83" : "#181eff"}}
                             sx={{minWidth: 30, minHeight: 30, maxWidth: 30, maxHeight: 30}}
                             disabled={isClosed}
                             onClick={async () => {
