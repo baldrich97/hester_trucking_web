@@ -136,7 +136,7 @@ const Sheet = ({weekly, week}: { weekly: CustomerSheet, week: string }) => {
     weekly.Jobs.map((job) => {
         for (let i = 0; i < 7; i++) {
             sums[moment(week).add(i, "days").format("MM/DD")] = sums[moment(week).add(i, "days").format("MM/DD")] ?? 0
-            sums[moment(week).add(i, "days").format("MM/DD")] += job.Loads.filter((item) => moment(item.StartDate).format("MM/DD") === moment(week).add(i, "days").format("MM/DD")).reduce((acc, obj) => {
+            sums[moment(week).add(i, "days").format("MM/DD")] += job.Loads.filter((item) => moment.utc(item.StartDate, "YYYY-MM-DD").format("MM/DD") === moment(week).add(i, "days").format("MM/DD")).reduce((acc, obj) => {
                 return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
             }, 0)
         }
