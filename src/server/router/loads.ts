@@ -294,7 +294,9 @@ export const loadsRouter = createRouter()
                             {DriverID: DriverID},
                             {CustomerID: CustomerID},
                             {LoadTypeID: LoadTypeID},
-                            {DeliveryLocationID: DeliveryLocationID}
+                            {DeliveryLocationID: DeliveryLocationID},
+                            {DailyID: daily.ID},
+                            {WeeklyID: weekly.ID}
                         ]
                     }
                 })
