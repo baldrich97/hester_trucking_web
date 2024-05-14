@@ -353,7 +353,7 @@ const TotalsRow = ({
                 <Grid2 sx={{textAlign: "center", borderRight: "2px solid black",}} xs={6}>
                     <TextField
                         variant={'standard'}
-                        value={jobState.CompanyRevenue !== null ? jobState.CompanyRevenue : (Math.round(weightSum * (load.TotalRate ? load.TotalRate : 0) * 100) / 100)}
+                        value={jobState.CompanyRevenue ? parseFloat(jobState.CompanyRevenue.toString()) : (Math.round(weightSum * (load.TotalRate ? load.TotalRate : 0) * 100) / 100)}
                         onChange={(e) => {
                             setIsClosed(false)
                             let value = 0;
@@ -377,7 +377,7 @@ const TotalsRow = ({
                 >
                     <TextField
                         variant={'standard'}
-                        value={jobState.TruckingRevenue !== null ? jobState.TruckingRevenue : (Math.round(weightSum * (load.DriverRate != load.TruckRate ? load.DriverRate ?? 0 : load.TruckRate ?? 0) * 100) / 100)}
+                        value={jobState.TruckingRevenue ? parseFloat(jobState.TruckingRevenue.toString()) : (Math.round(weightSum * (load.DriverRate != load.TruckRate ? load.DriverRate ?? 0 : load.TruckRate ?? 0) * 100) / 100)}
                         onChange={(e) => {
                             let value = 0;
                             if (e.currentTarget?.value) {
