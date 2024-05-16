@@ -286,7 +286,7 @@ const TotalsRow = ({
             >
 
 
-                <b style={{fontSize: 17}}>{Math.round(weightSum * 100) / 100}</b>
+                <b style={{fontSize: 17}}>{weekly.TotalWeight ?? (Math.round(weightSum * 100) / 100)}</b>
 
 
             </Grid2>
