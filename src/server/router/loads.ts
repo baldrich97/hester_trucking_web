@@ -305,36 +305,36 @@ export const loadsRouter = createRouter()
                     let shouldReturn = true;
                     if (TruckRate) {
                         const loadTR = (Math.round(TruckRate * 100)) / 100
-                        shouldReturn = item.TruckingRate === loadTR
+                        shouldReturn = (Math.round(item.TruckingRate * 100)) / 100 === loadTR
                     } else {
-                        shouldReturn = TruckRate === item.TruckingRate ?? 0;
+                        shouldReturn = (TruckRate ?? 0) === (item.TruckingRate ?? 0);
                     }
                     if (!shouldReturn) {
                         return false;
                     }
                     if (MaterialRate) {
                         const loadMR = (Math.round(MaterialRate * 100)) / 100
-                        shouldReturn = item.MaterialRate === loadMR
+                        shouldReturn = (Math.round(item.MaterialRate * 100)) / 100 === loadMR
                     } else {
-                        shouldReturn = MaterialRate === item.MaterialRate ?? 0;
+                        shouldReturn = (MaterialRate ?? 0) === (item.MaterialRate ?? 0);
                     }
                     if (!shouldReturn) {
                         return false;
                     }
                     if (DriverRate) {
                         const loadDR = (Math.round(DriverRate * 100)) / 100
-                        shouldReturn = item.DriverRate === loadDR
+                        shouldReturn = (Math.round(item.DriverRate * 100)) / 100 === loadDR
                     } else {
-                        shouldReturn = DriverRate === item.DriverRate ?? 0;
+                        shouldReturn = (DriverRate ?? 0) === (item.DriverRate ?? 0);
                     }
                     if (!shouldReturn) {
                         return false;
                     }
                     if (TotalRate) {
                         const loadTR = (Math.round(TotalRate * 100)) / 100
-                        shouldReturn = item.CompanyRate === loadTR
+                        shouldReturn = (Math.round(item.CompanyRate * 100)) / 100 === loadTR
                     } else {
-                        shouldReturn = TotalRate === item.CompanyRate ?? 0;
+                        shouldReturn = (TotalRate ?? 0) === (item.CompanyRate ?? 0);
                     }
                     return shouldReturn;
                 })
@@ -523,36 +523,36 @@ export const loadsRouter = createRouter()
                     let shouldReturn = true;
                     if (TruckRate) {
                         const loadTR = (Math.round(TruckRate * 100)) / 100
-                        shouldReturn = item.TruckingRate === loadTR
+                        shouldReturn = (Math.round(item.TruckingRate * 100)) / 100 === loadTR
                     } else {
-                        shouldReturn = TruckRate === item.TruckingRate ?? 0;
+                        shouldReturn = (TruckRate ?? 0) === (item.TruckingRate ?? 0);
                     }
                     if (!shouldReturn) {
                         return false;
                     }
                     if (MaterialRate) {
                         const loadMR = (Math.round(MaterialRate * 100)) / 100
-                        shouldReturn = item.MaterialRate === loadMR
+                        shouldReturn = (Math.round(item.MaterialRate * 100)) / 100 === loadMR
                     } else {
-                        shouldReturn = MaterialRate === item.MaterialRate ?? 0;
+                        shouldReturn = (MaterialRate ?? 0) === (item.MaterialRate ?? 0);
                     }
                     if (!shouldReturn) {
                         return false;
                     }
                     if (DriverRate) {
                         const loadDR = (Math.round(DriverRate * 100)) / 100
-                        shouldReturn = item.DriverRate === loadDR
+                        shouldReturn = (Math.round(item.DriverRate * 100)) / 100 === loadDR
                     } else {
-                        shouldReturn = DriverRate === item.DriverRate ?? 0;
+                        shouldReturn = (DriverRate ?? 0) === (item.DriverRate ?? 0);
                     }
                     if (!shouldReturn) {
                         return false;
                     }
                     if (TotalRate) {
                         const loadTR = (Math.round(TotalRate * 100)) / 100
-                        shouldReturn = item.CompanyRate === loadTR
+                        shouldReturn = (Math.round(item.CompanyRate * 100)) / 100 === loadTR
                     } else {
-                        shouldReturn = TotalRate === item.CompanyRate ?? 0;
+                        shouldReturn = (TotalRate ?? 0) === (item.CompanyRate ?? 0);
                     }
                     return shouldReturn;
                 })
