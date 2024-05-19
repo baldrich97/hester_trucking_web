@@ -24,12 +24,12 @@ export const invoicesRouter = createRouter()
             const {order, orderBy} = input;
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
+            // @ts-ignore
             const orderObj = {};
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
+            // @ts-ignore
             orderObj[orderBy] = order;
-            
+
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
             }
@@ -39,7 +39,7 @@ export const invoicesRouter = createRouter()
                         {Paid: true}, {Paid: false}, {Paid: null}
                     ],
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
+                    // @ts-ignore
                     AND: {
                         OR: [
                             ...extra
@@ -71,15 +71,16 @@ export const invoicesRouter = createRouter()
                 if (!input.search.toString().includes('.')) {
                     extra.push({Number: input.search})
                 }
-            }            const {order, orderBy} = input;
+            }
+            const {order, orderBy} = input;
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
+            // @ts-ignore
             const orderObj = {};
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
+            // @ts-ignore
             orderObj[orderBy] = order;
-            
+
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
             }
@@ -89,8 +90,8 @@ export const invoicesRouter = createRouter()
                         {Paid: true}
                     ],
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
-                    AND : {
+                    // @ts-ignore
+                    AND: {
                         OR: [
                             ...extra
                         ]
@@ -102,7 +103,7 @@ export const invoicesRouter = createRouter()
                 },
                 take: 10,
                 orderBy: orderObj,
-                skip: input.page ? 10*input.page : 0
+                skip: input.page ? 10 * input.page : 0
             });
         },
     })
@@ -127,13 +128,13 @@ export const invoicesRouter = createRouter()
             const {order, orderBy} = input;
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
+            // @ts-ignore
             const orderObj = {};
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
+            // @ts-ignore
             orderObj[orderBy] = order;
-            
-            if (input.customer !== 0) {
+
+            if (input.customer !== 0 && input.customer) {
                 extra.push({CustomerID: input.customer})
             }
 
@@ -142,15 +143,13 @@ export const invoicesRouter = createRouter()
                     OR: [
                         {Paid: false}, {Paid: null}
                     ],
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
-                    AND : [{
+                    AND: {
+                        Consolidated: false,
                         OR: [
-                            {Consolidated: false},
                             ...extra
                         ],
-        
-                    }]
+                    }
+
                 },
                 include: {
                     Customers: true,
@@ -158,7 +157,7 @@ export const invoicesRouter = createRouter()
                 },
                 take: 10,
                 orderBy: orderObj,
-                skip: input.page ? 10*input.page : 0
+                skip: input.page ? 10 * input.page : 0
             });
         },
     })
@@ -184,12 +183,12 @@ export const invoicesRouter = createRouter()
             const {order, orderBy} = input;
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
+            // @ts-ignore
             const orderObj = {};
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
+            // @ts-ignore
             orderObj[orderBy] = order;
-            
+
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
             }
@@ -199,15 +198,12 @@ export const invoicesRouter = createRouter()
                     OR: [
                         {Paid: false}, {Paid: null}
                     ],
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
-                    AND : [{
+                    AND: {
+                        Consolidated: true,
                         OR: [
                             ...extra
                         ],
-        
-                    },
-                {Consolidated: true}]
+                    }
                 },
                 include: {
                     Customers: true,
@@ -215,7 +211,7 @@ export const invoicesRouter = createRouter()
                 },
                 take: 10,
                 orderBy: orderObj,
-                skip: input.page ? 10*input.page : 0
+                skip: input.page ? 10 * input.page : 0
             });
         },
     })
@@ -233,12 +229,12 @@ export const invoicesRouter = createRouter()
             const {order, orderBy} = input;
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
+            // @ts-ignore
             const orderObj = {};
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
+            // @ts-ignore
             orderObj[orderBy] = order;
-            
+
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
             }
@@ -253,14 +249,14 @@ export const invoicesRouter = createRouter()
                     OR: [
                         {Paid: false}, {Paid: null}
                     ],
-                    AND : [{
+                    AND: [{
                         OR: [
                             ...extra
                         ],
-                        
+
                     },
-                    {Consolidated: false},
-                    {ConsolidatedID: null}
+                        {Consolidated: false},
+                        {ConsolidatedID: null}
                     ]
                 },
                 include: {
@@ -269,7 +265,7 @@ export const invoicesRouter = createRouter()
                 },
                 take: 100,
                 orderBy: orderObj,
-                skip: input.page ? 10*input.page : 0
+                skip: input.page ? 10 * input.page : 0
             });
         },
     })
@@ -289,7 +285,7 @@ export const invoicesRouter = createRouter()
                     extra.push({Number: input.search})
                 }
             }
-            
+
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
             }
@@ -302,7 +298,7 @@ export const invoicesRouter = createRouter()
             return ctx.prisma.invoices.count({
                 where: {
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                        // @ts-ignore
+                    // @ts-ignore
                     OR: [
                         ...extra
                     ],
@@ -374,7 +370,6 @@ export const invoicesRouter = createRouter()
         async resolve({ctx, input}) {
             // use your ORM of choice
             const {selected, ...rest} = input;
-            console.log('SELECTED', selected)
             // const invoicedWeeklies = await ctx.prisma.weeklies.findMany({
             //     where: {
             //         AND: [
@@ -497,7 +492,6 @@ export const invoicesRouter = createRouter()
             const consolidatedID = returnable.ID;
 
 
-
             if (input.ids.length > 0) {
                 for (const invoiceID of input.ids) {
                     await ctx.prisma.invoices.update({
@@ -599,9 +593,9 @@ export const invoicesRouter = createRouter()
 
             //make related weeklies available again
             await ctx.prisma.weeklies.findMany({where: {InvoiceID: ID}}).then(async (weeklies) => {
-               await Promise.all( weeklies.map(async (weekly) => {
-                   ctx.prisma.weeklies.update({where: {ID: weekly.ID}, data: {InvoiceID: null}}).then();
-               }))
+                await Promise.all(weeklies.map(async (weekly) => {
+                    ctx.prisma.weeklies.update({where: {ID: weekly.ID}, data: {InvoiceID: null}}).then();
+                }))
             });
 
             // use your ORM of choice

@@ -150,6 +150,7 @@ export default function GenericTable({
   filterBody = null,
   doSearch = null,
   clearFilter = null,
+    searchSet = false,
 }: {
   data: any[];
   columns: TableColumnsType;
@@ -161,6 +162,7 @@ export default function GenericTable({
   filterBody?: any;
   doSearch?: any;
   clearFilter?: any;
+  searchSet?: boolean;
 }) {
   //console.log(data, columns, overrides);
 
@@ -193,10 +195,11 @@ export default function GenericTable({
               if (column.as === "" && filterBody) {
                 return (
                   <StyledTableCell align={"right"} key={"lookup-header"}>
-                    {opened ? (
+                    {opened || searchSet ? (
                       <Button
                         style={{ backgroundColor: "red", borderRadius: 20 }}
                         onClick={() => {
+                          setPage(0);
                           clearFilter();
                           setOpened(false);
                         }}
@@ -207,6 +210,7 @@ export default function GenericTable({
                       <Button
                         style={{ backgroundColor: "#1565C0", borderRadius: 20 }}
                         onClick={() => {
+                          setPage(0);
                           setShowCustomerModal(true);
                           setOpened(true);
                         }}
@@ -457,6 +461,7 @@ export default function GenericTable({
       <Modal
         open={showCustomerModal}
         onClose={() => {
+          setPage(0);
           clearFilter();
           setShowCustomerModal(false);
           setOpened(false);
@@ -488,6 +493,7 @@ export default function GenericTable({
               style={{ backgroundColor: "#757575" }}
               onClick={() => {
                 setShowCustomerModal(false);
+                setPage(0);
                 clearFilter();
                 setOpened(false);
               }}

@@ -229,7 +229,7 @@ const Invoices = ({
   trpc.useQuery(
     ["invoices.getAllUnpaid", { customer, search, page, orderBy, order }],
     {
-      enabled: shouldRefresh,
+      enabled: shouldRefresh && tabValue === 0,
       onSuccess(data) {
         setUnpaidData(JSON.parse(JSON.stringify(data)));
         setNewKey(Math.random());
@@ -245,7 +245,7 @@ const Invoices = ({
   trpc.useQuery(
     ["invoices.getAllConsolidated", { customer, search, page, orderBy, order }],
     {
-      enabled: shouldRefresh,
+      enabled: shouldRefresh && tabValue === 3,
       onSuccess(data) {
         setConsolidatedData(JSON.parse(JSON.stringify(data)));
         setNewKey(Math.random());
@@ -285,7 +285,7 @@ const Invoices = ({
   trpc.useQuery(
     ["invoices.getAllPaid", { customer, search, page, orderBy, order }],
     {
-      enabled: shouldRefresh,
+      enabled: shouldRefresh && tabValue === 1,
       onSuccess(data) {
         setPaidData(JSON.parse(JSON.stringify(data)));
         setNewKey(Math.random());
@@ -301,7 +301,7 @@ const Invoices = ({
   trpc.useQuery(
     ["invoices.getAll", { customer, search, page, orderBy, order }],
     {
-      enabled: shouldRefresh,
+      enabled: shouldRefresh && tabValue === 2,
       onSuccess(data) {
         setData(JSON.parse(JSON.stringify(data)));
         setNewKey(Math.random());
@@ -385,7 +385,7 @@ const Invoices = ({
 
   return (
     <Grid2 container>
-      <Grid2 xs={8} sx={{ paddingRight: 2.5 }} key={key}>
+      <Grid2 xs={8} sx={{ paddingRight: 2.5 }}>
         <Box
           sx={{
             borderBottom: 1,
@@ -427,8 +427,7 @@ const Invoices = ({
               search ||
               order !== "desc" ||
               orderBy !== "ID" ||
-              (unpaidData.length !== 0 &&
-                unpaidData.length !== invoicesUnpaid.length)
+              (unpaidData.length !== 0)
                 ? unpaidData
                 : invoicesUnpaid
             }
@@ -436,6 +435,7 @@ const Invoices = ({
             overrides={overridesUnpaid}
             count={customer || search ? newCount : countUnpaid}
             filterBody={filterBody}
+            searchSet={(customer !== 0 && customer !== undefined && customer !== null) || (search !== null)}
             doSearch={() => {
               setPage(0);
               setShouldRefresh(true);
@@ -466,7 +466,7 @@ const Invoices = ({
               search ||
               order !== "desc" ||
               orderBy !== "ID" ||
-              (paidData.length !== 0 && paidData.length !== invoicesPaid.length)
+              (paidData.length !== 0)
                 ? paidData
                 : invoicesPaid
             }
@@ -474,6 +474,7 @@ const Invoices = ({
             overrides={overridesPaid}
             count={customer || search ? newCount : countPaid}
             filterBody={filterBody}
+            searchSet={(customer !== 0 && customer !== undefined && customer !== null) || (search !== null)}
             doSearch={() => {
               setPage(0);
               setShouldRefresh(true);
@@ -504,7 +505,7 @@ const Invoices = ({
               search ||
               order !== "desc" ||
               orderBy !== "ID" ||
-              (trpcData.length !== 0 && trpcData.length !== invoicesAll.length)
+              (trpcData.length !== 0)
                 ? trpcData
                 : invoicesAll
             }
@@ -512,6 +513,7 @@ const Invoices = ({
             overrides={overridesAll}
             count={customer || search ? newCount : countAll}
             filterBody={filterBody}
+            searchSet={(customer !== 0 && customer !== undefined && customer !== null) || (search !== null)}
             doSearch={() => {
               setPage(0);
               setShouldRefresh(true);
@@ -542,8 +544,7 @@ const Invoices = ({
               search ||
               order !== "desc" ||
               orderBy !== "ID" ||
-              (consolidatedData.length !== 0 &&
-                consolidatedData.length !== invoicesConsolidated.length)
+              (consolidatedData.length !== 0)
                 ? consolidatedData
                 : invoicesConsolidated
             }
@@ -551,6 +552,7 @@ const Invoices = ({
             overrides={overridesConsolidated}
             count={customer || search ? newCount : countConsolidated}
             filterBody={filterBody}
+            searchSet={(customer !== 0 && customer !== undefined && customer !== null) || (search !== null)}
             doSearch={() => {
               setPage(0);
               setShouldRefresh(true);
