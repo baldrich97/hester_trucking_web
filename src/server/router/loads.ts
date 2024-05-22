@@ -265,7 +265,7 @@ export const loadsRouter = createRouter()
                     Week: Week,
                     DeliveryLocationID: DeliveryLocationID,
                     LoadTypeID: LoadTypeID,
-                    //Revenue: null
+                    InvoiceID: null
                     //should do this eventually but for now we'll see how it goes
                 }
             })
