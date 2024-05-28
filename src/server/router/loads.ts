@@ -226,6 +226,8 @@ export const loadsRouter = createRouter()
         async resolve({ctx, input}) {
             const {DriverID, TruckID, StartDate, CustomerID, LoadTypeID, DeliveryLocationID, TruckRate, MaterialRate, Week, TotalRate, DriverRate} = input;
 
+            //if ticket number exists already throw a soft error somehow
+
             if (!DriverID) {
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',

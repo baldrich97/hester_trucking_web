@@ -19,7 +19,7 @@ type DeliveryLocationsType = z.infer<typeof DeliveryLocationsModel>;
 type TrucksType = z.infer<typeof TrucksModel>;
 type DriversType = z.infer<typeof DriversModel>;
 
-const Invoice = ({initialLoad, customers, loadTypes, deliveryLocations, trucks, drivers}: {initialLoad: LoadsType, loads: LoadsType[], customers: CustomersType[], loadTypes: LoadTypesType[], deliveryLocations: DeliveryLocationsType[], trucks: TrucksType[], drivers: DriversType[]}) => {
+const Load = ({initialLoad, customers, loadTypes, deliveryLocations, trucks, drivers}: {initialLoad: LoadsType, loads: LoadsType[], customers: CustomersType[], loadTypes: LoadTypesType[], deliveryLocations: DeliveryLocationsType[], trucks: TrucksType[], drivers: DriversType[]}) => {
 
     return (
         <LoadObject initialLoad={initialLoad} customers={customers} loadTypes={loadTypes} deliveryLocations={deliveryLocations} trucks={trucks} drivers={drivers}/>
@@ -28,14 +28,14 @@ const Invoice = ({initialLoad, customers, loadTypes, deliveryLocations, trucks, 
 
 
 
-export default Invoice;
+export default Load;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
     const id = context.params?.id;
 
     let initialLoad;
 
-    
+
 
     if (id && typeof(id) === "string") {
         initialLoad = await prisma.loads.findFirst({
@@ -62,9 +62,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         }
     }
 
-    const customers = await prisma.customers.findMany({});
-
-    const loads = await prisma.loads.findMany({});
+    const customers = await prisma.customers.findMany({take: 10});
 
     //const customerLoadTypes = initialLoad.CustomerID ? await prisma.customerLoadTypes.findMany({where: {CustomerID: initialLoad.CustomerID}, select: {LoadTypeID: true}}).then((data) => data.map((item) => item.LoadTypeID)) : null;
 
@@ -76,23 +74,63 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     const loadTypes = await prisma.loadTypes.findMany({orderBy: {
         Description: "asc",
-      },});
+      },
+    take: 10});
 
     const trucks = await prisma.trucks.findMany({orderBy: {
         Name: "asc",
-      },});
+      },
+    take: 10});
 
     const drivers = await prisma.drivers.findMany({orderBy: {
         FirstName: "asc",
-      },});
+      },
+    take: 10});
 
     const deliveryLocations = await prisma.deliveryLocations.findMany({orderBy: {
         Description: "asc",
-      },});
+      },
+    take: 10});
+
+    const {DriverID, LoadTypeID, DeliveryLocationID, TruckID, CustomerID} = initialLoad;
+
+    if (customers.filter((cust) => cust.ID === CustomerID).length === 0) {
+        const realCust = await prisma.customers.findUnique({where: {ID: CustomerID}});
+        if (realCust) {
+            customers.push(realCust);
+        }
+    }
+
+    if (DriverID && drivers.filter((driver) => driver.ID === DriverID).length === 0) {
+        const realDriver = await prisma.drivers.findUnique({where: {ID: DriverID}});
+        if (realDriver) {
+            drivers.push(realDriver);
+        }
+    }
+
+    if (LoadTypeID && loadTypes.filter((type) => type.ID === LoadTypeID).length === 0) {
+        const realType = await prisma.loadTypes.findUnique({where: {ID: LoadTypeID}});
+        if (realType) {
+            loadTypes.push(realType);
+        }
+    }
+
+    if (DeliveryLocationID && deliveryLocations.filter((cust) => cust.ID === DeliveryLocationID).length === 0) {
+        const realLocation = await prisma.deliveryLocations.findUnique({where: {ID: DeliveryLocationID}});
+        if (realLocation) {
+            deliveryLocations.push(realLocation);
+        }
+    }
+
+    if (TruckID && trucks.filter((truck) => truck.ID === TruckID).length === 0) {
+        const realTruck = await prisma.trucks.findUnique({where: {ID: TruckID}});
+        if (realTruck) {
+            trucks.push(realTruck);
+        }
+    }
 
     return {
         props: {
-            loads: JSON.parse(JSON.stringify(loads)),
             initialLoad: JSON.parse(JSON.stringify(initialLoad)),
             customers,
             trucks,
