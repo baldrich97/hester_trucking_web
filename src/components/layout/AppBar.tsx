@@ -60,7 +60,7 @@ function AppBar(props: any) {
                     noWrap
                     sx={{flexGrow: 1}}
                 >
-                    Hester Trucking Inc.
+                    Aldrich Software Inc.
                 </Typography>
                 {/*<IconButton color="inherit">
                     <Badge badgeContent={4} color="secondary">
