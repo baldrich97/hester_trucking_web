@@ -220,6 +220,30 @@ export const loadsRouter = createRouter()
 
         }
     })
+    .mutation('put_duplicate_checker', {
+        input: LoadsModel.omit({ID: true, Deleted: true}),
+        async resolve({ctx, input}) {
+            const {TicketNumber} = input;
+            const existing = await ctx.prisma.loads.findFirst({where: {TicketNumber: TicketNumber}});
+            if (existing) {
+                return existing;
+            } else {
+                return false;
+            }
+        }
+    })
+    .mutation('post_duplicate_checker', {
+        input: LoadsModel,
+        async resolve({ctx, input}) {
+            const {TicketNumber, ID} = input;
+            const existing = await ctx.prisma.loads.findFirst({where: {TicketNumber: TicketNumber}});
+            if (existing && existing.ID !== ID) {
+                return existing;
+            } else {
+                return false;
+            }
+        }
+    })
     .mutation('put', {
         // validate input with Zod
         input: LoadsModel.omit({ID: true, Deleted: true}),
