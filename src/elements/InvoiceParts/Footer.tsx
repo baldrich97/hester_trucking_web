@@ -58,9 +58,9 @@ const Footer = ({invoiceDate, invoiceNumber, customer, total}: {invoiceDate: str
 
             <View style={{width: '100%', flexDirection: 'column', display: 'flex'}}>
                 <Text style={{textAlign: 'right', ...styles.textMedium}}>Invoice Number: {invoiceNumber}</Text>
-                <Text style={{textAlign: 'right', ...styles.text}}>Make Payment To: Hester Trucking, Inc.</Text>
-                <Text style={{textAlign: 'right', ...styles.text}}>9570 Hwy 51</Text>
-                <Text style={{textAlign: 'right', ...styles.text}}>Broseley, MO 63932</Text>
+                <Text style={{textAlign: 'right', ...styles.text}}>Make Payment To: Aldrich Software, Inc.</Text>
+                <Text style={{textAlign: 'right', ...styles.text}}>123 South Street</Text>
+                <Text style={{textAlign: 'right', ...styles.text}}>Springfield, MO 65807</Text>
                 <br/>
                 <View style={{flexDirection: 'row', display: 'flex', width: '100%', justifyContent: 'flex-end'}}>
                     <Text style={styles.textLarge}>Amount Enclosed:&nbsp;&nbsp;</Text>

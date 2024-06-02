@@ -26,11 +26,11 @@ const styles = StyleSheet.create({
 
 const Title = ({isConsolidated = false} : {isConsolidated: boolean}) => (
     <View style={styles.titleContainer}>
-        <Text style={styles.title}>Hester Trucking Inc.</Text>
+        <Text style={styles.title}>Aldrich Software, Inc.</Text>
         {/*<Html>{html}</Html>*/}
-        <Text style={styles.subtitle}>9570 Hwy 51 - Broseley, MO 63932</Text>
+        <Text style={styles.subtitle}>123 South Street - Springfield, MO 65807</Text>
         {/*<Html>{html}</Html>*/}
-        <Text style={styles.subtitle}>Office: (573) 328-1160 - Fax: (573) 328-1184</Text>
+        <Text style={styles.subtitle}>Office: (555) 123-4567 - Fax: (555) 789-1011</Text>
         {isConsolidated && <Text style={{...styles.subtitle, fontFamily: 'Times-Italic'}}>This is a consolidated invoice, it includes other outstanding invoices.</Text>}
     </View>
 )
