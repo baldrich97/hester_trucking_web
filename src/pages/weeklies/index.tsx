@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Grid2 from "@mui/material/Unstable_Grid2";
-import React from "react";
+import React, {useEffect} from "react";
 import LoadingModal from "elements/LoadingModal";
 import moment from "moment";
 import {trpc} from "utils/trpc";
@@ -21,6 +21,7 @@ import {
     LoadTypesModel,
     TrucksModel, CompleteWeeklies, CompleteCustomers, CompleteDeliveryLocations, CompleteLoadTypes
 } from "../../../prisma/zod";
+import {toast} from "react-toastify";
 
 interface CustomerSheet extends CompleteWeeklies {
     Customers: CompleteCustomers,
@@ -45,6 +46,29 @@ export default function Weeklies() {
         setData([]);
         setShouldRefresh(true);
     }, [week]);
+
+    useEffect(() => {
+        const info_shown = window.localStorage.getItem('info_shown');
+        if (info_shown) {
+            const _info_shown = JSON.parse(info_shown);
+            if (!_info_shown?.dailies) {
+                toast('Weeklies are generated once a Load is created. A weekly is a collection of a material hauled to a customer at a location. If any of those change, a new weekly will be made. Closing a weekly will make it able to be invoiced.', {
+                    autoClose: 100000,
+                    type: "info"
+                })
+
+                window.localStorage.setItem('info_shown', JSON.stringify({..._info_shown, 'weeklies': true}))
+            }
+        } else {
+            toast('Weeklies are generated once a Load is created. A weekly is a collection of a material hauled to a customer at a location. If any of those change, a new weekly will be made. Closing a weekly will make it able to be invoiced.', {
+                autoClose: 100000,
+                type: "info"
+            })
+
+            window.localStorage.setItem('info_shown', JSON.stringify({'weeklies': true}))
+        }
+
+    }, [])
 
     trpc.useQuery(["weeklies.getByWeek", {week: week}], {
         enabled: shouldRefresh,
@@ -224,7 +248,8 @@ export default function Weeklies() {
 
                 {data.map((weekly: CustomerSheet, index: number) => (
                     <>
-                        {weekly.Jobs.length > 0 && <WeeklySheet key={'sheet-' + index} weekly={weekly} week={week} forceExpand={forceExpand}/>}
+                        {weekly.Jobs.length > 0 &&
+                            <WeeklySheet key={'sheet-' + index} weekly={weekly} week={week} forceExpand={forceExpand}/>}
                     </>
                 ))}
                 {/* <EnhancedTableToolbar

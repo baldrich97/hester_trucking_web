@@ -37,7 +37,18 @@ const MyApp: AppType = ({
   };
 
   useEffect(() => {
-    toast('Data on this demo account will reset every night. Please feel free to change and/or add data as you explore the software. Thank you!', {autoClose: 100000, type: "info"})
+    const info_shown = window.localStorage.getItem('info_shown');
+    if (info_shown) {
+      const _info_shown = JSON.parse(info_shown);
+      if (!_info_shown?.startup) {
+        toast('Data on this demo account will reset every night. Please feel free to change and/or add data as you explore the software. Thank you!', {autoClose: 100000, type: "info"})
+        window.localStorage.setItem('info_shown', JSON.stringify({'startup': true}))
+      }
+    } else {
+      toast('Data on this demo account will reset every night. Please feel free to change and/or add data as you explore the software. Thank you!', {autoClose: 100000, type: "info"})
+      window.localStorage.setItem('info_shown', JSON.stringify({'startup': true}))
+    }
+
   }, [])
 
   return (

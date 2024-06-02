@@ -4,7 +4,7 @@ import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
 import Grid2 from "@mui/material/Unstable_Grid2";
-import React from "react";
+import React, {useEffect} from "react";
 import LoadingModal from "elements/LoadingModal";
 import moment from "moment";
 import {trpc} from "utils/trpc";
@@ -14,6 +14,7 @@ import Tooltip from "@mui/material/Tooltip";
 import {z} from "zod";
 import {CompleteJobs, DailiesModel, DriversModel, LoadsModel} from "../../../prisma/zod";
 import {formatDateToWeek, getWeekNumber} from "../../utils/UtilityFunctions";
+import {toast} from "react-toastify";
 
 type Loads = z.infer<typeof LoadsModel>;
 
@@ -43,6 +44,29 @@ export default function Dailies() {
         setShouldRefresh(true);
     }, [week]);
 
+    useEffect(() => {
+        const info_shown = window.localStorage.getItem('info_shown');
+        if (info_shown) {
+            const _info_shown = JSON.parse(info_shown);
+            if (!_info_shown?.dailies) {
+                toast('Dailies are generated once a Load is created. A daily is a log of everything a driver hauls in a given week.', {
+                    autoClose: 100000,
+                    type: "info"
+                })
+
+                window.localStorage.setItem('info_shown', JSON.stringify({..._info_shown, 'dailies': true}))
+            }
+        } else {
+            toast('Dailies are generated once a Load is created. A daily is a log of everything a driver hauls in a given week.', {
+                autoClose: 100000,
+                type: "info"
+            })
+
+            window.localStorage.setItem('info_shown', JSON.stringify({'dailies': true}))
+        }
+
+    }, [])
+
     trpc.useQuery(["dailies.getByWeek", {week: week}], {
         enabled: shouldRefresh,
         onSuccess(data) {
@@ -51,7 +75,6 @@ export default function Dailies() {
             setShouldRefresh(false);
         },
     });
-
 
 
     const [forceExpand, setforceExpand] = React.useState(true);
@@ -198,7 +221,8 @@ export default function Dailies() {
                     <hr style={{height: 1, width: "100%"}}/>
                 </Grid2>
 
-                {data.map((sheet: DriverSheet, index: number) => <DailySheet key={'sheet-' + index} sheet={sheet} week={week} forceExpand={forceExpand}/>)}
+                {data.map((sheet: DriverSheet, index: number) => <DailySheet key={'sheet-' + index} sheet={sheet}
+                                                                             week={week} forceExpand={forceExpand}/>)}
                 {/* <EnhancedTableToolbar
             numSelected={selected.length}
             readOnly={readOnly}
