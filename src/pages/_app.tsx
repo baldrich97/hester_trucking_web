@@ -21,8 +21,9 @@ import CssBaseline from "@mui/material/CssBaseline";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import Copyright from "../components/layout/Copyright";
 import "react-toastify/dist/ReactToastify.css";
-import { ToastContainer } from "react-toastify";
+import {toast, ToastContainer} from "react-toastify";
 import "../css/LoadingModal.css";
+import {useEffect} from "react";
 
 const mdTheme = createTheme();
 
@@ -34,6 +35,11 @@ const MyApp: AppType = ({
   const toggleDrawer = () => {
     setOpen(!open);
   };
+
+  useEffect(() => {
+    toast('Data on this demo account will reset every night. Please feel free to change and/or add data as you explore the software. Thank you!', {autoClose: 100000, type: "info"})
+  }, [])
+
   return (
     <SessionProvider session={session}>
       <ThemeProvider theme={mdTheme}>
