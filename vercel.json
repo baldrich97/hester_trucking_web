@@ -1,7 +1,7 @@
 {
   "crons": [
     {
-      "path": "/pages/api/crons",
+      "path": "/pages/api/crons/dataWipe",
       "schedule": "0 1 * * *"
     }
   ]
