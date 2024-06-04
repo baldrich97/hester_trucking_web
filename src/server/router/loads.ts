@@ -13,7 +13,8 @@ export const loadsRouter = createRouter()
             loadType: z.number().optional(),
             deliveryLocation: z.number().optional(),
             orderBy: z.string().optional(),
-            order: z.string().optional()
+            order: z.string().optional(),
+            search: z.number().nullish().optional()
         }),
         async resolve({ctx, input}) {
             const extra = [];
@@ -31,6 +32,9 @@ export const loadsRouter = createRouter()
             }
             if (input.deliveryLocation !== 0) {
                 extra.push({DeliveryLocationID: input.deliveryLocation})
+            }
+            if (input.search && input.search.toString().length > 0) {
+                extra.push({TicketNumber: input.search})
             }
 
             const {order, orderBy} = input;
@@ -181,7 +185,8 @@ export const loadsRouter = createRouter()
             truck: z.number().optional(),
             driver: z.number().optional(),
             loadType: z.number().optional(),
-            deliveryLocation: z.number().optional()
+            deliveryLocation: z.number().optional(),
+            search: z.number().nullish().optional()
         }),
         async resolve({ctx, input}) {
             const extra = [];
@@ -200,6 +205,10 @@ export const loadsRouter = createRouter()
             if (input.deliveryLocation !== 0) {
                 extra.push({DeliveryLocationID: input.deliveryLocation})
             }
+            if (input.search && input.search.toString().length > 0) {
+                extra.push({TicketNumber: input.search})
+            }
+
             return ctx.prisma.loads.count({
                 where: {
                     OR: [

@@ -19,6 +19,7 @@ import { TableColumnsType, TableColumnOverridesType } from "../../utils/types";
 import { trpc } from "../../utils/trpc";
 import deliverylocations from "../deliverylocations";
 import BasicAutocomplete from "elements/Autocomplete";
+import TextField from "@mui/material/TextField";
 
 type LoadsType = z.infer<typeof LoadsModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
@@ -62,7 +63,7 @@ const Loads = ({
   count: number;
   customers: CustomersType[];
 }) => {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState<number|null>(null);
 
   const [trpcData, setData] = useState<LoadsType[]>([]);
 
@@ -107,7 +108,7 @@ const Loads = ({
   trpc.useQuery(
     [
       "loads.getAll",
-      { page, customer, driver, truck, loadType, deliveryLocation, orderBy, order },
+      { page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search },
     ],
     {
       enabled: shouldRefresh,
@@ -123,7 +124,7 @@ const Loads = ({
   );
 
   trpc.useQuery(
-    ["loads.getCount", { customer, driver, truck, loadType, deliveryLocation }],
+    ["loads.getCount", { customer, driver, truck, loadType, deliveryLocation, search }],
     {
       enabled: shouldRefresh,
       onSuccess(data) {
@@ -165,86 +166,98 @@ const Loads = ({
             setTruck(0);
             setLoadType(0);
             setDeliveryLocation(0);
+            setSearch(null);
             setShouldRefresh(true);
           }}
           filterBody={
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <b style={{ textAlign: "center" }}>Specify Search Terms</b>
-              <div style={{ width: "100%", paddingBottom: 5 }}>
+            <div style={{display: "flex", flexDirection: "column"}}>
+              <b style={{textAlign: "center"}}>Specify Search Terms</b>
+              <div style={{width: "100%", paddingBottom: 5}}>
                 <BasicAutocomplete
-                  optionLabel={"Name+|+Street+,+City"}
-                  optionValue={"ID"}
-                  searchQuery={"customers"}
-                  label={"Customer"}
-                  defaultValue={null}
-                  onSelect={(customer: any) => {
-                    setCustomer(customer);
-                  }}
+                    optionLabel={"Name+|+Street+,+City"}
+                    optionValue={"ID"}
+                    searchQuery={"customers"}
+                    label={"Customer"}
+                    defaultValue={null}
+                    onSelect={(customer: any) => {
+                      setCustomer(customer);
+                    }}
+                />
+              </div>
+              <div style={{width: "100%", paddingBottom: 5}}>
+                <TextField
+                    label={"Ticket Number"}
+                    fullWidth
+                    type={"number"}
+                    size={"small"}
+                    onChange={(e) => {
+                      setSearch(parseFloat(e.currentTarget.value));
+                    }}
                 />
               </div>
               <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  paddingBottom: 5,
-                }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    paddingBottom: 5,
+                  }}
               >
-                <div style={{ width: "48%" }}>
+                <div style={{width: "48%"}}>
                   <BasicAutocomplete
-                    optionLabel={"FirstName+LastName"}
-                    optionValue={"ID"}
-                    searchQuery={"drivers"}
-                    label={"Driver"}
-                    defaultValue={null}
-                    onSelect={(driver: any) => {
-                      setDriver(driver);
-                    }}
+                      optionLabel={"FirstName+LastName"}
+                      optionValue={"ID"}
+                      searchQuery={"drivers"}
+                      label={"Driver"}
+                      defaultValue={null}
+                      onSelect={(driver: any) => {
+                        setDriver(driver);
+                      }}
                   />
                 </div>
-                <div style={{ width: "48%" }}>
+                <div style={{width: "48%"}}>
                   <BasicAutocomplete
-                    optionLabel={"Name+|+Notes"}
-                    optionValue={"ID"}
-                    searchQuery={"trucks"}
-                    label={"Truck"}
-                    defaultValue={null}
-                    onSelect={(truck: any) => {
-                      setTruck(truck);
-                    }}
+                      optionLabel={"Name+|+Notes"}
+                      optionValue={"ID"}
+                      searchQuery={"trucks"}
+                      label={"Truck"}
+                      defaultValue={null}
+                      onSelect={(truck: any) => {
+                        setTruck(truck);
+                      }}
                   />
                 </div>
               </div>
               <div
-                style={{
-                  display: "flex",
-                  flexDirection: "row",
-                  justifyContent: "space-between",
-                  paddingBottom: 5,
-                }}
+                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    justifyContent: "space-between",
+                    paddingBottom: 5,
+                  }}
               >
-                <div style={{ width: "48%" }}>
+                <div style={{width: "48%"}}>
                   <BasicAutocomplete
-                    optionLabel={"Description"}
-                    optionValue={"ID"}
-                    searchQuery={"loadtypes"}
-                    label={"Load Type"}
-                    defaultValue={null}
-                    onSelect={(loadType: any) => {
-                      setLoadType(loadType);
-                    }}
+                      optionLabel={"Description"}
+                      optionValue={"ID"}
+                      searchQuery={"loadtypes"}
+                      label={"Load Type"}
+                      defaultValue={null}
+                      onSelect={(loadType: any) => {
+                        setLoadType(loadType);
+                      }}
                   />
                 </div>
-                <div style={{ width: "48%" }}>
+                <div style={{width: "48%"}}>
                   <BasicAutocomplete
-                    optionLabel={"Description"}
-                    optionValue={"ID"}
-                    searchQuery={"deliverylocations"}
-                    label={"Delivery Location"}
-                    defaultValue={null}
-                    onSelect={(deliveryLocation: any) => {
-                      setDeliveryLocation(deliveryLocation);
-                    }}
+                      optionLabel={"Description"}
+                      optionValue={"ID"}
+                      searchQuery={"deliverylocations"}
+                      label={"Delivery Location"}
+                      defaultValue={null}
+                      onSelect={(deliveryLocation: any) => {
+                        setDeliveryLocation(deliveryLocation);
+                      }}
                   />
                 </div>
               </div>
@@ -253,21 +266,21 @@ const Loads = ({
         />
       </Grid2>
       <Divider
-        flexItem={true}
-        orientation={"vertical"}
-        sx={{ mr: "-1px" }}
-        variant={"fullWidth"}
+          flexItem={true}
+          orientation={"vertical"}
+          sx={{mr: "-1px"}}
+          variant={"fullWidth"}
       />
       <Grid2 xs={4}>
         <Load
-          customers={customers}
-          loadTypes={loadTypes}
-          deliveryLocations={deliveryLocations}
-          trucks={trucks}
-          drivers={drivers}
-          refreshData={() => {
-            setShouldRefresh(true);
-          }}
+            customers={customers}
+            loadTypes={loadTypes}
+            deliveryLocations={deliveryLocations}
+            trucks={trucks}
+            drivers={drivers}
+            refreshData={() => {
+              setShouldRefresh(true);
+            }}
         />
       </Grid2>
     </Grid2>
