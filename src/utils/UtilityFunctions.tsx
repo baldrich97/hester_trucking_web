@@ -19,7 +19,7 @@ export function getWeekNumber(date: Date): number {
     const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
     const millisecondsInDay = 86400000;
     const currentDayOfYear = Math.ceil(
-        (date.getTime() - firstDayOfYear.getTime()) / millisecondsInDay
+        (date.getTime() + 8600000 - firstDayOfYear.getTime()) / millisecondsInDay
     );
     return Math.ceil(currentDayOfYear / 7);
 }
