@@ -302,9 +302,11 @@ export default function GenericTable({
                               }
                               passHref
                             >
-                              <Button color={"primary"} variant={"contained"}>
-                                Edit
-                              </Button>
+                              <a target={"_blank"}>
+                                  <Button color={"primary"} variant={"contained"} style={{backgroundColor: '#1976d2'}}>
+                                      Edit
+                                  </Button>
+                              </a>
                             </NextLink>
                           </StyledTableCell>
                         );
