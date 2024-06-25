@@ -124,6 +124,8 @@ const Invoice = ({
 
   const addOrUpdateInvoice = trpc.useMutation(key, {
     async onSuccess(data) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       reset(initialInvoice ? data : defaultValues);
       toast("Successfully Submitted!", { autoClose: 2000, type: "success" });
     },
