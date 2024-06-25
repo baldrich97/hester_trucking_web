@@ -260,7 +260,6 @@ function Row(props: {
                 </TableCell>
             </TableRow>
             {row.Jobs.map((job) => {
-                console.log('JOB', job)
                 if (job.Loads.length === 0 || !job.Loads) {
                     return null;
                 }

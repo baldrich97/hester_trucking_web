@@ -440,7 +440,7 @@ export const invoicesRouter = createRouter()
                 }
             }
 
-            return returnable;
+            return true;
         },
     })
     .mutation('putConsolidated', {
