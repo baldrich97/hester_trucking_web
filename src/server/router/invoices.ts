@@ -4,6 +4,7 @@ import {InvoicesModel, LoadsModel} from '../../../prisma/zod';
 import {prisma} from "../db/client";
 import {TRPCError} from "@trpc/server";
 
+
 export const invoicesRouter = createRouter()
     .query("getAll", {
         input: z.object({
@@ -425,18 +426,26 @@ export const invoicesRouter = createRouter()
                 const loads = await ctx.prisma.loads.findMany({
                     where: {
                         JobID: job.ID
+                    },
+                    select: {
+                        ID: true
                     }
                 })
 
-                for (const load of loads) {
-                    await ctx.prisma.loads.update({
-                        where: {
-                            ID: load.ID
-                        },
-                        data: {
-                            ...load, Invoiced: true, InvoiceID: returnable.ID
-                        }
-                    })
+                if (loads && loads.length > 0) {
+                    await ctx.prisma.$transaction(
+                        loads.map((item) => {
+                            return ctx.prisma.loads.update({
+                                where: {
+                                    ID: item.ID
+                                },
+                                data: {
+                                    Invoiced: true, InvoiceID: returnable.ID
+                                }
+                            })
+                        })
+
+                    )
                 }
             }
 
