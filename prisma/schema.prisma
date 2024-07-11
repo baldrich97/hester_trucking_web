@@ -1,12 +1,12 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearch", "fullTextIndex", "interactiveTransactions"]
+  previewFeatures = ["interactiveTransactions", "fullTextSearch", "fullTextIndex"]
 }
 
 generator zod {
   provider              = "zod-prisma"
-  prismaJsonNullability = "true"
   modelCase             = "PascalCase"
+  prismaJsonNullability = "true"
   useDecimalJs          = "true"
   relationModel         = "true"
   modelSuffix           = "Model"
@@ -18,8 +18,8 @@ datasource db {
 }
 
 model User {
-  id           String @id @default(cuid())
-  email        String @unique
+  id           Int    @id @default(autoincrement())
+  email        String
   organization String
   password     String
   username     String
