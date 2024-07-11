@@ -25,6 +25,7 @@ import { ToastContainer } from "react-toastify";
 import "../css/LoadingModal.css";
 import {useEffect} from "react";
 import {get} from "react-hook-form";
+import {Session} from "next-auth";
 
 const mdTheme = createTheme();
 
@@ -37,12 +38,11 @@ const MyApp: AppType = ({
     setOpen(!open);
   };
 
-  const [session, setSession] = React.useState(null);
+  const [session, setSession] = React.useState<null | Session>(null);
 
   useEffect(() => {
     async function getToken() {
       const sess = await getSession();
-      console.log('SES', sess)
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       setSession(sess)
