@@ -8,6 +8,7 @@ import * as React from "react";
 import {AppBarProps as MuiAppBarProps} from "@mui/material/AppBar/AppBar";
 import {styled} from "@mui/material/styles";
 import MuiAppBar from "@mui/material/AppBar";
+import { signOut } from "next-auth/react";
 
 interface AppBarProps extends MuiAppBarProps {
     open?: boolean;
@@ -34,6 +35,7 @@ const AppBarContent = styled(MuiAppBar, {
 }));
 
 function AppBar(props: any) {
+    console.log(props.user)
     return (
         <AppBarContent position="absolute" open={props.open}>
             <Toolbar
@@ -67,6 +69,11 @@ function AppBar(props: any) {
                         <NotificationsIcon/>
                     </Badge>
                 </IconButton>*/}
+                {props.user && <b>{props.user.username}</b>}
+                &nbsp;&nbsp;
+                <button onClick={async () => await signOut()}>
+                    Sign Out
+                </button>
             </Toolbar>
         </AppBarContent>
     )

@@ -2,7 +2,7 @@
 import { httpBatchLink } from "@trpc/client/links/httpBatchLink";
 import { loggerLink } from "@trpc/client/links/loggerLink";
 import { withTRPC } from "@trpc/next";
-import { SessionProvider } from "next-auth/react";
+import {getSession, SessionProvider} from "next-auth/react";
 import type { AppType } from "next/dist/shared/lib/utils";
 import superjson from "superjson";
 import type { AppRouter } from "../server/router";
@@ -23,24 +23,41 @@ import Copyright from "../components/layout/Copyright";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
 import "../css/LoadingModal.css";
+import {useEffect} from "react";
+import {get} from "react-hook-form";
 
 const mdTheme = createTheme();
 
 const MyApp: AppType = ({
   Component,
-  pageProps: { session, ...pageProps },
+  pageProps: { ...pageProps },
 }) => {
   const [open, setOpen] = React.useState(true);
   const toggleDrawer = () => {
     setOpen(!open);
   };
+
+  const [session, setSession] = React.useState(null);
+
+  useEffect(() => {
+    async function getToken() {
+      const sess = await getSession();
+      console.log('SES', sess)
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      setSession(sess)
+    }
+
+    getToken().then();
+
+  }, []);
   return (
     <SessionProvider session={session}>
       <ThemeProvider theme={mdTheme}>
         <Box sx={{ display: "flex" }}>
           <CssBaseline />
           <ToastContainer />
-          <AppBar toggleDrawer={toggleDrawer} open={open} />
+          <AppBar toggleDrawer={toggleDrawer} open={open} user={session?.user}/>
           <Sidenav toggleDrawer={toggleDrawer} open={open} />
           <Box
             component="main"

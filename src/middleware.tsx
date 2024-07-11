@@ -29,17 +29,17 @@ export default async function middleware(req: NextRequest) {
     const path = url.pathname;
 
     // rewrites for app pages
-    if (hostname == `app.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
+    //if (hostname == `app.${process.env.NEXT_PUBLIC_ROOT_DOMAIN}`) {
         const session = await getToken({ req });
-        if (!session && path !== "/login") {
-            return NextResponse.redirect(new URL("/login", req.url));
-        } else if (session && path == "/login") {
+        if (!session && path !== "/api/auth/signin") {
+            return NextResponse.redirect(new URL("/api/auth/signin", req.url));
+        } else if (session && path == "/api/auth/signin") {
             return NextResponse.redirect(new URL("/", req.url));
         }
         return NextResponse.rewrite(
-            new URL(`/app${path === "/" ? "" : path}`, req.url),
+            new URL(path, req.url),
         );
-    }
+    //}
 
 
     // special case for `vercel.pub` domain
