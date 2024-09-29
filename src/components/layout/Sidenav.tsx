@@ -7,6 +7,7 @@ import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import PaymentsIcon from "@mui/icons-material/Payments";
 import NextLink from "next/link";
 import MapsHomeWorkIcon from "@mui/icons-material/MapsHomeWork";
 import PeopleIcon from "@mui/icons-material/People";
@@ -74,6 +75,8 @@ function Sidenav(props: any) {
     selectedLink = 9;
   } else if (currentPath.includes("/weeklies")) {
     selectedLink = 10;
+  } else if (currentPath.includes("/paystubs")) {
+    selectedLink = 11;
   }
 
   const [selectedIndex, setSelectedIndex] = React.useState(selectedLink);
@@ -205,6 +208,17 @@ function Sidenav(props: any) {
               <CalendarMonth />
             </ListItemIcon>
             <ListItemText primary="Weeklies" />
+          </ListItemButton>
+        </NextLink>
+        <NextLink href="/paystubs" passHref>
+          <ListItemButton
+              selected={selectedIndex === 11}
+              onClick={() => setSelectedIndex(11)}
+          >
+            <ListItemIcon>
+              <PaymentsIcon />
+            </ListItemIcon>
+            <ListItemText primary="Paystubs" />
           </ListItemButton>
         </NextLink>
       </List>
