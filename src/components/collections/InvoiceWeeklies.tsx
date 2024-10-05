@@ -24,6 +24,8 @@ import {
     CompleteLoadTypes,
     CompleteWeeklies
 } from "../../../prisma/zod";
+import Button from "@mui/material/Button";
+import NextLink from "next/link";
 
 interface CustomerSheet extends CompleteWeeklies {
     Customers: CompleteCustomers,
@@ -219,6 +221,7 @@ function Row(props: {
                 tabIndex={-1}
                 key={Math.random().toString()}
                 selected={isItemSelected}
+                sx={{backgroundColor: "#F5F5F5"}}
             >
                 {!readOnly && (
                     <TableCell padding="checkbox" size={"small"}>
@@ -249,7 +252,19 @@ function Row(props: {
                 <TableCell align="left" padding="normal" size={"small"}>
                     {Math.round((row.Revenue ?? Number.EPSILON) * 100) / 100}
                 </TableCell>
-                <TableCell>
+                <TableCell align="right" padding="none" size={"small"}>
+                    <NextLink
+                        href={{pathname: "/weeklies", query: {forceExpand: row.ID, defaultWeek: row.Week}}}
+                        passHref
+                    >
+                        <a target={"_blank"}>
+                            <Button color={"primary"} variant={"contained"} style={{backgroundColor: '#1976d2'}}>
+                                To Weekly
+                            </Button>
+                        </a>
+                    </NextLink>
+                </TableCell>
+                <TableCell align={'right'} padding="none" size={"small"}>
                     <IconButton
                         aria-label="expand row"
                         size="small"
@@ -266,18 +281,38 @@ function Row(props: {
                 job.Loads.sort((a, b) => new Date(a.StartDate).getTime() - new Date(b.StartDate).getTime())
                 return (
                     <>
-                        <TableRow key={Math.random()}>
-                            <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
+                        <TableRow key={Math.random()} style={{display: open ? 'table-row' : 'none'}}>
+                            <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={5}>
                                 <Collapse in={open} timeout="auto" unmountOnExit>
                                     <Box sx={{ margin: 1 }}>
-                                        <Typography variant="h6" gutterBottom component="div">
-                                            Job Details
-                                        </Typography>
+                                        <div style={{ display: 'flex', flexDirection: 'row', justifyContent: 'space-between', backgroundColor: job.PaidOut ? "#88ff83" : (job.TruckingRevenue !== null || job.CompanyRevenue !== null) ? "#8991ff" : "#bababa" }}>
+                                            <Typography variant="h6" gutterBottom component="div">
+                                                Job Details
+                                            </Typography>
+                                            <TableCell align="right" padding="none" size={"small"}>
+                                                <NextLink
+                                                    href={{pathname: "/dailies", query: {forceExpand: job.DriverID, defaultWeek: row.Week}}}
+                                                    passHref
+                                                >
+                                                    <a target={"_blank"}>
+                                                        <Button color={"primary"} variant={"contained"} style={{backgroundColor: '#00dfff'}}>
+                                                            To Daily
+                                                        </Button>
+                                                    </a>
+                                                </NextLink>
+                                            </TableCell>
+                                        </div>
                                         <Table size="small" aria-label="purchases">
                                             <TableHead>
                                                 <TableRow>
-                                                    <TableCell align="left" padding="none" size={"small"}>
+                                                    <TableCell align="left" padding="none" size={"small"} sx={{width: "50%"}}>
                                                         {job.Drivers.FirstName + ' ' + job.Drivers.LastName}
+                                                    </TableCell>
+                                                    <TableCell align="left" padding="none" size={"small"} sx={{width: "33%"}}>
+                                                        Truck Driven
+                                                    </TableCell>
+                                                    <TableCell align="left" padding="none" size={"small"} sx={{width: "33%"}}>
+                                                        Weight/Hours
                                                     </TableCell>
                                                 </TableRow>
                                             </TableHead>

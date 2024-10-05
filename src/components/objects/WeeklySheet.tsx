@@ -9,6 +9,7 @@ import React, {useEffect, useState} from "react";
 import TextField from "@mui/material/TextField";
 import {toast} from "react-toastify";
 import {z} from "zod";
+
 import {
     CompleteJobs,
     LoadsModel,
@@ -25,6 +26,7 @@ import Tooltip from '@mui/material/Tooltip';
 import {confirmAlert} from "react-confirm-alert";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import {trpc} from "../../utils/trpc";
+import NextLink from "next/link";
 
 type DeliveryLocation = z.infer<typeof DeliveryLocationsModel>;
 
@@ -46,13 +48,14 @@ interface CustomerSheet extends CompleteWeeklies {
 const WeeklySheet = ({
                          weekly,
                          week,
-                         forceExpand
-                     }: { weekly: CustomerSheet, week: string, forceExpand: boolean }) => {
+                         forceExpand,
+                         initialExpand = null,
+                     }: { weekly: CustomerSheet, week: string, forceExpand: boolean, initialExpand: any }) => {
     const [isOpen, setIsOpen] = useState(forceExpand);
 
     useEffect(() => {
-        setIsOpen(forceExpand)
-    }, [forceExpand])
+        setIsOpen(initialExpand || forceExpand)
+    }, [forceExpand, initialExpand])
 
     const [sheet, setSheet] = useState<CustomerSheet>(weekly);
 
@@ -75,7 +78,7 @@ const WeeklySheet = ({
                             setIsOpen(!isOpen);
                         }}
                     >
-                        {isOpen ? (
+                        {isOpen || initialExpand ? (
                             <ExpandMore sx={{fontSize: 30}}/>
                         ) : (
                             <ChevronRight sx={{fontSize: 30}}/>
@@ -110,6 +113,18 @@ const WeeklySheet = ({
                         Print Week
                     </Button>
                 </Grid2>
+                {sheet.InvoiceID &&  <Grid2 xs={"auto"} sx={{paddingRight: 2}}>
+                    <NextLink
+                        href={`invoices/${sheet.InvoiceID}`}
+                        passHref
+                    >
+                        <a target={"_blank"}>
+                            <Button color={"primary"} variant={"contained"} style={{backgroundColor: '#1976d2'}}>
+                                To Invoice
+                            </Button>
+                        </a>
+                    </NextLink>
+                </Grid2>}
             </Grid2>
             <div
                 style={{
