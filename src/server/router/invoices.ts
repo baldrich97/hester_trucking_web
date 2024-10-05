@@ -9,6 +9,8 @@ export const invoicesRouter = createRouter()
     .query("getAll", {
         input: z.object({
             customer: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
             orderBy: z.string().optional(),
@@ -16,6 +18,7 @@ export const invoicesRouter = createRouter()
         }),
         async resolve({ctx, input}) {
             const extra = [];
+            const loadsExtra = [];
             if (input.search && input.search.toString().length > 0) {
                 extra.push({TotalAmount: input.search})
                 if (!input.search.toString().includes('.')) {
@@ -34,18 +37,36 @@ export const invoicesRouter = createRouter()
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
             }
-            return ctx.prisma.invoices.findMany({
-                where: {
-                    OR: [
-                        {Paid: true}, {Paid: false}, {Paid: null}
-                    ],
+
+            if (input.loadType !== 0 || input.deliveryLocation !== 0) {
+                const someData = {};
+                if (input.loadType !== 0) {
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
-                    AND: {
-                        OR: [
-                            ...extra
+                    someData["LoadTypeID"] = input.loadType;
+                }
+                if (input.deliveryLocation !== 0) {
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    someData["DeliveryLocationID"] = input.deliveryLocation;
+                }
+                loadsExtra.push({Loads: {
+                        some: someData
+                    }})
+            }
+
+            return ctx.prisma.invoices.findMany({
+                where: {
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+
+                        AND: [
+                            ...extra,
+                            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                            // @ts-ignore
+                            ...loadsExtra
                         ],
-                    }
+
                 },
                 take: 10,
                 include: {
@@ -60,6 +81,8 @@ export const invoicesRouter = createRouter()
     .query("getAllPaid", {
         input: z.object({
             customer: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
             orderBy: z.string().optional(),
@@ -111,6 +134,8 @@ export const invoicesRouter = createRouter()
     .query("getAllUnpaid", {
         input: z.object({
             customer: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
             orderBy: z.string().optional(),
@@ -166,6 +191,8 @@ export const invoicesRouter = createRouter()
     .query("getAllConsolidated", {
         input: z.object({
             customer: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
             orderBy: z.string().optional(),
@@ -273,6 +300,8 @@ export const invoicesRouter = createRouter()
     .query("getCount", {
         input: z.object({
             customer: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
             tabValue: z.number().optional()
