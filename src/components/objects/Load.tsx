@@ -111,16 +111,18 @@ function Load({
 
     const addOrUpdateLoad = trpc.useMutation(key, {
         async onSuccess(data) {
+            toggleOverride(false)
             toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             initialLoad && reset(data);
         },
         async onError(error) {
+            toggleOverride(false)
             toast(
                 "There was an issue creating or updating this load. The issue was: " +
                 error.message,
-                {autoClose: 100000, type: "error"}
+                {autoClose: 1000000, type: "error"}
             );
             return;
         },
@@ -134,18 +136,29 @@ function Load({
             toast(
                 "There was an issue creating or updating this load. The issue was: " +
                 error.message,
-                {autoClose: 100000, type: "error"}
+                {autoClose: 1000000, type: "error"}
             );
             return;
         },
     });
 
+    const [overrideWarning, toggleOverride] = useState(false);
+
     const onSubmit = async (data: ValidationSchema) => {
         const duplicate = await checkDuplicate.mutateAsync(data);
 
-        if (duplicate !== false) {
-            toast(<CustomToast ID={duplicate.ID}/>, {autoClose: 5000, type: "warning"})
+        if (duplicate !== false && !overrideWarning) {
+            toast(<CustomToast ID={duplicate.ID} onClickTrigger={() => toggleOverride(true)}/>, {
+                autoClose: 500000, type: "warning",  position: "top-left",
+                style: {
+                    width: "98vw",       // Full viewport width
+                    margin: 0,            // Remove margin to avoid cut-off
+                    borderRadius: 0,      // Remove border-radius for full-width look
+                    textAlign: 'center',  // Center the text
+                },
+            })
         } else {
+            toggleOverride(false)
             toast("Submitting...", {autoClose: 2000, type: "info"});
             await addOrUpdateLoad.mutateAsync(data);
             if (key === "loads.put") {
@@ -192,6 +205,7 @@ function Load({
     });
 
     const onDelete = async (data: LoadsType) => {
+        toggleOverride(false)
         toast("Deleting...", {autoClose: 2000, type: "info"});
         await deleteLoad.mutateAsync(data);
         await router.replace("/loads");
@@ -238,6 +252,9 @@ function Load({
 
     React.useEffect(() => {
         const subscription = watch((value, {name, type}) => {
+            if (name === "TicketNumber" && type === "change") {
+                toggleOverride(false)
+            }
             if (name === "StartDate" && type === "change") {
                 setValue("Week", formatDateToWeek(value.StartDate ? value.StartDate : new Date()))
             }
@@ -586,22 +603,30 @@ function Load({
 }
 
 interface CustomToastProps {
-    ID: number
+    ID: number,
+    onClickTrigger: any,
 }
 
 class CustomToast extends React.Component<CustomToastProps> {
 
     render() {
         return (
-            <a
-                href={`/loads/${this.props.ID}`}
-                target={"_blank"} rel="noreferrer"
-            >
-              <span>
-                This is a duplicate ticket number. Click this to open the existing load in a new tab.
+
+            <span>
+                This is a duplicate ticket number.&nbsp;
+                <a
+                    href={`/loads/${this.props.ID}`}
+                    target={"_blank"} rel="noreferrer"
+                >
+                    <b>Click here to open the existing load in a new tab. </b>
+                </a>
+                If you want to override this warning and make continue with the duplicate ticket number,&nbsp;
+                    <b onClick={() => this.props.onClickTrigger()}>click here to override this warning. </b>
+                Then save this load again. Click anywhere else to dismiss this warning.
               </span>
-            </a>
-        );
+
+        )
+            ;
     }
 }
 

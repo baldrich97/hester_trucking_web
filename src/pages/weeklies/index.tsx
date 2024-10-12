@@ -12,6 +12,7 @@ import WeeklySheet from "components/objects/WeeklySheet";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import Tooltip from "@mui/material/Tooltip";
 import {z} from "zod";
+import {useRouter} from "next/router"
 import {
     CompleteJobs,
     CustomersModel, DeliveryLocationsModel,
@@ -32,6 +33,7 @@ interface CustomerSheet extends CompleteWeeklies {
 type YearWeekFormat = `${number}-W${number}`;
 
 export default function Weeklies() {
+    const router= useRouter();
 
     const date = new Date();
     const defaultWeek = formatDateToWeek(date);
@@ -39,12 +41,24 @@ export default function Weeklies() {
     const [loading, setLoading] = React.useState<boolean>(false);
     const [shouldRefresh, setShouldRefresh] = React.useState<boolean>(false);
     const [data, setData] = React.useState<any>([]);
+    const [initialExpand, setInitialExpand] = React.useState<any>(null);
 
     React.useEffect(() => {
         setLoading(true);
         setData([]);
         setShouldRefresh(true);
     }, [week]);
+
+    React.useEffect(() => {
+        setLoading(true);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        setWeek(router.query?.defaultWeek ?? defaultWeek)
+        setInitialExpand(router.query?.forceExpand ?? null)
+        setforceExpand(false)
+        setData([]);
+        setShouldRefresh(true);
+    }, [router.query]);
 
     trpc.useQuery(["weeklies.getByWeek", {week: week}], {
         enabled: shouldRefresh,
@@ -98,6 +112,7 @@ export default function Weeklies() {
                                 }}
                                 color="inherit"
                                 onClick={() => {
+                                    setInitialExpand(null)
                                     setforceExpand(!forceExpand);
                                 }}
                             >
@@ -124,6 +139,7 @@ export default function Weeklies() {
                                 maxWidth: "50px",
                             }}
                             onClick={() => {
+                                setInitialExpand(null)
                                 setWeek(defaultWeek);
                             }}
                         >
@@ -157,6 +173,7 @@ export default function Weeklies() {
                                 } else {
                                     returnable += curweek;
                                 }
+                                setInitialExpand(null)
                                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                                 // @ts-ignore
                                 setWeek(returnable);
@@ -192,6 +209,7 @@ export default function Weeklies() {
                                 } else {
                                     returnable += curweek;
                                 }
+                                setInitialExpand(null)
                                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                                 // @ts-ignore
                                 setWeek(returnable);
@@ -224,7 +242,7 @@ export default function Weeklies() {
 
                 {data.map((weekly: CustomerSheet, index: number) => (
                     <>
-                        {weekly.Jobs.length > 0 && <WeeklySheet key={'sheet-' + index} weekly={weekly} week={week} forceExpand={forceExpand}/>}
+                        {weekly.Jobs.length > 0 && <WeeklySheet key={'sheet-' + index} weekly={weekly} week={week} forceExpand={forceExpand} initialExpand={initialExpand == weekly.ID}/>}
                     </>
                 ))}
                 {/* <EnhancedTableToolbar

@@ -5,11 +5,11 @@ generator client {
 
 generator zod {
   provider              = "zod-prisma"
-  useDecimalJs          = "true"
-  modelSuffix           = "Model"
-  modelCase             = "PascalCase"
   prismaJsonNullability = "true"
+  modelCase             = "PascalCase"
+  modelSuffix           = "Model"
   relationModel         = "true"
+  useDecimalJs          = "true"
 }
 
 datasource db {
@@ -220,9 +220,9 @@ model Loads {
   TruckID            Int?
   DriverID           Int?
   Deleted            Boolean?
-  JobID              Int?
   Week               String             @db.VarChar(20)
   DriverRate         Float?
+  JobID              Int?
   Customers          Customers          @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_Loads_Customer")
   DeliveryLocations  DeliveryLocations? @relation(fields: [DeliveryLocationID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_DeliveryLocation")
   Drivers            Drivers?           @relation(fields: [DriverID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Driver")

@@ -24,7 +24,8 @@ type Daily = z.infer<typeof DailiesModel>;
 
 interface DriverSheet extends Daily {
     Drivers: Driver,
-    Jobs: CompleteJobs[]
+    Jobs: CompleteJobs[],
+    initialExpand?: any
 }
 
 // const printDailySheet = trpc.useMutation("dailies.postPrinted", {
@@ -33,12 +34,12 @@ interface DriverSheet extends Daily {
 //     },
 // });
 
-const DailySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: string, forceExpand: boolean }) => {
+const DailySheet = ({sheet, week, forceExpand, initialExpand = null,}: { sheet: DriverSheet, week: string, forceExpand: boolean, initialExpand: any  }) => {
     const [isOpen, setIsOpen] = useState(forceExpand);
 
     useEffect(() => {
-        setIsOpen(forceExpand)
-    }, [forceExpand])
+        setIsOpen(initialExpand || forceExpand)
+    }, [forceExpand, initialExpand])
 
     const [daily, setDaily] = useState<DriverSheet>(sheet);
 
@@ -61,7 +62,7 @@ const DailySheet = ({sheet, week, forceExpand}: { sheet: DriverSheet, week: stri
                             setIsOpen(!isOpen);
                         }}
                     >
-                        {isOpen ? (
+                        {isOpen || initialExpand ? (
                             <ExpandMore sx={{fontSize: 30}}/>
                         ) : (
                             <ChevronRight sx={{fontSize: 30}}/>
@@ -143,8 +144,9 @@ const TotalsRow = ({
                        job,
                        load,
                        weightSum,
-                       ownerOperator
-                   }: { index: number, job: CompleteJobs, load: Loads, weightSum: number, ownerOperator: boolean }) => {
+                       ownerOperator,
+
+                   }: { index: number, job: CompleteJobs, load: Loads, weightSum: number, ownerOperator: boolean}) => {
     const [jobState, setJobState] = useState(job);
     const [isClosed, setIsClosed] = useState(job.TruckingRevenue !== null || job.CompanyRevenue !== null);
     const [isPaidOut, setIsPaidOut] = useState(job.PaidOut)

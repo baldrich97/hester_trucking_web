@@ -14,6 +14,7 @@ import Tooltip from "@mui/material/Tooltip";
 import {z} from "zod";
 import {CompleteJobs, DailiesModel, DriversModel, LoadsModel} from "../../../prisma/zod";
 import {formatDateToWeek, getWeekNumber} from "../../utils/UtilityFunctions";
+import {useRouter} from "next/router"
 
 type Loads = z.infer<typeof LoadsModel>;
 
@@ -29,6 +30,7 @@ interface DriverSheet extends Daily {
 type YearWeekFormat = `${number}-W${number}`;
 
 export default function Dailies() {
+    const router= useRouter();
 
     const date = new Date();
     const defaultWeek = formatDateToWeek(date);
@@ -36,12 +38,24 @@ export default function Dailies() {
     const [loading, setLoading] = React.useState<boolean>(false);
     const [shouldRefresh, setShouldRefresh] = React.useState<boolean>(false);
     const [data, setData] = React.useState<any>([]);
+    const [initialExpand, setInitialExpand] = React.useState<any>(null);
 
     React.useEffect(() => {
         setData([])
         setLoading(true);
         setShouldRefresh(true);
     }, [week]);
+
+    React.useEffect(() => {
+        setLoading(true);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        setWeek(router.query?.defaultWeek ?? defaultWeek)
+        setInitialExpand(router.query?.forceExpand ?? null)
+        setforceExpand(false)
+        setData([]);
+        setShouldRefresh(true);
+    }, [router.query]);
 
     trpc.useQuery(["dailies.getByWeek", {week: week}], {
         enabled: shouldRefresh,
@@ -74,6 +88,7 @@ export default function Dailies() {
                                 }}
                                 color="inherit"
                                 onClick={() => {
+                                    setInitialExpand(null)
                                     setforceExpand(!forceExpand);
                                 }}
                             >
@@ -100,6 +115,7 @@ export default function Dailies() {
                                 maxWidth: "50px",
                             }}
                             onClick={() => {
+                                setInitialExpand(null)
                                 setWeek(defaultWeek);
                             }}
                         >
@@ -133,6 +149,7 @@ export default function Dailies() {
                                 } else {
                                     returnable += curweek;
                                 }
+                                setInitialExpand(null)
                                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                                 // @ts-ignore
                                 setWeek(returnable);
@@ -168,6 +185,7 @@ export default function Dailies() {
                                 } else {
                                     returnable += curweek;
                                 }
+                                setInitialExpand(null)
                                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                                 // @ts-ignore
                                 setWeek(returnable);
@@ -198,7 +216,7 @@ export default function Dailies() {
                     <hr style={{height: 1, width: "100%"}}/>
                 </Grid2>
 
-                {data.map((sheet: DriverSheet, index: number) => <DailySheet key={'sheet-' + index} sheet={sheet} week={week} forceExpand={forceExpand}/>)}
+                {data.map((sheet: DriverSheet, index: number) => <DailySheet key={'sheet-' + index} sheet={sheet} week={week} forceExpand={forceExpand} initialExpand={initialExpand == sheet.DriverID}/>)}
                 {/* <EnhancedTableToolbar
             numSelected={selected.length}
             readOnly={readOnly}

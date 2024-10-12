@@ -26,6 +26,7 @@ import "../css/LoadingModal.css";
 import {useEffect} from "react";
 import {get} from "react-hook-form";
 import {Session} from "next-auth";
+import 'react-toastify/dist/ReactToastify.css';
 
 const mdTheme = createTheme();
 
@@ -56,7 +57,8 @@ const MyApp: AppType = ({
       <ThemeProvider theme={mdTheme}>
         <Box sx={{ display: "flex" }}>
           <CssBaseline />
-          <ToastContainer />
+          <ToastContainer
+          />
           <AppBar toggleDrawer={toggleDrawer} open={open} user={session?.user}/>
           <Sidenav toggleDrawer={toggleDrawer} open={open} />
           <Box
