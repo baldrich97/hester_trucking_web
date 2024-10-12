@@ -310,6 +310,13 @@ export const loadsRouter = createRouter()
             if (daily) {
                 //if (!weekly || ((Math.round((weekly.CompanyRate ?? 0) * 100)) / 100) !== ((Math.round((TotalRate ?? 0) * 100)) / 100)) {
                 //should implement this at some point but for now is fine?
+
+                if (daily.LastPrinted) {
+                    ctx.warnings.push('This daily has already been printed.')
+                    ctx.warnings.push(daily.Week);
+                    ctx.warnings.push(daily.DriverID.toString());
+                }
+
                 if (!weekly) {
                     //Create a new weekly with the corresponding info
                     weekly = await ctx.prisma.weeklies.create({
@@ -472,9 +479,10 @@ export const loadsRouter = createRouter()
             }
 
             // use your ORM of choice
-            return ctx.prisma.loads.create({
+            const data = await ctx.prisma.loads.create({
                 data: input
-            })
+            });
+            return {data, warnings: ctx.warnings}
         },
     })
     .mutation('post', {

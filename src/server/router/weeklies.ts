@@ -53,7 +53,15 @@ export const weekliesRouter = createRouter()
                     InvoiceID: null,
                     NOT: {
                         Revenue: null
+                    },
+                    Jobs: {
+                        some: {
+                            Loads: {
+                                some: {}
+                            }
+                        }  // This ensures only weeklies with associated Jobs are fetched
                     }
+
                 },
                 include: {
                     Jobs: {
