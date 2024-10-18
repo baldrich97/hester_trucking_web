@@ -24,7 +24,8 @@ const overrides: TableColumnOverridesType = [
     {name: 'ID', type: 'button'}
 ]
 
-const PayStubs = ({loadtypes, count, drivers}: {loadtypes: LoadTypesType[], count: number, drivers: DriversType[]}) => {
+//TODO ADD PAYSTUBS CALL IN HERE
+const PayStubs = ({count, drivers}: {count: number, drivers: DriversType[]}) => {
 
     const [search, setSearch] = useState('');
 
@@ -63,12 +64,12 @@ const PayStubs = ({loadtypes, count, drivers}: {loadtypes: LoadTypesType[], coun
                 <Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Load Types'}/>
                 </Grid2>
-                <GenericTable data={trpcData.length || (order !== 'desc' || orderBy !== 'ID') ? trpcData : loadtypes} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
-                    setPage(page);
-                    setOrderBy(orderBy);
-                    setOrder(order);
-                    setShouldSearch(true);
-                }}/>
+                {/*<GenericTable data={trpcData.length || (order !== 'desc' || orderBy !== 'ID') ? trpcData : loadtypes} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {*/}
+                {/*    setPage(page);*/}
+                {/*    setOrderBy(orderBy);*/}
+                {/*    setOrder(order);*/}
+                {/*    setShouldSearch(true);*/}
+                {/*}}/>*/}
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
@@ -83,6 +84,7 @@ export default PayStubs;
 export const getServerSideProps: GetServerSideProps = async (context) => {
 
 
+    //TODO DO PAYSTUBS CALL HERE
 
     const count = await prisma.loadTypes.count();
 

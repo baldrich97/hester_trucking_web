@@ -35,7 +35,7 @@ export const appRouter = createRouter()
     .merge("dailies.", dailiesRouter)
     .merge("weeklies.", weekliesRouter)
     .merge("jobs.", jobsRouter)
-    .merge("payStubs.", paystubsRouter)
+    .merge("paystubs.", paystubsRouter)
     .merge("auth.", protectedExampleRouter);
 
 // export type definition of API

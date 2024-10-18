@@ -1,11 +1,9 @@
 import * as z from "zod"
-import { CompleteDrivers, RelatedDriversModel, CompleteInvoices, RelatedInvoicesModel, CompleteJobs, RelatedJobsModel } from "./index"
+import { CompleteDrivers, RelatedDriversModel, CompleteJobs, RelatedJobsModel } from "./index"
 
 export const PayStubsModel = z.object({
   ID: z.number().int(),
   Created: z.date(),
-  InvoiceDate: z.date(),
-  InvoiceID: z.number().int(),
   DriverID: z.number().int(),
   CheckNumber: z.string(),
   Gross: z.number(),
@@ -15,11 +13,12 @@ export const PayStubsModel = z.object({
   SSTax: z.number(),
   MedTax: z.number(),
   NetTotal: z.number(),
+  LastPrinted: z.date().nullish(),
+  TakeHome: z.number(),
 })
 
 export interface CompletePayStubs extends z.infer<typeof PayStubsModel> {
   Drivers: CompleteDrivers
-  Invoices: CompleteInvoices
   Jobs: CompleteJobs[]
 }
 
@@ -30,6 +29,5 @@ export interface CompletePayStubs extends z.infer<typeof PayStubsModel> {
  */
 export const RelatedPayStubsModel: z.ZodSchema<CompletePayStubs> = z.lazy(() => PayStubsModel.extend({
   Drivers: RelatedDriversModel,
-  Invoices: RelatedInvoicesModel,
   Jobs: RelatedJobsModel.array(),
 }))

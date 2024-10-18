@@ -6,7 +6,7 @@ import TextField from "@mui/material/TextField";
 import {useForm} from "react-hook-form";
 import {z} from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
-import {DriversModel, InvoicesModel, LoadsModel, PayStubsModel, WeekliesModel} from "../../../prisma/zod";
+import {DriversModel, InvoicesModel, LoadsModel, PayStubsModel, CompletePayStubs, JobsModel} from "../../../prisma/zod";
 import {trpc} from "../../utils/trpc";
 import {useRouter} from "next/router";
 import {FormFieldsType, SelectDataType} from "../../utils/types";
@@ -20,48 +20,42 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Button from "@mui/material/Button";
-import InvoiceLoads from "../collections/InvoiceLoads";
-import InvoiceWeeklies from "../collections/InvoiceWeeklies";
 import {toast} from "react-toastify";
 import RHAutocomplete from "elements/RHAutocomplete";
 import {confirmAlert} from "react-confirm-alert";
 import "react-confirm-alert/src/react-confirm-alert.css";
-import ConsolidatedInvoices from "components/collections/ConsolidatedInvoices";
+import PayStubJobs from "../collections/PayStubJobs";
 
-type PayStubsType = z.infer<typeof PayStubsModel>;
+//type PayStubsCompleteType = z.infer<typeof CompletePayStubs>;
 type DriversType = z.infer<typeof DriversModel>;
+type JobsType = z.infer<typeof JobsModel>;
 
 const defaultValues = {
-   
+    Created: new Date(),
+    FedTax: 2.757,
+    StateTax: 1.655,
+    SSTax: 2.500,
+    MedTax: 5.123,
+    Percentage: 0,
+    CheckNumber: '',
 };
 
 const PayStub = ({
                      drivers,
-                     loads = [],
                      initialPayStub = null,
-                     lastInvoice = 0,
-                     invoices = [],
-                     weeklies = []
+                     jobs = []
                  }: {
     drivers: DriversType[];
-    loads?: LoadsType[];
-    initialPayStub?: null | PayStubsType;
+    initialPayStub?: null | CompletePayStubs;
     refreshData?: any;
-    lastInvoice?: number;
-    invoices?: [] | PayStubsType[];
-    weeklies?: [] | WeekliesType[];
+    jobs?: [] | JobsType[];
 }) => {
     const [driver, setDriver] = useState(0);
-    const [paid, setPaid] = useState(initialPayStub?.Paid ?? false);
-    const [shouldFetchLoads, setShouldFetchLoads] = useState(false);
     const [shouldFetchJobs, setShouldFetchJobs] = useState(false);
     const [driverJobs, setDriverJobs] = useState<any>([]);
     const [selected, setSelected] = useState<any>(
-        //TODO change this to jobs
-        !initialPayStub ? [] : loads?.map((load) => load.ID.toString())
+        !initialPayStub ? [] : jobs?.map((job) => job.ID.toString())
     );
-    const [paymentAmount, setPaymentAmount] = useState<number>(0);
-    const [paymentType, setPaymentType] = useState<string>("Check");
     //this is for forcing it to rerender
     const [_, forceUpdate] = React.useReducer((x) => x + 1, 0);
     const [open, setOpen] = React.useState(false);
@@ -88,10 +82,13 @@ const PayStub = ({
         reset,
         watch,
         setValue,
+        trigger
     } = useForm<ValidationSchema>({
         resolver: zodResolver(validationSchema),
         defaultValues: initialPayStub ?? defaultValues,
     });
+
+    console.log('ERRORS', errors)
 
     if (initialPayStub) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -101,7 +98,7 @@ const PayStub = ({
 
     const key = initialPayStub ? "paystubs.post" : "paystubs.put";
 
-    const addOrUpdateInvoice = trpc.useMutation(key, {
+    const addOrUpdatePayStub = trpc.useMutation(key, {
         async onSuccess(data) {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -120,7 +117,6 @@ const PayStub = ({
     trpc.useQuery(["jobs.getByDriver", {driver}], {
         enabled: shouldFetchJobs,
         onSuccess(data) {
-            console.log('JOBS', data)
             setDriverJobs(data);
             setShouldFetchJobs(false);
             // setValue("TotalAmount", 0);
@@ -134,24 +130,24 @@ const PayStub = ({
         toast("Submitting...", {autoClose: 2000, type: "info"});
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        await addOrUpdateInvoice.mutateAsync(data);
+        await addOrUpdatePayStub.mutateAsync(data);
         if (key === "paystubs.put") {
             await router.replace(router.asPath);
         }
-        //setShouldFetchLoads(true);
+        setShouldFetchJobs(true);
         //setShouldFetchWeeklies(true);
     };
 
-    const deleteInvoice = trpc.useMutation("invoices.delete", {
-        async onSuccess() {
-            toast("Successfully Deleted!", {autoClose: 2000, type: "success"});
-        },
-    });
+    // const deleteInvoice = trpc.useMutation("paystubs.delete", {
+    //     async onSuccess() {
+    //         toast("Successfully Deleted!", {autoClose: 2000, type: "success"});
+    //     },
+    // });
 
-    const onDelete = async (data: PayStubsType) => {
+    const onDelete = async (data: CompletePayStubs) => {
         toast("Deleting...", {autoClose: 2000, type: "info"});
-        await deleteInvoice.mutateAsync(data);
-        await router.replace("/invoices");
+        //await deleteInvoice.mutateAsync(data);
+        await router.replace("/paystubs");
     };
 
     React.useEffect(() => {
@@ -160,11 +156,38 @@ const PayStub = ({
                 const driverID = value.DriverID ?? 0;
                 setDriver(driverID);
                 setShouldFetchJobs(true)
-                //setShouldFetchWeeklies(true)
+            }
+
+            if (["Gross", "Percentage"].includes(name ?? "") || (name === "NetTotal" && type === "change")) {
+                const nettotal = (name === "NetTotal" && type === "change") ? value.NetTotal ?? 0 : (value.Gross ?? 0) * (value.Percentage ? (value.Percentage / 100) : 1);
+
+                const fedtax = value.FedTax ? nettotal * (value.FedTax / 100) : 0;
+                const statetax = value.StateTax ? nettotal * (value.StateTax / 100) : 0;
+                const sstax = value.SSTax ? nettotal * (value.SSTax / 100) : 0;
+                const medtax = value.MedTax ? nettotal * (value.MedTax / 100) : 0;
+
+                if (name === "NetTotal" && type === "change") {
+                    //do nothing
+                } else {
+                    setValue("NetTotal", nettotal);
+                }
+
+                setValue("TakeHome", (Math.round(((nettotal - fedtax - statetax - sstax - medtax) + Number.EPSILON) * 100) / 100), { shouldValidate: true, shouldDirty: true });
+            }
+
+            if (["FedTax", "StateTax", "SSTax", "MedTax"].includes(name ?? "")) {
+                const nettotal = (value.Gross ?? 0) * (value.Percentage ? (value.Percentage / 100) : 1);
+
+                const fedtax = value.FedTax ? nettotal * (value.FedTax / 100) : 0;
+                const statetax = value.StateTax ? nettotal * (value.StateTax / 100) : 0;
+                const sstax = value.SSTax ? nettotal * (value.SSTax / 100) : 0;
+                const medtax = value.MedTax ? nettotal * (value.MedTax / 100) : 0;
+
+                setValue("TakeHome", (Math.round(((nettotal - fedtax - statetax - sstax - medtax) + Number.EPSILON) * 100) / 100), { shouldValidate: true, shouldDirty: true });
             }
         });
         return () => subscription.unsubscribe();
-    }, [watch]);
+    }, [watch, setValue, trigger]);
 
     const fields1: FormFieldsType = //!initialPayStub
         //?
@@ -180,7 +203,7 @@ const PayStub = ({
                 searchQuery: "drivers",
             },
             {
-                name: "InvoiceDate",
+                name: "Created",
                 size: 5,
                 required: false,
                 type: "date",
@@ -246,7 +269,7 @@ const PayStub = ({
 
     const fields2: FormFieldsType = [{name: "", size: 6, required: false, type: "padding"},
         {
-            name: "Percentage",
+            name: "Gross",
             size: 6,
             required: false,
             type: "textfield",
@@ -254,7 +277,17 @@ const PayStub = ({
         },
         {name: "", size: 6, required: false, type: "padding"},
         {
-            name: "GrossTotal",
+            name: "Percentage",
+            label: "Percentage (eg. 2.75)",
+            size: 6,
+            required: false,
+            type: "textfield",
+            number: true,
+        },
+        {name: "", size: 6, required: false, type: "padding"},
+        {
+            name: "NetTotal",
+            label: "Net Total",
             size: 6,
             required: false,
             type: "textfield",
@@ -263,6 +296,7 @@ const PayStub = ({
         {name: "", size: 6, required: false, type: "padding"},
         {
             name: "FedTax",
+            label: "Fed Tax",
             size: 3,
             required: false,
             type: "textfield",
@@ -270,6 +304,7 @@ const PayStub = ({
         },
         {
             name: "StateTax",
+            label: "State Tax",
             size: 3,
             required: false,
             type: "textfield",
@@ -278,6 +313,7 @@ const PayStub = ({
         {name: "", size: 6, required: false, type: "padding"},
         {
             name: "SSTax",
+            label: "SS Tax",
             size: 3,
             required: false,
             type: "textfield",
@@ -285,6 +321,7 @@ const PayStub = ({
         },
         {
             name: "MedTax",
+            label: "Med Tax",
             size: 3,
             required: false,
             type: "textfield",
@@ -292,7 +329,8 @@ const PayStub = ({
         },
         {name: "", size: 6, required: false, type: "padding"},
         {
-            name: "NetTotal",
+            name: "TakeHome",
+            label: "Take Home Total",
             size: 6,
             required: false,
             type: "textfield",
@@ -450,85 +488,6 @@ const PayStub = ({
                 paddingLeft: 2.5,
             }}
         >
-            <div>
-                {/*<Modal*/}
-                {/*    open={open}*/}
-                {/*    onClose={handleClose}*/}
-                {/*    aria-labelledby="modal-modal-title"*/}
-                {/*    aria-describedby="modal-modal-description"*/}
-                {/*>*/}
-                {/*    <Box sx={style}>*/}
-                {/*        <Typography*/}
-                {/*            id="modal-modal-title"*/}
-                {/*            variant="h6"*/}
-                {/*            component="h2"*/}
-                {/*            style={{paddingBottom: 10}}*/}
-                {/*        >*/}
-                {/*            Enter payment information*/}
-                {/*        </Typography>*/}
-                {/*        <Grid2 container columnSpacing={2} justifyContent={"right"}>*/}
-                {/*            <Grid2 xs={6}>*/}
-                {/*                <FormControl fullWidth={true} size={"small"}>*/}
-                {/*                    <InputLabel id={"payment-label"}>Payment Type</InputLabel>*/}
-                {/*                    <Select*/}
-                {/*                        label={"Payment Type"}*/}
-                {/*                        value={paymentType}*/}
-                {/*                        onChange={(e) => {*/}
-                {/*                            setPaymentType(e.target.value);*/}
-                {/*                        }}*/}
-                {/*                    >*/}
-                {/*                        <MenuItem key={"SelectOption-Check"} value={"Check"}>*/}
-                {/*                            Check*/}
-                {/*                        </MenuItem>*/}
-                {/*                        <MenuItem key={"SelectOption-Cash"} value={"Cash"}>*/}
-                {/*                            Cash*/}
-                {/*                        </MenuItem>*/}
-                {/*                        <MenuItem*/}
-                {/*                            key={"SelectOption-Credit_Card"}*/}
-                {/*                            value={"Credit Card"}*/}
-                {/*                        >*/}
-                {/*                            Credit Card*/}
-                {/*                        </MenuItem>*/}
-                {/*                    </Select>*/}
-                {/*                </FormControl>*/}
-                {/*            </Grid2>*/}
-                {/*            /!*<Grid2 xs={6}>*/}
-                {/*                <TextField label={'Payment Amount'} value={paymentAmount} fullWidth type={'number'} size={'small'} onChange={(e) => {*/}
-                {/*                    setPaymentAmount(parseInt(e.currentTarget.value, 10));*/}
-                {/*                }}/>*/}
-                {/*            </Grid2>*!/*/}
-                {/*            <Grid2 xs={6} style={{paddingTop: 5}}>*/}
-                {/*                <Button*/}
-                {/*                    variant={"contained"}*/}
-                {/*                    color={"success"}*/}
-                {/*                    style={{backgroundColor: "#66bb6a"}}*/}
-                {/*                    onClick={async () => {*/}
-                {/*                        if (*/}
-                {/*                            !["Cash", "Check", "Credit Card"].includes(paymentType)*/}
-                {/*                        ) {*/}
-                {/*                            handleClose();*/}
-                {/*                        } else {*/}
-                {/*                            // eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
-                {/*                            // @ts-ignore*/}
-                {/*                            await payInvoice.mutateAsync({*/}
-                {/*                                ...initialPayStub,*/}
-                {/*                                PaymentType: paymentType,*/}
-                {/*                                selected: [],*/}
-                {/*                            });*/}
-                {/*                            setPaymentType("Check");*/}
-                {/*                            setPaymentAmount(0);*/}
-                {/*                            handleClose();*/}
-                {/*                            forceUpdate();*/}
-                {/*                        }*/}
-                {/*                    }}*/}
-                {/*                >*/}
-                {/*                    Submit Payment*/}
-                {/*                </Button>*/}
-                {/*            </Grid2>*/}
-                {/*        </Grid2>*/}
-                {/*    </Box>*/}
-                {/*</Modal>*/}
-            </div>
             <Grid2
                 container
                 columnSpacing={2}
@@ -537,39 +496,22 @@ const PayStub = ({
             >
                 {fields1.map((field, index) => renderFields(field, index))}
 
-                {/*<Grid2 xs={12}>*/}
-                {/*    {invoices !== null && invoices !== undefined && invoices.length > 0 ? (*/}
-                {/*        <ConsolidatedInvoices rows={invoices}/>*/}
-                {/*    ) : loads.length > 0 ? (*/}
-                {/*        <InvoiceLoads*/}
-                {/*            readOnly={!!initialPayStub}*/}
-                {/*            rows={loads.length > 0 ? loads : []}*/}
-                {/*            updateTotal={(newTotal: number) => {*/}
-                {/*                setValue("TotalAmount", newTotal);*/}
-                {/*            }}*/}
-                {/*            updateSelected={(newSelected: string[]) => {*/}
-                {/*                setSelected(newSelected);*/}
-                {/*                // eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
-                {/*                // @ts-ignore*/}
-                {/*                setValue("selected", newSelected);*/}
-                {/*            }}*/}
-                {/*        />*/}
-                {/*    ) : (*/}
-                {/*        <InvoiceWeeklies*/}
-                {/*            readOnly={!!initialPayStub}*/}
-                {/*            rows={weeklies.length > 0 ? weeklies : customerWeeklies ?? []}*/}
-                {/*            updateTotal={(newTotal: number) => {*/}
-                {/*                setValue("TotalAmount", newTotal);*/}
-                {/*            }}*/}
-                {/*            updateSelected={(newSelected: string[]) => {*/}
-                {/*                setSelected(newSelected);*/}
-                {/*                // eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
-                {/*                // @ts-ignore*/}
-                {/*                setValue("selected", newSelected);*/}
-                {/*            }}*/}
-                {/*        />*/}
-                {/*    )}*/}
-                {/*</Grid2>*/}
+                <Grid2 xs={12}>
+                    <PayStubJobs
+                        readOnly={!!initialPayStub}
+                        rows={jobs.length > 0 ? jobs : driverJobs ?? []}
+                        updateTotal={(newTotal: number) => {
+                            setValue("Gross", newTotal, { shouldValidate: true, shouldDirty: true });
+                            trigger("Gross");  // Manually trigger form validation and re-rendering
+                        }}
+                        updateSelected={(newSelected: string[]) => {
+                            setSelected(newSelected);
+                            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                            // @ts-ignore
+                            setValue("selected", newSelected);
+                        }}
+                    />
+                </Grid2>
 
                 {fields2.map((field, index) => renderFields(field, index))}
 

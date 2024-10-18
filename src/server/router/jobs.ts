@@ -404,8 +404,22 @@ export const jobsRouter = createRouter()
                 },
                 include: {
                     Drivers: true,
-                    LoadTypes: true,
-                    DeliveryLocations: true,
+                    LoadTypes: {
+                        select: {
+                            Description: true
+                        }
+                    },
+                    DeliveryLocations: {
+                        select: {
+                            Description: true
+                        }
+                    },
+                    Customers: {
+                        select: {
+                            Name: true
+                        }
+                    },
+                    Loads: true
                 }
             })
 

@@ -109,17 +109,32 @@ export const paystubsRouter = createRouter()
     // })
     .mutation('put', {
         // validate input with Zod
-        input: PayStubsModel.omit({ID: true}),
+        input: PayStubsModel.omit({ID: true}).extend({selected: z.array(z.string())}),
         async resolve({ctx, input}) {
             // use your ORM of choice
-            return ctx.prisma.payStubs.create({
-                data: input
+            const {selected, ...rest} = input;
+            const returnable = await ctx.prisma.payStubs.create({
+                data: rest
             })
+
+            for (const jobPkey of selected) {
+                await ctx.prisma.jobs.update({
+                    where: {
+                        ID: parseInt(jobPkey)
+                    },
+                    data: {
+                        PayStubID: returnable.ID,
+                        PaidOut: true
+                    }
+                })
+            }
+
+            return true;
         },
     })
     .mutation('post', {
         // validate input with Zod
-        input: PayStubsModel,
+        input: PayStubsModel.extend({selected: z.array(z.string())}),
         async resolve({ctx, input}) {
             const {ID, ...data} = input;
             // use your ORM of choice

@@ -20,22 +20,27 @@ import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
 interface Data {
     "ID": number,
-    "TruckingRevenue": number,
-    "CompanyRevenue": number,
-    "TruckingRate": number,
-    "CompanyRate": number,
-    "MaterialRate": number,
-    "DriverRate": number,
-    "LoadTypes": any,
+    "DateRange": string,
+    "Loads": any,
     "DeliveryLocations": any,
-    "DateRange": string
+    "LoadTypes": any,
+    "Customers": any,
+    "TruckingRate": number,
+    "DriverRate": number,
+    "Weight": number,
+    "Hours": number,
+    "TruckingRevenue": number,
+    "DescriptionLabel": string
 }
 
-function descendingComparator<T>(a: T, b: T, orderBy: keyof T) {
-    if (b[orderBy] < a[orderBy]) {
+function descendingComparator<T>(a: any, b: any) {
+    const descA = a.LoadTypes?.Description ?? '';
+    const descB = b.LoadTypes?.Description ?? '';
+
+    if (descB < descA) {
         return -1;
     }
-    if (b[orderBy] > a[orderBy]) {
+    if (descB > descA) {
         return 1;
     }
     return 0;
@@ -51,8 +56,8 @@ function getComparator<Key extends keyof any>(
     b: { [key in Key]: number | string }
 ) => number {
     return order === "desc"
-        ? (a, b) => descendingComparator(a, b, orderBy)
-        : (a, b) => -descendingComparator(a, b, orderBy);
+        ? (a, b) => descendingComparator(a, b)
+        : (a, b) => -descendingComparator(a, b);
 }
 
 interface HeadCell {
@@ -64,53 +69,35 @@ interface HeadCell {
 
 const headCells: readonly HeadCell[] = [
     {
-        id: "TicketNumber",
+        id: "DateRange",
         numeric: false,
         disablePadding: true,
-        label: "Ticket",
-    },
-    {
-        id: "StartDate",
-        numeric: false,
-        disablePadding: false,
         label: "Date",
     },
     {
-        id: "TotalRate",
+        id: "DescriptionLabel",
         numeric: false,
-        disablePadding: true,
-        label: "T. Rate",
+        disablePadding: false,
+        label: "Description",
     },
     {
-        id: "TotalAmount",
+        id: "Weight",
         numeric: false,
         disablePadding: true,
-        label: "T. Revenue",
+        label: "Tons",
     },
-    // {
-    //     id: 'Drivers',
-    //     numeric: false,
-    //     disablePadding: true,
-    //     label: 'Driver',
-    // },
-    // {
-    //     id: 'Trucks',
-    //     numeric: false,
-    //     disablePadding: true,
-    //     label: 'Truck',
-    // },
-    // {
-    //     id: 'LoadTypes',
-    //     numeric: false,
-    //     disablePadding: true,
-    //     label: 'Type',
-    // },
-    // {
-    //     id: 'DeliveryLocations',
-    //     numeric: false,
-    //     disablePadding: true,
-    //     label: 'Location',
-    // },
+    {
+        id: "TruckingRate",
+        numeric: false,
+        disablePadding: true,
+        label: "Rate",
+    },
+    {
+        id: 'TruckingRevenue',
+        numeric: false,
+        disablePadding: true,
+        label: 'Amount',
+    },
 ];
 
 interface EnhancedTableProps {
@@ -160,15 +147,17 @@ function EnhancedTableHead(props: EnhancedTableProps) {
                 {headCells.map((headCell) => (
                     <TableCell
                         key={headCell.id}
-                        align={headCell.numeric ? "right" : "left"}
-                        padding={headCell.disablePadding && !readOnly ? "none" : "normal"}
-                        sortDirection={orderBy === headCell.id ? order : false}
+                        align={"center"}
+                        padding={"none"}
+                        sortDirection={false}
                         size={"small"}
                     >
                         <TableSortLabel
                             active={orderBy === headCell.id}
                             direction={orderBy === headCell.id ? order : "asc"}
-                            onClick={createSortHandler(headCell.id)}
+                            onClick={() => {
+                                //not empty
+                            }}
                         >
                             {headCell.label}
                             {orderBy === headCell.id ? (
@@ -222,12 +211,67 @@ function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
                     id="tableTitle"
                     component="div"
                 >
-                    Loads {readOnly ? "Included" : "Available"}
+                    Jobs {readOnly ? "Included" : "Available"}
                 </Typography>
             )}
         </Toolbar>
     );
 }
+
+function formatDateRange(loads: any) {
+    if (loads.length === 0) return null;
+
+    // Sort the loads by StartDate to get the earliest and latest
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const dates = loads.map(load => load.StartDate).sort((a, b) => new Date(a) - new Date(b));
+
+    const earliest = new Date(dates[0]);
+    const latest = new Date(dates[dates.length - 1]);
+
+    // Check if both dates are the same
+    if (earliest.getTime() === latest.getTime()) {
+        return `${earliest.getMonth() + 1}/${earliest.getDate()}`; // Format as "2/13"
+    }
+
+    // Check if both dates are in the same month
+    if (earliest.getMonth() === latest.getMonth() && earliest.getFullYear() === latest.getFullYear()) {
+        return `${earliest.getMonth() + 1}(${earliest.getDate()}-${latest.getDate()})`; // Format as "2(13-27)"
+    }
+
+    // Otherwise, format as "2/21-3/1"
+    return `${earliest.getMonth() + 1}/${earliest.getDate()}-${latest.getMonth() + 1}/${latest.getDate()}`;
+}
+
+function sumLoads(loads: { Hours?: number; Weight?: number }[]): number {
+    return loads.reduce((total, load) => {
+        if (load.Hours) {
+            return total + load.Hours;
+        } else if (load.Weight) {
+            return total + load.Weight;
+        }
+        return total;
+    }, 0);
+}
+
+function calculateRevenue(row: {
+    TruckingRate: number;
+    DriverRate?: number;
+    TruckingRevenue?: number;
+    Loads: { Hours?: number; Weight?: number }[];
+}): number {
+    if (row.TruckingRevenue) {
+        return row.TruckingRevenue
+    }
+    const totalLoadValue = sumLoads(row.Loads);
+    const rate = row.DriverRate && row.DriverRate !== row.TruckingRate
+        ? row.DriverRate
+        : row.TruckingRate;
+
+    return totalLoadValue * rate;
+}
+
+
 
 function Row(props: {
     readOnly: boolean;
@@ -258,7 +302,7 @@ function Row(props: {
                                 "aria-labelledby": labelId,
                             }}
                             onClick={(event) =>
-                                handleClick(event, row.ID.toString(), row.TotalAmount)
+                                handleClick(event, row.ID.toString(), Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100)
                             }
                         />
                     </TableCell>
@@ -267,24 +311,24 @@ function Row(props: {
                     component="th"
                     id={labelId}
                     scope="row"
-                    padding={!readOnly ? "none" : "normal"}
+                    padding={"none"}
                     size={"small"}
+                    align={"center"}
                 >
-                    {row.TicketNumber}
+                    {formatDateRange(row.Loads ? row.Loads : [])}
                 </TableCell>
-                <TableCell align="left" padding="normal" size={"small"}>
-                    {row.StartDate
-                        ? new Date(row.StartDate).toLocaleDateString("en-US", {
-                            timeZone: "UTC",
-                        })
-                        : "N/A"}
+                <TableCell align="center" padding="none" size={"small"}>
+                    {((row.LoadTypes?.Description ?? 'MISSING') + ' ' + (row.Customers?.Name ?? 'MISSING') + ' ' + (row.DeliveryLocations?.Description ?? 'MISSING'))}
                 </TableCell>
-                <TableCell align="left" padding="normal" size={"small"}>
-                    {Math.round((parseFloat(row.TotalRate) + Number.EPSILON) * 100) / 100}
+                <TableCell align="center" padding="none" size={"small"}>
+                    {Math.round((sumLoads(row.Loads ? row.Loads : []) + Number.EPSILON) * 100) / 100}
                 </TableCell>
-                <TableCell align="left" padding="normal" size={"small"}>
-                    {Math.round((parseFloat(row.TotalAmount) + Number.EPSILON) * 100) /
+                <TableCell align="center" padding="none" size={"small"}>
+                    {Math.round((parseFloat((row.DriverRate && row.DriverRate !== row.TruckingRate) ? row.DriverRate : row.TruckingRate) + Number.EPSILON) * 100) /
                         100}
+                </TableCell>
+                <TableCell align="center" padding="none" size={"small"}>
+                    {Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100}
                 </TableCell>
                 <TableCell>
                     <IconButton
@@ -362,7 +406,7 @@ export default function PayStubJobs({
 
 }) {
     const [order, setOrder] = React.useState<Order>("asc");
-    const [orderBy, setOrderBy] = React.useState<keyof Data>("TicketNumber");
+    const [orderBy, setOrderBy] = React.useState<keyof Data>("DeliveryLocations");
     const [selected, setSelected] = React.useState<readonly string[]>([]);
     const [total, setTotal] = React.useState<number>(0);
 
@@ -384,7 +428,7 @@ export default function PayStubJobs({
         if (event.target.checked) {
             let newTotal = 0;
             const newSelected = rows.map((n) => {
-                newTotal += n.TotalAmount;
+                newTotal += (Math.round((calculateRevenue(n) + Number.EPSILON) * 100) / 100);
                 return n.ID.toString();
             });
             setSelected(newSelected);
