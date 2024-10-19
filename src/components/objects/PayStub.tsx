@@ -6,7 +6,7 @@ import TextField from "@mui/material/TextField";
 import {useForm} from "react-hook-form";
 import {z} from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
-import {DriversModel, InvoicesModel, LoadsModel, PayStubsModel, CompletePayStubs, JobsModel} from "../../../prisma/zod";
+import {DriversModel, InvoicesModel, LoadsModel, PayStubsModel, JobsModel} from "../../../prisma/zod";
 import {trpc} from "../../utils/trpc";
 import {useRouter} from "next/router";
 import {FormFieldsType, SelectDataType} from "../../utils/types";
@@ -26,9 +26,14 @@ import {confirmAlert} from "react-confirm-alert";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import PayStubJobs from "../collections/PayStubJobs";
 
-//type PayStubsCompleteType = z.infer<typeof CompletePayStubs>;
 type DriversType = z.infer<typeof DriversModel>;
+type PayStubsType = z.infer<typeof PayStubsModel>;
 type JobsType = z.infer<typeof JobsModel>;
+
+interface PayStubData extends PayStubsType {
+    Drivers: DriversType,
+    Jobs: JobsType[],
+}
 
 const defaultValues = {
     Created: new Date(),
@@ -43,18 +48,16 @@ const defaultValues = {
 const PayStub = ({
                      drivers,
                      initialPayStub = null,
-                     jobs = []
                  }: {
     drivers: DriversType[];
-    initialPayStub?: null | CompletePayStubs;
+    initialPayStub?: null | PayStubData;
     refreshData?: any;
-    jobs?: [] | JobsType[];
 }) => {
     const [driver, setDriver] = useState(0);
     const [shouldFetchJobs, setShouldFetchJobs] = useState(false);
     const [driverJobs, setDriverJobs] = useState<any>([]);
     const [selected, setSelected] = useState<any>(
-        !initialPayStub ? [] : jobs?.map((job) => job.ID.toString())
+        !initialPayStub ? [] : initialPayStub.Jobs?.map((job) => job.ID.toString())
     );
     //this is for forcing it to rerender
     const [_, forceUpdate] = React.useReducer((x) => x + 1, 0);
@@ -63,8 +66,7 @@ const PayStub = ({
     const handleClose = () => setOpen(false);
     const router = useRouter();
 
-    
-    
+
     let validationSchema = initialPayStub
         ? PayStubsModel
         : PayStubsModel.omit({ID: true});
@@ -87,8 +89,6 @@ const PayStub = ({
         resolver: zodResolver(validationSchema),
         defaultValues: initialPayStub ?? defaultValues,
     });
-
-    console.log('ERRORS', errors)
 
     if (initialPayStub) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -144,7 +144,7 @@ const PayStub = ({
     //     },
     // });
 
-    const onDelete = async (data: CompletePayStubs) => {
+    const onDelete = async (data: PayStubData) => {
         toast("Deleting...", {autoClose: 2000, type: "info"});
         //await deleteInvoice.mutateAsync(data);
         await router.replace("/paystubs");
@@ -172,7 +172,10 @@ const PayStub = ({
                     setValue("NetTotal", nettotal);
                 }
 
-                setValue("TakeHome", (Math.round(((nettotal - fedtax - statetax - sstax - medtax) + Number.EPSILON) * 100) / 100), { shouldValidate: true, shouldDirty: true });
+                setValue("TakeHome", (Math.round(((nettotal - fedtax - statetax - sstax - medtax) + Number.EPSILON) * 100) / 100), {
+                    shouldValidate: true,
+                    shouldDirty: true
+                });
             }
 
             if (["FedTax", "StateTax", "SSTax", "MedTax"].includes(name ?? "")) {
@@ -183,7 +186,10 @@ const PayStub = ({
                 const sstax = value.SSTax ? nettotal * (value.SSTax / 100) : 0;
                 const medtax = value.MedTax ? nettotal * (value.MedTax / 100) : 0;
 
-                setValue("TakeHome", (Math.round(((nettotal - fedtax - statetax - sstax - medtax) + Number.EPSILON) * 100) / 100), { shouldValidate: true, shouldDirty: true });
+                setValue("TakeHome", (Math.round(((nettotal - fedtax - statetax - sstax - medtax) + Number.EPSILON) * 100) / 100), {
+                    shouldValidate: true,
+                    shouldDirty: true
+                });
             }
         });
         return () => subscription.unsubscribe();
@@ -194,24 +200,26 @@ const PayStub = ({
         [
             {
                 name: "DriverID",
-                size: 7,
+                size: !initialPayStub ? 7 : 4,
                 required: true,
                 shouldErrorOn: ["invalid_type"],
                 errorMessage: "Driver is required.",
                 type: "select",
                 label: "Driver",
                 searchQuery: "drivers",
+                disabled: !!initialPayStub
             },
             {
                 name: "Created",
-                size: 5,
+                size: !initialPayStub ? 5 : 4,
                 required: false,
                 type: "date",
-                label: 'Invoice Date'
+                label: 'Invoice Date',
+                disabled: !!initialPayStub
             },
             {
                 name: "CheckNumber",
-                size: 7,
+                size: !initialPayStub ? 7 : 4,
                 required: false,
                 type: "textfield",
                 label: "Check Number",
@@ -225,47 +233,47 @@ const PayStub = ({
             // },
             //TODO ask Shelly about what this is
         ]
-        // : [
-        //     {
-        //         name: "CustomerID",
-        //         size: 6,
-        //         required: true,
-        //         shouldErrorOn: ["invalid_type"],
-        //         errorMessage: "Customer is required.",
-        //         type: "select",
-        //         label: "Customer",
-        //         disabled: true,
-        //         searchQuery: "customers",
-        //     },
-        //     {
-        //         name: "Consolidated",
-        //         size: 2,
-        //         required: false,
-        //         type: "checkbox",
-        //         disabled: true,
-        //     },
-        //     {
-        //         name: "Printed",
-        //         size: 2,
-        //         required: false,
-        //         type: "checkbox",
-        //         disabled: true,
-        //     },
-        //     {
-        //         name: "Paid",
-        //         size: 1,
-        //         required: false,
-        //         type: "checkbox",
-        //         disabled: true,
-        //     },
-        //     {
-        //         name: "Number",
-        //         size: 1,
-        //         required: false,
-        //         type: "textfield",
-        //         number: true,
-        //     },
-        // ];
+    // : [
+    //     {
+    //         name: "CustomerID",
+    //         size: 6,
+    //         required: true,
+    //         shouldErrorOn: ["invalid_type"],
+    //         errorMessage: "Customer is required.",
+    //         type: "select",
+    //         label: "Customer",
+    //         disabled: true,
+    //         searchQuery: "customers",
+    //     },
+    //     {
+    //         name: "Consolidated",
+    //         size: 2,
+    //         required: false,
+    //         type: "checkbox",
+    //         disabled: true,
+    //     },
+    //     {
+    //         name: "Printed",
+    //         size: 2,
+    //         required: false,
+    //         type: "checkbox",
+    //         disabled: true,
+    //     },
+    //     {
+    //         name: "Paid",
+    //         size: 1,
+    //         required: false,
+    //         type: "checkbox",
+    //         disabled: true,
+    //     },
+    //     {
+    //         name: "Number",
+    //         size: 1,
+    //         required: false,
+    //         type: "textfield",
+    //         number: true,
+    //     },
+    // ];
 
     const fields2: FormFieldsType = [{name: "", size: 6, required: false, type: "padding"},
         {
@@ -274,6 +282,7 @@ const PayStub = ({
             required: false,
             type: "textfield",
             number: true,
+            disabled: !!initialPayStub
         },
         {name: "", size: 6, required: false, type: "padding"},
         {
@@ -283,6 +292,7 @@ const PayStub = ({
             required: false,
             type: "textfield",
             number: true,
+            disabled: !!initialPayStub
         },
         {name: "", size: 6, required: false, type: "padding"},
         {
@@ -292,6 +302,7 @@ const PayStub = ({
             required: false,
             type: "textfield",
             number: true,
+            disabled: !!initialPayStub
         },
         {name: "", size: 6, required: false, type: "padding"},
         {
@@ -301,6 +312,7 @@ const PayStub = ({
             required: false,
             type: "textfield",
             number: true,
+            disabled: !!initialPayStub
         },
         {
             name: "StateTax",
@@ -309,6 +321,7 @@ const PayStub = ({
             required: false,
             type: "textfield",
             number: true,
+            disabled: !!initialPayStub
         },
         {name: "", size: 6, required: false, type: "padding"},
         {
@@ -318,6 +331,7 @@ const PayStub = ({
             required: false,
             type: "textfield",
             number: true,
+            disabled: !!initialPayStub
         },
         {
             name: "MedTax",
@@ -326,6 +340,7 @@ const PayStub = ({
             required: false,
             type: "textfield",
             number: true,
+            disabled: !!initialPayStub
         },
         {name: "", size: 6, required: false, type: "padding"},
         {
@@ -335,6 +350,7 @@ const PayStub = ({
             required: false,
             type: "textfield",
             number: true,
+            disabled: !!initialPayStub
         },];
 
     const selectData: SelectDataType = [
@@ -478,6 +494,8 @@ const PayStub = ({
         p: 4,
     };
 
+    console.log(initialPayStub)
+
     return (
         <Box
             component="form"
@@ -499,9 +517,9 @@ const PayStub = ({
                 <Grid2 xs={12}>
                     <PayStubJobs
                         readOnly={!!initialPayStub}
-                        rows={jobs.length > 0 ? jobs : driverJobs ?? []}
+                        rows={(initialPayStub && initialPayStub.Jobs.length > 0) ? initialPayStub.Jobs : driverJobs ?? []}
                         updateTotal={(newTotal: number) => {
-                            setValue("Gross", newTotal, { shouldValidate: true, shouldDirty: true });
+                            setValue("Gross", newTotal, {shouldValidate: true, shouldDirty: true});
                             trigger("Gross");  // Manually trigger form validation and re-rendering
                         }}
                         updateSelected={(newSelected: string[]) => {
