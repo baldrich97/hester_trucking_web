@@ -450,7 +450,7 @@ export default function GenericTable({
                         key={"row-" + rowindex.toString() + "-" + column.name}
                       >
                         {data
-                          ? parseFloat(data) && !data.toString().includes(" ")
+                          ? !/\D/.test(data) && parseFloat(data) && !data.toString().includes(" ")
                             ? Math.round(
                                 (parseFloat(data) + Number.EPSILON) * 100
                               ) / 100

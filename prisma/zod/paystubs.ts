@@ -3,18 +3,18 @@ import { CompleteDrivers, RelatedDriversModel, CompleteJobs, RelatedJobsModel } 
 
 export const PayStubsModel = z.object({
   ID: z.number().int(),
-  Created: z.date(),
+  Created: z.coerce.date(),
   DriverID: z.number().int(),
   CheckNumber: z.string(),
-  Gross: z.number(),
-  Percentage: z.number(),
-  FedTax: z.number(),
-  StateTax: z.number(),
-  SSTax: z.number(),
-  MedTax: z.number(),
-  NetTotal: z.number(),
-  LastPrinted: z.date().nullish(),
-  TakeHome: z.number(),
+  Gross: z.coerce.number(),
+  Percentage: z.coerce.number(),
+  FedTax: z.coerce.number(),
+  StateTax: z.coerce.number(),
+  SSTax: z.coerce.number(),
+  MedTax: z.coerce.number(),
+  NetTotal: z.coerce.number(),
+  LastPrinted: z.coerce.date().nullish(),
+  TakeHome: z.coerce.number(),
 })
 
 export interface CompletePayStubs extends z.infer<typeof PayStubsModel> {

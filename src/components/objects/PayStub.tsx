@@ -138,15 +138,15 @@ const PayStub = ({
         //setShouldFetchWeeklies(true);
     };
 
-    // const deleteInvoice = trpc.useMutation("paystubs.delete", {
-    //     async onSuccess() {
-    //         toast("Successfully Deleted!", {autoClose: 2000, type: "success"});
-    //     },
-    // });
+    const deletePaystub = trpc.useMutation("paystubs.delete", {
+        async onSuccess() {
+            toast("Successfully Deleted!", {autoClose: 2000, type: "success"});
+        },
+    });
 
     const onDelete = async (data: PayStubData) => {
         toast("Deleting...", {autoClose: 2000, type: "info"});
-        //await deleteInvoice.mutateAsync(data);
+        await deletePaystub.mutateAsync(data);
         await router.replace("/paystubs");
     };
 
@@ -224,56 +224,7 @@ const PayStub = ({
                 type: "textfield",
                 label: "Check Number",
             },
-            // {
-            //     name: "Invoice",
-            //     size: 3,
-            //     required: false,
-            //     type: "date",
-            //     label: 'Invoice Date'
-            // },
-            //TODO ask Shelly about what this is
         ]
-    // : [
-    //     {
-    //         name: "CustomerID",
-    //         size: 6,
-    //         required: true,
-    //         shouldErrorOn: ["invalid_type"],
-    //         errorMessage: "Customer is required.",
-    //         type: "select",
-    //         label: "Customer",
-    //         disabled: true,
-    //         searchQuery: "customers",
-    //     },
-    //     {
-    //         name: "Consolidated",
-    //         size: 2,
-    //         required: false,
-    //         type: "checkbox",
-    //         disabled: true,
-    //     },
-    //     {
-    //         name: "Printed",
-    //         size: 2,
-    //         required: false,
-    //         type: "checkbox",
-    //         disabled: true,
-    //     },
-    //     {
-    //         name: "Paid",
-    //         size: 1,
-    //         required: false,
-    //         type: "checkbox",
-    //         disabled: true,
-    //     },
-    //     {
-    //         name: "Number",
-    //         size: 1,
-    //         required: false,
-    //         type: "textfield",
-    //         number: true,
-    //     },
-    // ];
 
     const fields2: FormFieldsType = [{name: "", size: 6, required: false, type: "padding"},
         {
@@ -494,8 +445,6 @@ const PayStub = ({
         p: 4,
     };
 
-    console.log(initialPayStub)
-
     return (
         <Box
             component="form"
@@ -558,7 +507,7 @@ const PayStub = ({
                                     confirmAlert({
                                         title: "Confirm Deletion",
                                         message:
-                                            "Are you sure you want to delete this invoice? It will make any loads associated available again.",
+                                            "Are you sure you want to delete this pay stub? It will make any jobs associated available to be paid out again.",
                                         buttons: [
                                             {
                                                 label: "Yes",

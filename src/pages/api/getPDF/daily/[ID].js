@@ -14,7 +14,12 @@ const handler = async (req, res) => {
         return;
     }
 
-    const input = {week: ID.split('|')[1], sheet: ID.split('|')[0]}
+    const input = {week: ID.split('|')[1], sheet: ID.split('|')[0], type: ID.split('|')[2]}
+
+    if (input.type === 'partial') {
+        const daily = await prisma.dailies.findUnique({where: {ID: parseInt(input.sheet)}})
+        input.lastDate = daily.LastPrinted ?? new Date();
+    }
 
     await prisma.dailies.update({
         where: {
@@ -51,7 +56,13 @@ const processLoads = async (input) => {
                 include: {
                     Jobs: {
                         include: {
-                            Loads: true,
+                            Loads: input.type === 'partial' ? {
+                                where: {
+                                    Created: {
+                                        gt: input.lastDate
+                                    }
+                                }
+                            } : true,
                             Customers: true,
                             Drivers: true,
                             DeliveryLocations: true,

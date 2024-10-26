@@ -1,6 +1,6 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import {PayStubsModel} from '../../../prisma/zod';
+import {InvoicesModel, PayStubsModel} from '../../../prisma/zod';
 
 export const paystubsRouter = createRouter()
     .query("getAll", {
@@ -54,6 +54,14 @@ export const paystubsRouter = createRouter()
             if (input.search.length > 0) {
                 return ctx.prisma.payStubs.findMany({
                     where: {
+                        Drivers: {
+                            is: {
+                                OR: [
+                                    { FirstName: { contains: formattedSearch } },
+                                    { LastName: { contains: formattedSearch } }
+                                ]
+                            }
+                        }
                     },
                     orderBy: orderObj,
                     include: {
@@ -61,8 +69,9 @@ export const paystubsRouter = createRouter()
                         Jobs: true
                     },
                     take: 50,
-                })
-            } else {
+                });
+            }
+            else {
                 return ctx.prisma.payStubs.findMany({
                     orderBy: orderObj,
                     include: {
@@ -105,13 +114,28 @@ export const paystubsRouter = createRouter()
         // validate input with Zod
         input: PayStubsModel.extend({selected: z.array(z.string())}),
         async resolve({ctx, input}) {
-            const {ID, ...data} = input;
+            const {ID, selected, ...data} = input;
             // use your ORM of choice
             return ctx.prisma.payStubs.update({
                 where: {
                     ID: ID
                 }, data: data
             })
+        },
+    }).mutation('delete', {
+        input: PayStubsModel,
+        async resolve({ctx, input}) {
+            const {ID} = input;
+            //make related loads available again
+            await ctx.prisma.jobs.findMany({where: {PayStubID: ID}}).then(async (jobs) => {
+                await Promise.all(jobs.map(async (job) => {
+                    ctx.prisma.jobs.update({where: {ID: job.ID}, data: {PaidOut: false, PayStubID: null}}).then();
+                }))
+            });
+
+
+            // use your ORM of choice
+            return await ctx.prisma.payStubs.delete({where: {ID: ID}})
         },
     });
 

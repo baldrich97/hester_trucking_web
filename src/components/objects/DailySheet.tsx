@@ -93,13 +93,27 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null,}: { sheet: 
                                                     <h1>Daily Sheet Print Options</h1>
                                                     <p>This Daily has already been printed. Do you want to print out only loads created after the last print date, or print the entire sheet?</p>
                                                     <div className="react-confirm-alert-button-group">
-                                                        <button   onClick={() => {
-                                                            // Your confirm action logic here
+                                                        <button   onClick={async () => {
+                                                            toast("Generating PDF...", {autoClose: 2000, type: "info"});
+                                                            const element = document.createElement("a");
+                                                            element.href = `/api/getPDF/daily/${daily.ID}|${week}|partial`;
+                                                            element.download = "daily-download.pdf";
+                                                            document.body.appendChild(element);
+                                                            element.click();
+                                                            document.body.removeChild(element);
+                                                            setDaily({...daily, LastPrinted: new Date})
                                                             onClose();
                                                         }}>New Data Only/Partial Sheet</button>
                                                         <button
-                                                            onClick={() => {
-                                                                // Your confirm action logic here
+                                                            onClick={async () => {
+                                                                toast("Generating PDF...", {autoClose: 2000, type: "info"});
+                                                                const element = document.createElement("a");
+                                                                element.href = `/api/getPDF/daily/${daily.ID}|${week}|full`;
+                                                                element.download = "daily-download.pdf";
+                                                                document.body.appendChild(element);
+                                                                element.click();
+                                                                document.body.removeChild(element);
+                                                                setDaily({...daily, LastPrinted: new Date})
                                                                 onClose();
                                                             }}
                                                         >
@@ -199,7 +213,7 @@ const TotalsRow = ({
 
             <b style={{width: 50, display: 'grid', alignItems: 'center', justifyItems: 'center'}}>
                 <Tooltip
-                    title={isPaidOut ? 'This job has already been paid.' : isClosed ? 'Mark this job as paid out.' : 'Save the revenues for this job..'}>
+                    title={isPaidOut ? 'This job has already been paid.' : isClosed ? 'Mark this job as paid out.' : 'Save the revenues for this job.'}>
                     <span>
                         <Button
                             variant="contained"

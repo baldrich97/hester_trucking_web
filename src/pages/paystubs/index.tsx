@@ -74,7 +74,7 @@ const PayStubs = ({count, drivers, payStubs}: { count: number, drivers: DriversT
             <Grid2 xs={8} sx={{paddingRight: 2.5}}>
                 <Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search}
-                               label={'Load Types'}/>
+                               label={'Pay Stubs'}/>
                 </Grid2>
                 <GenericTable data={trpcData.length || (order !== 'desc' || orderBy !== 'ID') ? trpcData : payStubs}
                               columns={columns}

@@ -339,7 +339,8 @@ export const loadsRouter = createRouter()
                             {LoadTypeID: LoadTypeID},
                             {DeliveryLocationID: DeliveryLocationID},
                             {DailyID: daily.ID},
-                            {WeeklyID: weekly.ID}
+                            {WeeklyID: weekly.ID},
+                            {PaidOut: {not: true}}
                         ]
                     }
                 })
@@ -388,6 +389,7 @@ export const loadsRouter = createRouter()
                 if (job) {
                     if (job.PaidOut) {
                         //Error here that has been paid out
+                        //TODO ADD IN WARNINGS HERE AND MAYBE RETURN IF IT IS ALREADY PAID OUT
                     } else if (job.CompanyRevenue || job.TruckingRevenue) {
                         //Error here that the revenues have been overridden and will need to be recalcualted
                     } else if (daily.LastPrinted || weekly.LastPrinted) {

@@ -222,26 +222,27 @@ function formatDateRange(loads: any) {
     if (loads.length === 0) return null;
 
     // Sort the loads by StartDate to get the earliest and latest
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    const dates = loads.map(load => load.StartDate).sort((a, b) => new Date(a) - new Date(b));
+    const dates = loads
+        .map((load: { StartDate: string | number | Date; }) => new Date(load.StartDate))
+        .sort((a: { getTime: () => number; }, b: { getTime: () => number; }) => a.getTime() - b.getTime());
 
-    const earliest = new Date(dates[0]);
-    const latest = new Date(dates[dates.length - 1]);
+    const earliest = dates[0];
+    const latest = dates[dates.length - 1];
 
     // Check if both dates are the same
     if (earliest.getTime() === latest.getTime()) {
-        return `${earliest.getMonth() + 1}/${earliest.getDate()}`; // Format as "2/13"
+        return `${earliest.getUTCMonth() + 1}/${earliest.getUTCDate()}`; // Format as "2/13"
     }
 
     // Check if both dates are in the same month
-    if (earliest.getMonth() === latest.getMonth() && earliest.getFullYear() === latest.getFullYear()) {
-        return `${earliest.getMonth() + 1}(${earliest.getDate()}-${latest.getDate()})`; // Format as "2(13-27)"
+    if (earliest.getUTCMonth() === latest.getUTCMonth() && earliest.getUTCFullYear() === latest.getUTCFullYear()) {
+        return `${earliest.getUTCMonth() + 1}(${earliest.getUTCDate()}-${latest.getUTCDate()})`; // Format as "2(13-27)"
     }
 
     // Otherwise, format as "2/21-3/1"
-    return `${earliest.getMonth() + 1}/${earliest.getDate()}-${latest.getMonth() + 1}/${latest.getDate()}`;
+    return `${earliest.getUTCMonth() + 1}/${earliest.getUTCDate()}-${latest.getUTCMonth() + 1}/${latest.getUTCDate()}`;
 }
+
 
 function sumLoads(loads: { Hours?: number; Weight?: number }[]): number {
     return loads.reduce((total, load) => {
@@ -282,6 +283,8 @@ function Row(props: {
 }) {
     const { readOnly, row, labelId, isItemSelected, handleClick } = props;
     const [open, setOpen] = React.useState(false);
+
+    console.log('ROW', row)
 
     return (
         <React.Fragment>
@@ -351,38 +354,32 @@ function Row(props: {
                                 <TableHead>
                                     <TableRow>
                                         <TableCell align="left" padding="none" size={"small"}>
-                                            Driver
+                                            Date Delivered
                                         </TableCell>
                                         <TableCell align="left" padding="none" size={"small"}>
-                                            Truck
+                                            Ticket Number
                                         </TableCell>
                                         <TableCell align="left" padding="none" size={"small"}>
-                                            Type
-                                        </TableCell>
-                                        <TableCell align="left" padding="none" size={"small"}>
-                                            Location
+                                            Notes
                                         </TableCell>
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    <TableRow key={"inner_row_" + row.ID.toString()}>
-                                        <TableCell align="left" padding="none" size={"small"}>
-                                            {row.Drivers
-                                                ? row.Drivers?.FirstName + " " + row.Drivers?.LastName
-                                                : "N/A"}
-                                        </TableCell>
-                                        <TableCell align="left" padding="none" size={"small"}>
-                                            {row.Trucks ? row.Trucks?.Name : "N/A"}
-                                        </TableCell>
-                                        <TableCell align="left" padding="none" size={"small"}>
-                                            {row.LoadTypes ? row.LoadTypes?.Description : "N/A"}
-                                        </TableCell>
-                                        <TableCell align="left" padding="none" size={"small"}>
-                                            {row.DeliveryLocations
-                                                ? row.DeliveryLocations?.Description
-                                                : "N/A"}
-                                        </TableCell>
-                                    </TableRow>
+                                    {row.Loads?.map((load: { ID: { toString: () => string; }; StartDate: string | number | Date; TicketNumber: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | React.ReactFragment | React.ReactPortal | null | undefined; Notes: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | React.ReactFragment | React.ReactPortal | null | undefined; }) =>
+                                        <TableRow key={"inner_row_" + load.ID.toString()}>
+                                            <TableCell align="left" padding="none" size={"small"}>
+                                                {new Date(load.StartDate).toLocaleDateString("en-US", {
+                                                    timeZone: "UTC",
+                                                })}
+                                            </TableCell>
+                                            <TableCell align="left" padding="none" size={"small"}>
+                                                {load.TicketNumber}
+                                            </TableCell>
+                                            <TableCell align="left" padding="none" size={"small"}>
+                                                {load.Notes ? load.Notes : "N/A"}
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </Box>
@@ -448,6 +445,7 @@ export default function PayStubJobs({
         ID: string,
         TotalAmount: number
     ) => {
+        //TODO FIX THIS
         const selectedIndex = selected.indexOf(ID);
         let newSelected: readonly string[] = [];
         let newTotal = 0;

@@ -70,7 +70,14 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                                 Name: true
                             }
                         },
-                        Loads: true
+                        Loads: {
+                            include: {
+                                Trucks: true
+                            },
+                            orderBy: {
+                                StartDate: 'asc'
+                            }
+                        }
                     }
                 },
             },
