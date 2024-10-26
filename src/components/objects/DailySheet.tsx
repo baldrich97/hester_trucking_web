@@ -84,14 +84,58 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null,}: { sheet: 
                         color={"primary"}
                         style={{backgroundColor: "#ffa726"}}
                         onClick={async () => {
-                            toast("Generating PDF...", {autoClose: 2000, type: "info"});
-                            const element = document.createElement("a");
-                            element.href = `/api/getPDF/daily/${daily.ID}|${week}`;
-                            element.download = "daily-download.pdf";
-                            document.body.appendChild(element);
-                            element.click();
-                            document.body.removeChild(element);
-                            setDaily({...daily, LastPrinted: new Date})
+                            if (daily.LastPrinted) {
+                                confirmAlert({
+                                    customUI: ({ onClose }) => {
+                                        return (
+                                            <div className="react-confirm-alert" style={{ width: '800px' }}> {/* Adjust width here */}
+                                                <div className="react-confirm-alert-body" style={{width: '100%'}}>
+                                                    <h1>Daily Sheet Print Options</h1>
+                                                    <p>This Daily has already been printed. Do you want to print out only loads created after the last print date, or print the entire sheet?</p>
+                                                    <div className="react-confirm-alert-button-group">
+                                                        <button   onClick={async () => {
+                                                            toast("Generating PDF...", {autoClose: 2000, type: "info"});
+                                                            const element = document.createElement("a");
+                                                            element.href = `/api/getPDF/daily/${daily.ID}|${week}|partial`;
+                                                            element.download = "daily-download.pdf";
+                                                            document.body.appendChild(element);
+                                                            element.click();
+                                                            document.body.removeChild(element);
+                                                            setDaily({...daily, LastPrinted: new Date})
+                                                            onClose();
+                                                        }}>New Data Only/Partial Sheet</button>
+                                                        <button
+                                                            onClick={async () => {
+                                                                toast("Generating PDF...", {autoClose: 2000, type: "info"});
+                                                                const element = document.createElement("a");
+                                                                element.href = `/api/getPDF/daily/${daily.ID}|${week}|full`;
+                                                                element.download = "daily-download.pdf";
+                                                                document.body.appendChild(element);
+                                                                element.click();
+                                                                document.body.removeChild(element);
+                                                                setDaily({...daily, LastPrinted: new Date})
+                                                                onClose();
+                                                            }}
+                                                        >
+                                                            All Data/Full Sheet
+                                                        </button>
+                                                        <button style={{marginLeft: 'auto'}} onClick={onClose}>Close</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    },
+                                });
+                            } else {
+                                toast("Generating PDF...", {autoClose: 2000, type: "info"});
+                                const element = document.createElement("a");
+                                element.href = `/api/getPDF/daily/${daily.ID}|${week}|full`;
+                                element.download = "daily-download.pdf";
+                                document.body.appendChild(element);
+                                element.click();
+                                document.body.removeChild(element);
+                                setDaily({...daily, LastPrinted: new Date})
+                            }
                         }}
                     >
                         Print Week
@@ -178,7 +222,7 @@ const TotalsRow = ({
 
             <b style={{width: 50, display: 'grid', alignItems: 'center', justifyItems: 'center'}}>
                 <Tooltip
-                    title={isPaidOut ? 'This job has already been paid.' : isClosed ? 'Mark this job as paid out.' : 'Save the revenues for this job..'}>
+                    title={isPaidOut ? 'This job has already been paid.' : isClosed ? 'Mark this job as paid out.' : 'Save the revenues for this job.'}>
                     <span>
                         <Button
                             variant="contained"

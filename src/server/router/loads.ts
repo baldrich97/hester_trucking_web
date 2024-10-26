@@ -310,6 +310,13 @@ export const loadsRouter = createRouter()
             if (daily) {
                 //if (!weekly || ((Math.round((weekly.CompanyRate ?? 0) * 100)) / 100) !== ((Math.round((TotalRate ?? 0) * 100)) / 100)) {
                 //should implement this at some point but for now is fine?
+
+                if (daily.LastPrinted) {
+                    ctx.warnings.push('This daily has already been printed.')
+                    ctx.warnings.push(daily.Week);
+                    ctx.warnings.push(daily.DriverID.toString());
+                }
+
                 if (!weekly) {
                     //Create a new weekly with the corresponding info
                     weekly = await ctx.prisma.weeklies.create({
@@ -332,7 +339,8 @@ export const loadsRouter = createRouter()
                             {LoadTypeID: LoadTypeID},
                             {DeliveryLocationID: DeliveryLocationID},
                             {DailyID: daily.ID},
-                            {WeeklyID: weekly.ID}
+                            {WeeklyID: weekly.ID},
+                            {PaidOut: {not: true}}
                         ]
                     }
                 })
@@ -381,6 +389,7 @@ export const loadsRouter = createRouter()
                 if (job) {
                     if (job.PaidOut) {
                         //Error here that has been paid out
+                        //TODO ADD IN WARNINGS HERE AND MAYBE RETURN IF IT IS ALREADY PAID OUT
                     } else if (job.CompanyRevenue || job.TruckingRevenue) {
                         //Error here that the revenues have been overridden and will need to be recalcualted
                     } else if (daily.LastPrinted || weekly.LastPrinted) {
@@ -472,9 +481,10 @@ export const loadsRouter = createRouter()
             }
 
             // use your ORM of choice
-            return ctx.prisma.loads.create({
+            const data = await ctx.prisma.loads.create({
                 data: input
-            })
+            });
+            return {data, warnings: ctx.warnings}
         },
     })
     .mutation('post', {

@@ -8,8 +8,8 @@ generator zod {
   prismaJsonNullability = "true"
   modelCase             = "PascalCase"
   modelSuffix           = "Model"
-  relationModel         = "true"
   useDecimalJs          = "true"
+  relationModel         = "true"
 }
 
 datasource db {
@@ -106,6 +106,7 @@ model Drivers {
   Dailies       Dailies[]
   Jobs          Jobs[]
   Loads         Loads[]
+  PayStubs      PayStubs[]
   TrucksDriven  TrucksDriven[]
 
   @@index([State], map: "FK_Drivers_States")
@@ -191,7 +192,7 @@ model Loads {
   /// @zod.custom(z.coerce.date())
   StartDate          DateTime           @db.Date
   /// @zod.custom(z.coerce.date())
-  Created            DateTime           @default(now()) @db.Date
+  Created            DateTime           @default(now()) @db.DateTime(0)
   /// @zod.custom(z.coerce.number())
   Weight             Float?
   /// @zod.custom(z.coerce.number())
@@ -218,9 +219,9 @@ model Loads {
   TruckID            Int?
   DriverID           Int?
   Deleted            Boolean?
+  JobID              Int?
   Week               String             @db.VarChar(20)
   DriverRate         Float?
-  JobID              Int?
   Customers          Customers          @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_Loads_Customer")
   DeliveryLocations  DeliveryLocations? @relation(fields: [DeliveryLocationID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_DeliveryLocation")
   Drivers            Drivers?           @relation(fields: [DriverID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Driver")
@@ -277,11 +278,13 @@ model Jobs {
   DailyID            Int
   MaterialRate       Float             @db.Float
   DriverRate         Float             @db.Float
+  PayStubID          Int?
   Customers          Customers         @relation(fields: [CustomerID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_Customers")
   Dailies            Dailies           @relation(fields: [DailyID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_Dailies")
   DeliveryLocations  DeliveryLocations @relation(fields: [DeliveryLocationID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_DeliveryLocations")
   Drivers            Drivers           @relation(fields: [DriverID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_Drivers")
   LoadTypes          LoadTypes         @relation(fields: [LoadTypeID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_LoadTypes")
+  PayStubs           PayStubs?         @relation(fields: [PayStubID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_PayStubs")
   Weeklies           Weeklies          @relation(fields: [WeeklyID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_Weeklies")
   Loads              Loads[]
 
@@ -291,6 +294,7 @@ model Jobs {
   @@index([LoadTypeID], map: "FK_Jobs_LoadTypes")
   @@index([DailyID], map: "FK_Jobs_Dailies")
   @@index([WeeklyID], map: "FK_Jobs_Weeklies")
+  @@index([PayStubID], map: "FK_Jobs_PayStubs")
 }
 
 model Weeklies {
@@ -314,4 +318,34 @@ model Weeklies {
   @@index([InvoiceID], map: "FK_Weeklies_Invoices")
   @@index([DeliveryLocationID], map: "FK_Weeklies_DeliveryLocations")
   @@index([LoadTypeID], map: "FK_Weeklies_LoadTypes")
+}
+
+model PayStubs {
+  ID          Int       @id @default(autoincrement())
+  /// @zod.custom(z.coerce.date())
+  Created     DateTime  @db.DateTime(0)
+  DriverID    Int
+  CheckNumber String    @db.VarChar(50)
+  /// @zod.custom(z.coerce.number())
+  Gross       Float     @db.Float
+  /// @zod.custom(z.coerce.number())
+  Percentage  Float     @db.Float
+  /// @zod.custom(z.coerce.number())
+  FedTax      Float     @db.Float
+  /// @zod.custom(z.coerce.number())
+  StateTax    Float     @db.Float
+  /// @zod.custom(z.coerce.number())
+  SSTax       Float     @db.Float
+  /// @zod.custom(z.coerce.number())
+  MedTax      Float     @db.Float
+  /// @zod.custom(z.coerce.number())
+  NetTotal    Float     @db.Float
+  /// @zod.custom(z.coerce.date())
+  LastPrinted DateTime? @db.DateTime(0)
+  /// @zod.custom(z.coerce.number())
+  TakeHome    Float     @db.Float
+  Drivers     Drivers   @relation(fields: [DriverID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PayStubs_Driver")
+  Jobs        Jobs[]
+
+  @@index([DriverID], map: "FK_PayStubs_Driver")
 }

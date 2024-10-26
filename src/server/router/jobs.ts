@@ -244,60 +244,60 @@ export const jobsRouter = createRouter()
     //             return sheets;
     //         }
 
-            // let shouldReturn = false;
-            // let shouldGroup = false;
-            //
-            // for (let i = 0; i < loads.length; i++) {
-            //     const load = loads[i];
-            //     if (!load) {
-            //         continue;
-            //     }
-            //     if (!load.JobID) {
-            //         continue;
-            //     }
-            //     const found = jobs.findIndex((job) => job.ID === load.JobID);
-            //     if (found !== -1) {
-            //         jobs[found].Loads = [...jobs[found].Loads, load]
-            //     } else {
-            //         const job = await ctx.prisma.jobs.findUnique({
-            //             where: {ID: load.JobID},
-            //             include: {Customers: true, Drivers: true, DeliveryLocations: true, LoadTypes: true}
-            //         });
-            //         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            //         // @ts-ignore
-            //         job.Loads = [load];
-            //         jobs.push(job);
-            //     }
-            //     if (i === loads.length - 1) {
-            //         shouldGroup = true;
-            //     }
-            // }
-            //
-            // const grouped: any[] = [];
-            //
-            // if (shouldGroup) {
-            //     for (let i = 0; i < jobs.length; i++) {
-            //         const job = jobs[i];
-            //         if (!job) {
-            //             continue;
-            //         }
-            //         const found = grouped.findIndex((driver) => driver.ID === job.DriverID);
-            //         //console.log('FOUND', found, grouped, job)
-            //         if (found !== -1) {
-            //             grouped[found].Jobs = [...grouped[found].Jobs, job]
-            //         } else {
+    // let shouldReturn = false;
+    // let shouldGroup = false;
+    //
+    // for (let i = 0; i < loads.length; i++) {
+    //     const load = loads[i];
+    //     if (!load) {
+    //         continue;
+    //     }
+    //     if (!load.JobID) {
+    //         continue;
+    //     }
+    //     const found = jobs.findIndex((job) => job.ID === load.JobID);
+    //     if (found !== -1) {
+    //         jobs[found].Loads = [...jobs[found].Loads, load]
+    //     } else {
+    //         const job = await ctx.prisma.jobs.findUnique({
+    //             where: {ID: load.JobID},
+    //             include: {Customers: true, Drivers: true, DeliveryLocations: true, LoadTypes: true}
+    //         });
+    //         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //         // @ts-ignore
+    //         job.Loads = [load];
+    //         jobs.push(job);
+    //     }
+    //     if (i === loads.length - 1) {
+    //         shouldGroup = true;
+    //     }
+    // }
+    //
+    // const grouped: any[] = [];
+    //
+    // if (shouldGroup) {
+    //     for (let i = 0; i < jobs.length; i++) {
+    //         const job = jobs[i];
+    //         if (!job) {
+    //             continue;
+    //         }
+    //         const found = grouped.findIndex((driver) => driver.ID === job.DriverID);
+    //         //console.log('FOUND', found, grouped, job)
+    //         if (found !== -1) {
+    //             grouped[found].Jobs = [...grouped[found].Jobs, job]
+    //         } else {
 
-            //             grouped.push({...job.Drivers, Jobs: [job]});
-            //         }
-            //         if (i === jobs.length - 1) {
-            //             shouldReturn = true;
-            //         }
-            //     }
-            // }
-            //
-            // if (shouldReturn) {
-            //     return grouped;
-            // }
+    //             grouped.push({...job.Drivers, Jobs: [job]});
+    //         }
+    //         if (i === jobs.length - 1) {
+    //             shouldReturn = true;
+    //         }
+    //     }
+    // }
+    //
+    // if (shouldReturn) {
+    //     return grouped;
+    // }
 
     //     }
     // })
@@ -385,6 +385,46 @@ export const jobsRouter = createRouter()
 
     //     }
     // })
+    .query('getByDriver', {
+        input: z.object({
+            driver: z.number()
+        }),
+        async resolve({ctx, input}) {
+            return ctx.prisma.jobs.findMany({
+                where: {
+                    DriverID: input.driver,
+                    OR: [
+                        {
+                            PaidOut: false
+                        },
+                        {
+                            PayStubID: null
+                        }
+                    ],
+                },
+                include: {
+                    Drivers: true,
+                    LoadTypes: {
+                        select: {
+                            Description: true
+                        }
+                    },
+                    DeliveryLocations: {
+                        select: {
+                            Description: true
+                        }
+                    },
+                    Customers: {
+                        select: {
+                            Name: true
+                        }
+                    },
+                    Loads: true
+                }
+            })
+
+        }
+    })
     .mutation('postClosed', {
         // validate input with Zod
         input: JobsModel,

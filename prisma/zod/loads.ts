@@ -22,9 +22,9 @@ export const LoadsModel = z.object({
   TruckID: z.number().int().nullish(),
   DriverID: z.number().int().nullish(),
   Deleted: z.boolean().nullish(),
+  JobID: z.number().int().nullish(),
   Week: z.string(),
   DriverRate: z.number().nullish(),
-  JobID: z.number().int().nullish(),
 })
 
 export interface CompleteLoads extends z.infer<typeof LoadsModel> {

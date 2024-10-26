@@ -110,12 +110,35 @@ function Load({
     const key = initialLoad ? "loads.post" : "loads.put";
 
     const addOrUpdateLoad = trpc.useMutation(key, {
-        async onSuccess(data) {
+        async onSuccess(object) {
             toggleOverride(false)
-            toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            initialLoad && reset(data);
+            if (object.warnings.length > 0 && object.warnings.includes("This daily has already been printed.")) {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                const warningIndex = object.warnings.findIndex((item) => item === "This daily has already been printed.")
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                const weekID = object.warnings[warningIndex + 1];
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                const driverID = object.warnings[warningIndex + 2];
+                toast(<DailyPrintedCustomToast Week={weekID} DriverID={driverID}/>, {
+                    autoClose: 500000, type: "warning", position: "top-left",
+                    style: {
+                        width: "98vw",       // Full viewport width
+                        margin: 0,            // Remove margin to avoid cut-off
+                        borderRadius: 0,      // Remove border-radius for full-width look
+                        textAlign: 'center',  // Center the text
+                    },
+                })
+            } else {
+                toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
+            }
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            initialLoad && reset(object.data);
         },
         async onError(error) {
             toggleOverride(false)
@@ -148,8 +171,8 @@ function Load({
         const duplicate = await checkDuplicate.mutateAsync(data);
 
         if (duplicate !== false && !overrideWarning) {
-            toast(<CustomToast ID={duplicate.ID} onClickTrigger={() => toggleOverride(true)}/>, {
-                autoClose: 500000, type: "warning",  position: "top-left",
+            toast(<DuplicateCustomToast ID={duplicate.ID} onClickTrigger={() => toggleOverride(true)}/>, {
+                autoClose: 500000, type: "warning", position: "top-left",
                 style: {
                     width: "98vw",       // Full viewport width
                     margin: 0,            // Remove margin to avoid cut-off
@@ -602,12 +625,17 @@ function Load({
     );
 }
 
-interface CustomToastProps {
+interface DuplicateCustomToastProps {
     ID: number,
     onClickTrigger: any,
 }
 
-class CustomToast extends React.Component<CustomToastProps> {
+interface DailyPrintedCustomToastProps {
+    Week: any,
+    DriverID: any,
+}
+
+class DuplicateCustomToast extends React.Component<DuplicateCustomToastProps> {
 
     render() {
         return (
@@ -621,8 +649,33 @@ class CustomToast extends React.Component<CustomToastProps> {
                     <b>Click here to open the existing load in a new tab. </b>
                 </a>
                 If you want to override this warning and make continue with the duplicate ticket number,&nbsp;
-                    <b onClick={() => this.props.onClickTrigger()}>click here to override this warning. </b>
+                <b onClick={() => this.props.onClickTrigger()}>click here to override this warning. </b>
                 Then save this load again. Click anywhere else to dismiss this warning.
+              </span>
+
+        )
+            ;
+    }
+}
+
+class DailyPrintedCustomToast extends React.Component<DailyPrintedCustomToastProps> {
+
+    render() {
+        return (
+
+            <span>
+                This load was created successfully, however the daily it was put on has already been printed.&nbsp;
+                <NextLink
+                    href={{
+                        pathname: "/dailies",
+                        query: {forceExpand: this.props.DriverID, defaultWeek: this.props.Week}
+                    }}
+                    passHref
+                >
+                    <a target={"_blank"}>
+                        <b>Click here to open the daily in a new tab. </b>
+                    </a>
+                </NextLink>
               </span>
 
         )

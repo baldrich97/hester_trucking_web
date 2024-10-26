@@ -14,7 +14,12 @@ const handler = async (req, res) => {
         return;
     }
 
-    const input = {week: ID.split('|')[1], sheet: ID.split('|')[0]}
+    const input = {week: ID.split('|')[1], sheet: ID.split('|')[0], type: ID.split('|')[2]}
+
+    if (input.type === 'partial') {
+        const daily = await prisma.dailies.findUnique({where: {ID: parseInt(input.sheet)}})
+        input.lastDate = daily.LastPrinted ?? new Date();
+    }
 
     await prisma.dailies.update({
         where: {
@@ -51,7 +56,13 @@ const processLoads = async (input) => {
                 include: {
                     Jobs: {
                         include: {
-                            Loads: true,
+                            Loads: input.type === 'partial' ? {
+                                where: {
+                                    Created: {
+                                        gt: input.lastDate
+                                    }
+                                }
+                            } : true,
                             Customers: true,
                             Drivers: true,
                             DeliveryLocations: true,
@@ -68,61 +79,8 @@ const processLoads = async (input) => {
 
             resolve(sheet);
 
-            // console.log('IN HERE WTF', loads, start, end, input)
-            //
-            // const jobs = await groupJobs(loads);
-            //
-            // await formatSheet(jobs).then(async (sheet) => {
-            //     resolve(sheet);
-            // }).catch((error) => {
-            //     reject(error)
-            // });
         } catch (error) {
             reject(error);
         }
     });
 };
-
-const formatSheet = async (jobs) => {
-    return new Promise(async (resolve, reject) => {
-        let sheet = {...jobs[0].Drivers, Jobs: []};
-        await Promise.all(jobs.map((job) => {
-            sheet.Jobs.push(job)
-        }))
-
-        if (sheet.Jobs.length > 0) {
-            resolve(sheet)
-        } else {
-            reject('No grouped')
-        }
-    })
-}
-
-const groupJobs = async (loads) => {
-    return new Promise(async (resolve, reject) => {
-        let jobs = [];
-        await Promise.all(loads.map(async (load) => {
-            console.log('LOAD', load)
-            const found = jobs.findIndex((job) => job.ID === load.JobID);
-            if (found !== -1) {
-                console.log('IN HERE')
-                jobs[found].Loads = [...jobs[found].Loads, load]
-            } else {
-                const job = await prisma.jobs.findUnique({
-                    where: { ID: load.JobID },
-                    include: { Customers: true, Drivers: true, DeliveryLocations: true, LoadTypes: true }
-                });
-                console.log(';ALSDKJ;LASKDF')
-                console.log('JOB', job)
-                job.Loads = [load];
-                jobs.push(job);
-            }
-        }))
-
-        if (jobs.length > 0) {
-            resolve(jobs)
-        } else {
-            reject('No jobs')
-        }
-    })
-}

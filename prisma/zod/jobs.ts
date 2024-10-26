@@ -1,5 +1,5 @@
 import * as z from "zod"
-import { CompleteCustomers, RelatedCustomersModel, CompleteDailies, RelatedDailiesModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteDrivers, RelatedDriversModel, CompleteLoadTypes, RelatedLoadTypesModel, CompleteWeeklies, RelatedWeekliesModel, CompleteLoads, RelatedLoadsModel } from "./index"
+import { CompleteCustomers, RelatedCustomersModel, CompleteDailies, RelatedDailiesModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteDrivers, RelatedDriversModel, CompleteLoadTypes, RelatedLoadTypesModel, CompletePayStubs, RelatedPayStubsModel, CompleteWeeklies, RelatedWeekliesModel, CompleteLoads, RelatedLoadsModel } from "./index"
 
 export const JobsModel = z.object({
   ID: z.number().int(),
@@ -16,6 +16,7 @@ export const JobsModel = z.object({
   DailyID: z.number().int(),
   MaterialRate: z.number(),
   DriverRate: z.number(),
+  PayStubID: z.number().int().nullish(),
 })
 
 export interface CompleteJobs extends z.infer<typeof JobsModel> {
@@ -24,6 +25,7 @@ export interface CompleteJobs extends z.infer<typeof JobsModel> {
   DeliveryLocations: CompleteDeliveryLocations
   Drivers: CompleteDrivers
   LoadTypes: CompleteLoadTypes
+  PayStubs?: CompletePayStubs | null
   Weeklies: CompleteWeeklies
   Loads: CompleteLoads[]
 }
@@ -39,6 +41,7 @@ export const RelatedJobsModel: z.ZodSchema<CompleteJobs> = z.lazy(() => JobsMode
   DeliveryLocations: RelatedDeliveryLocationsModel,
   Drivers: RelatedDriversModel,
   LoadTypes: RelatedLoadTypesModel,
+  PayStubs: RelatedPayStubsModel.nullish(),
   Weeklies: RelatedWeekliesModel,
   Loads: RelatedLoadsModel.array(),
 }))

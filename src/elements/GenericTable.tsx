@@ -282,6 +282,23 @@ export default function GenericTable({
                       return o[i];
                     }, row);
                   }
+                  if (column.name.includes('+')) {
+                      realData = column.name.split("+").map((key, index) => {
+                          let returnable;
+                          if (key.includes(".")) {
+                              returnable = key.split(".").reduce((o, i) => {
+                                  if (!o) {
+                                      return;
+                                  }
+                                  return o[i];
+                              }, row);
+                          } else {
+                              returnable = row[key];
+                          }
+
+                          return index + 1 === column.name.split("+").length ? returnable : (returnable + ' ')
+                      })
+                  }
                   const data = realData ?? row[column.name];
                   const isOverrided = overrides.filter(
                     (item) => item.name === column.name
@@ -433,7 +450,7 @@ export default function GenericTable({
                         key={"row-" + rowindex.toString() + "-" + column.name}
                       >
                         {data
-                          ? parseFloat(data) && !data.toString().includes(" ")
+                          ? !/\D/.test(data) && parseFloat(data) && !data.toString().includes(" ")
                             ? Math.round(
                                 (parseFloat(data) + Number.EPSILON) * 100
                               ) / 100

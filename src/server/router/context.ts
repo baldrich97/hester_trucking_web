@@ -17,6 +17,7 @@ export const createContextInner = async (opts: CreateContextOptions) => {
   return {
     session: opts.session,
     prisma,
+    warnings: [] as string[]
   };
 };
 
