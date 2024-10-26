@@ -9,38 +9,45 @@ const styles = StyleSheet.create({
         display: 'flex',
         justifyContent: 'space-between',
         borderStyle: 'solid',
-        borderWidth: 2,
-        borderColor: 'grey',
+        borderBottomWidth: 1,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderColor: 'black',
+        margin: 0,
+        padding: 0
     },
     text: {
         color: 'black',
         letterSpacing: 0,
         fontSize: 13,
+        padding: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+
     },
     leftAlignNoPadding: {
         textAlign: 'center',
-        borderRight: 2,
+        borderRight: 1,
         borderRightStyle: 'solid',
-        borderRightColor: 'grey',
+        borderRightColor: 'black',
     },
     padding: {
-        borderRight: 2,
+        borderRight: 1,
         borderRightStyle: 'solid',
-        borderRightColor: 'grey',
-        paddingLeft: 2,
+        borderRightColor: 'black',
     }
 });
 
 
 const TableFooter = ({payStub}: {payStub: any}) => (
-    <>
+
         <View style={styles.container}>
             <Text style={{
-                width: '10%', ...styles.leftAlignNoPadding, ...styles.text,
+                width: '12%', ...styles.leftAlignNoPadding, ...styles.text,
                 fontSize: 9
             }}></Text>
             <Text style={{
-                width: '55%',
+                width: '50.5%',
                 textAlign: 'center', ...styles.padding, ...styles.text
             }}>Totals</Text>
             <Text style={{
@@ -48,83 +55,15 @@ const TableFooter = ({payStub}: {payStub: any}) => (
                 textAlign: 'center', ...styles.padding, ...styles.text
             }}></Text>
             <Text style={{
-                width: '10%',
-                textAlign: 'center', ...styles.text,
-                paddingRight: 5
+                width: '12.5%',
+                textAlign: 'center', ...styles.text, ...styles.padding
             }}></Text>
             <Text style={{
                 width: '15%',
-                textAlign: 'center', ...styles.text,
-                paddingRight: 5
+                textAlign: 'center', ...styles.text, ...styles.padding
             }}>{payStub.Gross}</Text>
         </View>
-        <View style={{flexDirection: 'row',
-            width: '100%',
-            display: 'flex',
-            justifyContent: 'space-between',}}>
-            <Text style={{
-                width: '10%', ...styles.text,
-                fontSize: 9
-            }}></Text>
-            <Text style={{
-                width: '55%',
-                textAlign: 'center', padding: 2, ...styles.text
-            }}></Text>
-            <Text style={{
-                width: '10%',
-                textAlign: 'center', padding: 2, ...styles.text
-            }}></Text>
-            <Text style={{
-                width: '10%',
-                textAlign: 'right', ...styles.text,
-                paddingRight: 5,
-                borderStyle: 'solid',
-                borderWidth: 2,
-                borderColor: 'grey',
-            }}>Less:</Text>
-            <Text style={{
-                width: '15%',
-                textAlign: 'center', ...styles.text,
-                paddingRight: 5,
-                borderStyle: 'solid',
-                borderWidth: 2,
-                borderColor: 'grey',
-            }}>%{payStub.Percentage}</Text>
-        </View>
-        <View style={{flexDirection: 'row',
-            width: '100%',
-            display: 'flex',
-            justifyContent: 'space-between',}}>
-            <Text style={{
-                width: '10%', ...styles.text,
-                fontSize: 9
-            }}></Text>
-            <Text style={{
-                width: '55%',
-                textAlign: 'center', padding: 2, ...styles.text
-            }}></Text>
-            <Text style={{
-                width: '10%',
-                textAlign: 'center', padding: 2, ...styles.text
-            }}></Text>
-            <Text style={{
-                width: '10%',
-                textAlign: 'right', ...styles.text,
-                paddingRight: 5,
-                borderStyle: 'solid',
-                borderWidth: 2,
-                borderColor: 'grey',
-            }}>TOTAL </Text>
-            <Text style={{
-                width: '15%',
-                textAlign: 'center', ...styles.text,
-                paddingRight: 5,
-                borderStyle: 'solid',
-                borderWidth: 2,
-                borderColor: 'grey',
-            }}>{payStub.NetTotal}</Text>
-        </View>
-    </>
+
 )
 
 export default TableFooter

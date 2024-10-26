@@ -167,7 +167,7 @@ const PayStub = ({
             }
 
             if (["Gross", "Percentage"].includes(name ?? "") || (name === "NetTotal" && type === "change")) {
-                const nettotal = (name === "NetTotal" && type === "change") ? value.NetTotal ?? 0 : (value.Gross ?? 0) * (value.Percentage ? (value.Percentage / 100) : 1);
+                const nettotal = (name === "NetTotal" && type === "change") ? value.NetTotal ?? 0 : (Math.round(((((value.Gross ?? 0) * (value.Percentage ? (value.Percentage / 100) : 1))) + Number.EPSILON) * 100) / 100);
 
                 const fedtax = value.FedTax ? nettotal * (value.FedTax / 100) : 0;
                 const statetax = value.StateTax ? nettotal * (value.StateTax / 100) : 0;
@@ -203,36 +203,69 @@ const PayStub = ({
         return () => subscription.unsubscribe();
     }, [watch, setValue, trigger]);
 
-    const fields1: FormFieldsType = //!initialPayStub
-        //?
-        [
+    const fields1: FormFieldsType = !initialPayStub
+        ? [
             {
                 name: "DriverID",
-                size: !initialPayStub ? 7 : 4,
+                size: 7,
                 required: true,
                 shouldErrorOn: ["invalid_type"],
                 errorMessage: "Driver is required.",
                 type: "select",
                 label: "Driver",
                 searchQuery: "drivers",
-                disabled: !!initialPayStub
             },
             {
                 name: "Created",
-                size: !initialPayStub ? 5 : 4,
+                size: 5,
                 required: false,
                 type: "date",
                 label: 'Invoice Date',
-                disabled: !!initialPayStub
             },
             {
                 name: "CheckNumber",
-                size: !initialPayStub ? 7 : 4,
+                size: 7,
+                required: false,
+                type: "textfield",
+                label: "Check Number",
+            },
+        ] : [
+            {
+                name: "DriverID",
+                size: 4,
+                required: true,
+                shouldErrorOn: ["invalid_type"],
+                errorMessage: "Driver is required.",
+                type: "select",
+                label: "Driver",
+                searchQuery: "drivers",
+                disabled: true
+            },
+            {
+                name: "Created",
+                size: 2,
+                required: false,
+                type: "date",
+                label: 'Invoice Date',
+                disabled: true
+            },
+            {
+                name: "LastPrinted",
+                size: 2,
+                required: false,
+                type: "date",
+                label: 'Last Printed',
+                disabled: true
+            },
+            {
+                name: "CheckNumber",
+                size: 4,
                 required: false,
                 type: "textfield",
                 label: "Check Number",
             },
         ]
+
 
     const fields2: FormFieldsType = [{name: "", size: 6, required: false, type: "padding"},
         {

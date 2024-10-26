@@ -11,30 +11,35 @@ const styles = StyleSheet.create({
         display: 'flex',
         justifyContent: 'space-between',
         borderStyle: 'solid',
-        borderWidth: 2,
-        borderColor: 'grey',
+        borderBottomWidth: 1,
+        borderLeftWidth: 1,
+        borderRightWidth: 1,
+        borderColor: 'black',
+        margin: 0,
+        padding: 0
     },
     text: {
         color: 'black',
         letterSpacing: 0,
-        fontSize: 13,
+        fontSize: 11,
+        padding: 0
     },
     leftAlignNoPadding: {
         textAlign: 'center',
-        borderRight: 2,
+        borderRight: 1,
         borderRightStyle: 'solid',
-        borderRightColor: 'grey',
+        borderRightColor: 'black',
     },
     padding: {
-        borderRight: 2,
+        borderRight: 1,
         borderRightStyle: 'solid',
-        borderRightColor: 'grey',
-        paddingLeft: 2,
+        borderRightColor: 'black',
+        //paddingLeft: 2,
     }
 });
 
 
-const TableRow = ({job}: { job: any }) => {
+const TableRow = ({job, key}: { job: any, key: number }) => {
     function formatDateRange(loads: any) {
         if (loads.length === 0) return null;
 
@@ -92,36 +97,35 @@ const TableRow = ({job}: { job: any }) => {
         return ((row.LoadTypes?.Description ?? 'MISSING') + ' ' + (row.Customers?.Name ?? 'MISSING') + ' ' + (row.DeliveryLocations?.Description ?? 'MISSING'))
     }
 
-    function formatRate(row: { DriverRate: string; TruckingRate: string; }): string {
+    function formatRate(row: { DriverRate: string; TruckingRate: string; }): number {
         return (Math.round((parseFloat((row.DriverRate && row.DriverRate !== row.TruckingRate) ? row.DriverRate : row.TruckingRate) + Number.EPSILON) * 100) /
-            100).toString()
+            100)
     }
 
     return (
         (
-            <View style={styles.container}>
+            <View style={styles.container} key={'row-' + key}>
                 <Text style={{
-                    width: '10%', ...styles.leftAlignNoPadding, ...styles.text,
-                    fontSize: 9
+                    width: '12%', ...styles.leftAlignNoPadding, ...styles.text,
                 }}>{formatDateRange(job.Loads)}</Text>
                 <Text style={{
-                    width: '55%',
+                    width: '50.5%',
                     textAlign: 'center', ...styles.padding, ...styles.text
                 }}>{formatDescription(job)}</Text>
                 <Text style={{
                     width: '10%',
                     textAlign: 'center', ...styles.padding, ...styles.text
-                }}>{sumLoads(job.Loads)}</Text>
+                }}>{(Math.round(sumLoads(job.Loads) * 100) / 100)}</Text>
                 <Text style={{
-                    width: '10%',
-                    textAlign: 'center', ...styles.text,
-                    paddingRight: 5
-                }}>{formatRate(job)}</Text>
+                    width: '12.5%',
+                    textAlign: 'center', ...styles.padding, ...styles.text,
+                    // paddingRight: 5
+                }}>{(Math.round(formatRate(job) * 100) / 100)}</Text>
                 <Text style={{
                     width: '15%',
-                    textAlign: 'center', ...styles.text,
-                    paddingRight: 5
-                }}>{calculateRevenue(job)}</Text>
+                    textAlign: 'center', ...styles.padding, ...styles.text,
+                    // paddingRight: 5
+                }}>{(Math.round(calculateRevenue(job) * 100) / 100)}</Text>
             </View>
         )
     )

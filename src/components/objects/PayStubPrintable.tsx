@@ -52,8 +52,6 @@ const PayStubPrintable = ({payStub}: { payStub: PayStubData}) => {
                                      invoiceDate={new Date(rest.Created).toLocaleDateString('en-US', {timeZone: 'UTC'})}
                                      checkNumber={rest.CheckNumber ? rest.CheckNumber : 'N/A'}/>
                 <PayStubParts.Table jobs={Jobs} payStub={rest}/>
-                {/*<Html>{linebreakhtml}</Html>*/}
-                {/*<PayStubParts.Footer payStub={rest}/>*/}
 
             </Page>
         </Document>

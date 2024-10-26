@@ -8,7 +8,6 @@ const styles = StyleSheet.create({
         width: '100%',
         display: 'flex',
         justifyContent: 'space-between',
-        marginBottom: 6,
         borderStyle: 'solid',
         borderColor: 'black',
         borderWidth: 2,
@@ -16,7 +15,7 @@ const styles = StyleSheet.create({
     text: {
         color: 'black',
         letterSpacing: 0,
-        fontSize: 10,
+        fontSize: 11,
         fontFamily: 'Times-Bold'
     },
     leftAlignNoPadding: {
@@ -29,18 +28,17 @@ const styles = StyleSheet.create({
         borderRight: 2,
         borderRightStyle: 'solid',
         borderRightColor: 'black',
-        paddingLeft: 2,
     }
 });
 
 
 const TableHeader = () => (
     <View style={styles.container}>
-        <Text style={{width: '10%', ...styles.leftAlignNoPadding, ...styles.text}}>Date</Text>
-        <Text style={{width: '55%', textAlign: 'center', ...styles.padding, ...styles.text}}>Description</Text>
+        <Text style={{width: '12%', ...styles.leftAlignNoPadding, ...styles.text}}>Date</Text>
+        <Text style={{width: '50.5%', textAlign: 'center', ...styles.padding, ...styles.text}}>Description</Text>
         <Text style={{width: '10%', textAlign: 'center', ...styles.padding, ...styles.text}}>Tons</Text>
-        <Text style={{width: '10%', textAlign: 'center', ...styles.text, paddingRight: 5}}>Rate</Text>
-        <Text style={{width: '15%', textAlign: 'center', ...styles.text, paddingRight: 5}}>Amount</Text>
+        <Text style={{width: '12.5%', textAlign: 'center', ...styles.text, ...styles.padding}}>Rate</Text>
+        <Text style={{width: '15%', textAlign: 'center', ...styles.text, ...styles.padding, borderRight: 0}}>Amount</Text>
     </View>
 )
 

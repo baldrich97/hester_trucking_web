@@ -18,6 +18,8 @@ const styles = StyleSheet.create({
     column: {
         width: '48%',
         display: 'flex',
+        flexDirection: 'row',
+        justifyContent: 'flex-start',
     },
     label: {
         fontSize: 12,
@@ -26,15 +28,10 @@ const styles = StyleSheet.create({
         fontSize: 12,
         marginBottom: 0, // Space between data and underline
         textAlign: 'left',
-        textDecoration: 'underline',
+        width: '100%',
+        borderBottom: 2,
     },
-    underline: {
-        fontSize: 12,
-        textDecoration: 'underline',
-        color: 'gray',
-        width: '100%', // Make underline take the full width of the column
-        textAlign: 'left', // Align text to the left for the underline
-    },
+
 });
 
 // Header Component
@@ -42,23 +39,20 @@ const Header = ({ driver, invoiceDate, checkNumber }: { driver: string; invoiceD
     <View style={styles.container}>
         <View style={styles.innerContainer}>
             <View style={styles.column}>
-                <Text style={styles.label}>Driver:</Text>
+                <Text style={{...styles.label, marginRight: 15}}>Driver:</Text>
                 <Text style={styles.data}>{driver}</Text>
-                <Text style={styles.underline}>_____________________________</Text>
             </View>
 
             <View style={styles.column}>
-                <Text style={styles.label}>Invoice Date:</Text>
+                <Text style={{...styles.label, marginRight: 25}}>Invoice Date:</Text>
                 <Text style={styles.data}>{invoiceDate}</Text>
-                <Text style={styles.underline}>_____________________</Text>
             </View>
         </View>
 
         <View style={styles.innerContainer}>
             <View style={styles.column}>
-                <Text style={styles.label}>Check#:</Text>
+                <Text style={{...styles.label, marginRight: 15}}>Check#:</Text>
                 <Text style={styles.data}>{checkNumber}</Text>
-                <Text style={styles.underline}>_____________________________</Text>
             </View>
         </View>
     </View>
