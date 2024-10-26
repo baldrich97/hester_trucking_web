@@ -88,7 +88,7 @@ const Table = ({jobs, payStub}: { jobs: any[], payStub: PayStubsType }) => {
                     borderBottomWidth: 1.5,
                     borderRightWidth: 1.5,
                     borderColor: 'black',
-                }}>%{payStub.Percentage}</Text>
+                }}>{payStub.Percentage ? payStub.Percentage : null}%</Text>
             </View>
             <View style={{
                 flexDirection: 'row',
