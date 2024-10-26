@@ -122,6 +122,20 @@ export const paystubsRouter = createRouter()
                 }, data: data
             })
         },
+    }).mutation('postPrinted', {
+        // validate input with Zod
+        input: PayStubsModel.extend({selected: z.array(z.string())}),
+        async resolve({ctx, input}) {
+            const {ID} = input;
+            // use your ORM of choice
+            return ctx.prisma.payStubs.update({
+                where: {
+                    ID: ID
+                }, data: {
+                    LastPrinted: new Date()
+                }
+            })
+        },
     }).mutation('delete', {
         input: PayStubsModel,
         async resolve({ctx, input}) {

@@ -144,6 +144,14 @@ const PayStub = ({
         },
     });
 
+    const printPaystub = trpc.useMutation("paystubs.postPrinted", {
+        async onSuccess(data) {
+            reset(data ? data : defaultValues);
+            toast("Successfully Generated!", { autoClose: 2000, type: "success" });
+        },
+    });
+
+
     const onDelete = async (data: PayStubData) => {
         toast("Deleting...", {autoClose: 2000, type: "info"});
         await deletePaystub.mutateAsync(data);
@@ -181,10 +189,10 @@ const PayStub = ({
             if (["FedTax", "StateTax", "SSTax", "MedTax"].includes(name ?? "")) {
                 const nettotal = (value.Gross ?? 0) * (value.Percentage ? (value.Percentage / 100) : 1);
 
-                const fedtax = value.FedTax ? nettotal * (value.FedTax / 100) : 0;
-                const statetax = value.StateTax ? nettotal * (value.StateTax / 100) : 0;
-                const sstax = value.SSTax ? nettotal * (value.SSTax / 100) : 0;
-                const medtax = value.MedTax ? nettotal * (value.MedTax / 100) : 0;
+                const fedtax = value.FedTax ? value.FedTax : 0;
+                const statetax = value.StateTax ? value.StateTax : 0;
+                const sstax = value.SSTax ? value.SSTax : 0;
+                const medtax = value.MedTax ? value.MedTax : 0;
 
                 setValue("TakeHome", (Math.round(((nettotal - fedtax - statetax - sstax - medtax) + Number.EPSILON) * 100) / 100), {
                     shouldValidate: true,
@@ -534,15 +542,15 @@ const PayStub = ({
                                 onClick={async () => {
                                     toast("Generating PDF...", {autoClose: 2000, type: "info"});
                                     const element = document.createElement("a");
-                                    element.href = "/api/getPDF/invoice/" + initialPayStub.ID?.toString();
-                                    element.download = "invoice-download.pdf";
+                                    element.href = "/api/getPDF/paystub/" + initialPayStub.ID?.toString();
+                                    element.download = "paystub-download.pdf";
                                     document.body.appendChild(element);
                                     element.click();
                                     document.body.removeChild(element);
-                                    // await printInvoice.mutateAsync({
-                                    //     ...initialPayStub,
-                                    //     selected: [],
-                                    // });
+                                    await printPaystub.mutateAsync({
+                                        ...initialPayStub,
+                                        selected: [],
+                                    });
                                 }}
                             >
                                 Print

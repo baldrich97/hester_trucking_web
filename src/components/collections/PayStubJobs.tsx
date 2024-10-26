@@ -284,8 +284,6 @@ function Row(props: {
     const { readOnly, row, labelId, isItemSelected, handleClick } = props;
     const [open, setOpen] = React.useState(false);
 
-    console.log('ROW', row)
-
     return (
         <React.Fragment>
             <TableRow

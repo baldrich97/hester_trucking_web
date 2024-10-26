@@ -126,6 +126,15 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null,}: { sheet: 
                                         );
                                     },
                                 });
+                            } else {
+                                toast("Generating PDF...", {autoClose: 2000, type: "info"});
+                                const element = document.createElement("a");
+                                element.href = `/api/getPDF/daily/${daily.ID}|${week}|full`;
+                                element.download = "daily-download.pdf";
+                                document.body.appendChild(element);
+                                element.click();
+                                document.body.removeChild(element);
+                                setDaily({...daily, LastPrinted: new Date})
                             }
                         }}
                     >
