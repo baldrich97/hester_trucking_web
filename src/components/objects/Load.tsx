@@ -114,7 +114,7 @@ function Load({
             toggleOverride(false)
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            if (object.warnings.length > 0 && object.warnings.includes("This daily has already been printed.")) {
+            if (object.warnings?.length > 0 && object.warnings?.includes("This daily has already been printed.")) {
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
                 const warningIndex = object.warnings.findIndex((item) => item === "This daily has already been printed.")
