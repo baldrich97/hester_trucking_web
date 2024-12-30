@@ -13,7 +13,7 @@ import ExpandMore from "@mui/icons-material/ExpandMore";
 import Tooltip from "@mui/material/Tooltip";
 import {z} from "zod";
 import {CompleteJobs, DailiesModel, DriversModel, LoadsModel} from "../../../prisma/zod";
-import {formatDateToWeek, getWeekNumber} from "../../utils/UtilityFunctions";
+import {formatDateToWeek} from "../../utils/UtilityFunctions";
 import {useRouter} from "next/router"
 
 type Loads = z.infer<typeof LoadsModel>;
