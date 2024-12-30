@@ -1,28 +1,25 @@
 type YearWeekFormat = `${number}-W${number}`;
 
-
+// Correctly formats a date into ISO week string
 export function formatDateToWeek(date: Date): YearWeekFormat {
-    const year = date.getFullYear();
-    const weekNumber = getWeekNumber(date);
-    let returnable = `${year}-W`;
-    if (weekNumber < 10) {
-        returnable += `0${weekNumber}`;
-    } else {
-        returnable += weekNumber;
-    }
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    return returnable;
+    const year = getISOWeekYear(date);
+    const weekNumber = getISOWeekNumber(date);
+    const paddedWeek = weekNumber.toString().padStart(2, '0');
+    console.log('year', year, 'weeknumber', weekNumber, 'padded', paddedWeek)
+    return `${year}-W${paddedWeek}` as YearWeekFormat;
 }
 
-export function getWeekNumber(date: Date): number {
-    date.setHours(0)
-    date.setMinutes(0)
-    date.setSeconds(0)
-    const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-    const millisecondsInDay = 86400000;
-    const currentDayOfYear = Math.ceil(
-        (date.getTime() + 8600000 - firstDayOfYear.getTime()) / millisecondsInDay
-    );
-    return Math.ceil(currentDayOfYear / 7);
+// Get ISO Week Number
+export function getISOWeekNumber(date: Date): number {
+    const tempDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    tempDate.setUTCDate(tempDate.getUTCDate() + 4 - (tempDate.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(tempDate.getUTCFullYear(), 0, 1));
+    return Math.ceil(((tempDate.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
+
+// Get ISO Year (for edge cases where Jan 1 belongs to the previous year's week 52/53)
+function getISOWeekYear(date: Date): number {
+    const tempDate = new Date(date.getTime());
+    tempDate.setDate(tempDate.getDate() + 4 - (tempDate.getDay() || 7));
+    return tempDate.getFullYear();
 }
