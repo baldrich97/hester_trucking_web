@@ -11,16 +11,10 @@ import {trpc} from "utils/trpc";
 import WeeklySheet from "components/objects/WeeklySheet";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import Tooltip from "@mui/material/Tooltip";
-import {z} from "zod";
 import {useRouter} from "next/router"
+import {formatDateToWeek} from "../../utils/UtilityFunctions";
 import {
-    CompleteJobs,
-    CustomersModel, DeliveryLocationsModel,
-    DriversModel, InvoicesModel,
-    WeekliesModel,
-    LoadsModel,
-    LoadTypesModel,
-    TrucksModel, CompleteWeeklies, CompleteCustomers, CompleteDeliveryLocations, CompleteLoadTypes
+    CompleteJobs, CompleteWeeklies, CompleteCustomers, CompleteDeliveryLocations, CompleteLoadTypes
 } from "../../../prisma/zod";
 
 interface CustomerSheet extends CompleteWeeklies {
@@ -68,29 +62,6 @@ export default function Weeklies() {
             setShouldRefresh(false);
         },
     });
-
-    function formatDateToWeek(date: Date): YearWeekFormat {
-        const year = date.getFullYear();
-        const weekNumber = getWeekNumber(date);
-        let returnable = `${year}-W`;
-        if (weekNumber < 10) {
-            returnable += `0${weekNumber}`;
-        } else {
-            returnable += weekNumber;
-        }
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        return returnable;
-    }
-
-    function getWeekNumber(date: Date): number {
-        const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
-        const millisecondsInDay = 86400000;
-        const currentDayOfYear = Math.ceil(
-            (date.getTime() - firstDayOfYear.getTime()) / millisecondsInDay
-        );
-        return Math.ceil(currentDayOfYear / 7);
-    }
 
     const [forceExpand, setforceExpand] = React.useState(true);
     return (
