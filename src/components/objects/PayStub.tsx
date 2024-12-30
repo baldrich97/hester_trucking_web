@@ -169,10 +169,8 @@ const PayStub = ({
             if (["Gross", "Percentage"].includes(name ?? "") || (name === "NetTotal" && type === "change")) {
                 const nettotal = (name === "NetTotal" && type === "change") ? value.NetTotal ?? 0 : (Math.round(((((value.Gross ?? 0) * (value.Percentage ? (value.Percentage / 100) : 1))) + Number.EPSILON) * 100) / 100);
 
-                const fedtax = value.FedTax ? nettotal * (value.FedTax / 100) : 0;
-                const statetax = value.StateTax ? nettotal * (value.StateTax / 100) : 0;
-                const sstax = value.SSTax ? nettotal * (value.SSTax / 100) : 0;
-                const medtax = value.MedTax ? nettotal * (value.MedTax / 100) : 0;
+                const adds = value.Additions ? value.Additions : 0;
+                const deds = value.Deductions ? value.Deductions : 0;
 
                 if (name === "NetTotal" && type === "change") {
                     //do nothing
@@ -180,21 +178,19 @@ const PayStub = ({
                     setValue("NetTotal", nettotal);
                 }
 
-                setValue("TakeHome", (Math.round(((nettotal - fedtax - statetax - sstax - medtax) + Number.EPSILON) * 100) / 100), {
+                setValue("TakeHome", (Math.round(((nettotal - deds + adds) + Number.EPSILON) * 100) / 100), {
                     shouldValidate: true,
                     shouldDirty: true
                 });
             }
 
-            if (["FedTax", "StateTax", "SSTax", "MedTax"].includes(name ?? "")) {
+            if (["Additions", "Deductions"].includes(name ?? "")) {
                 const nettotal = (value.Gross ?? 0) * (value.Percentage ? (value.Percentage / 100) : 1);
 
-                const fedtax = value.FedTax ? value.FedTax : 0;
-                const statetax = value.StateTax ? value.StateTax : 0;
-                const sstax = value.SSTax ? value.SSTax : 0;
-                const medtax = value.MedTax ? value.MedTax : 0;
+                const adds = value.Additions ? value.Additions : 0;
+                const deds = value.Deductions ? value.Deductions : 0;
 
-                setValue("TakeHome", (Math.round(((nettotal - fedtax - statetax - sstax - medtax) + Number.EPSILON) * 100) / 100), {
+                setValue("TakeHome", (Math.round(((nettotal - deds + adds) + Number.EPSILON) * 100) / 100), {
                     shouldValidate: true,
                     shouldDirty: true
                 });
@@ -267,7 +263,7 @@ const PayStub = ({
         ]
 
 
-    const fields2: FormFieldsType = [{name: "", size: 6, required: false, type: "padding"},
+    const fields2: FormFieldsType = [
         {
             name: "Gross",
             size: 6,
@@ -276,7 +272,6 @@ const PayStub = ({
             number: true,
             disabled: !!initialPayStub
         },
-        {name: "", size: 6, required: false, type: "padding"},
         {
             name: "Percentage",
             label: "Percentage (eg. 2.75)",
@@ -286,7 +281,15 @@ const PayStub = ({
             number: true,
             disabled: !!initialPayStub
         },
-        {name: "", size: 6, required: false, type: "padding"},
+
+        {
+            name: "Additions",
+            size: 6,
+            required: false,
+            type: "textfield",
+            number: true,
+            disabled: !!initialPayStub
+        },
         {
             name: "NetTotal",
             label: "Net Total",
@@ -296,45 +299,14 @@ const PayStub = ({
             number: true,
             disabled: !!initialPayStub
         },
-        {name: "", size: 6, required: false, type: "padding"},
         {
-            name: "FedTax",
-            label: "Fed Tax",
-            size: 3,
+            name: "Deductions",
+            size: 6,
             required: false,
             type: "textfield",
             number: true,
             disabled: !!initialPayStub
         },
-        {
-            name: "StateTax",
-            label: "State Tax",
-            size: 3,
-            required: false,
-            type: "textfield",
-            number: true,
-            disabled: !!initialPayStub
-        },
-        {name: "", size: 6, required: false, type: "padding"},
-        {
-            name: "SSTax",
-            label: "SS Tax",
-            size: 3,
-            required: false,
-            type: "textfield",
-            number: true,
-            disabled: !!initialPayStub
-        },
-        {
-            name: "MedTax",
-            label: "Med Tax",
-            size: 3,
-            required: false,
-            type: "textfield",
-            number: true,
-            disabled: !!initialPayStub
-        },
-        {name: "", size: 6, required: false, type: "padding"},
         {
             name: "TakeHome",
             label: "Take Home Total",
@@ -342,6 +314,15 @@ const PayStub = ({
             required: false,
             type: "textfield",
             number: true,
+            disabled: !!initialPayStub
+        },
+        {
+            name: "Notes",
+            size: 12,
+            required: false,
+            type: "textfield",
+            multiline: true,
+            maxRows: 10,
             disabled: !!initialPayStub
         },];
 

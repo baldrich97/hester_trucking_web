@@ -22,6 +22,9 @@ import * as React from "react";
 import { styled } from "@mui/material/styles";
 import MuiDrawer from "@mui/material/Drawer";
 import { useRouter } from "next/router";
+import ExpandLess from "@mui/icons-material/ExpandLess";
+import ExpandMore from "@mui/icons-material/ExpandMore";
+import Collapse from "@mui/material/Collapse";
 
 const drawerWidth = 240;
 
@@ -78,6 +81,12 @@ function Sidenav(props: any) {
   } else if (currentPath.includes("/paystubs")) {
     selectedLink = 11;
   }
+
+  const [isDailiesOpen, setDailiesOpen] = React.useState<boolean>(false); // Tracks if Dailies submenu is open
+
+  const handleDailiesClick = () => {
+    setDailiesOpen(!isDailiesOpen);
+  };
 
   const [selectedIndex, setSelectedIndex] = React.useState(selectedLink);
   return (
@@ -188,17 +197,50 @@ function Sidenav(props: any) {
             <ListItemText primary="Trucks" />
           </ListItemButton>
         </NextLink>
-        <NextLink href="/dailies" passHref>
-          <ListItemButton
+
+        <ListItemButton
             selected={selectedIndex === 9}
-            onClick={() => setSelectedIndex(9)}
-          >
-            <ListItemIcon>
-              <EventAvailable />
-            </ListItemIcon>
-            <ListItemText primary="Dailies" />
-          </ListItemButton>
-        </NextLink>
+            onClick={() => {
+              setSelectedIndex(9);
+              handleDailiesClick();
+            }}
+        >
+          <ListItemIcon>
+            <EventAvailable />
+          </ListItemIcon>
+          <ListItemText primary="Dailies" />
+          {isDailiesOpen ? <ExpandLess /> : <ExpandMore />}
+        </ListItemButton>
+
+        <Collapse in={isDailiesOpen} timeout="auto" unmountOnExit>
+          <List component="div" disablePadding>
+            <NextLink href="/dailies" passHref>
+              <ListItemButton
+                  sx={{ pl: 4 }}
+                  onClick={() => setSelectedIndex(12)} // Use unique index for nested items
+              >
+                <ListItemText primary="By Date" />
+              </ListItemButton>
+            </NextLink>
+            <NextLink href="/dailies/w2" passHref>
+              <ListItemButton
+                  sx={{ pl: 4 }}
+                  onClick={() => setSelectedIndex(13)}
+              >
+                <ListItemText primary="W2 Only" />
+              </ListItemButton>
+            </NextLink>
+            <NextLink href="/dailies/operator" passHref>
+              <ListItemButton
+                  sx={{ pl: 4 }}
+                  onClick={() => setSelectedIndex(14)}
+              >
+                <ListItemText primary="Non-W2 Only" />
+              </ListItemButton>
+            </NextLink>
+          </List>
+        </Collapse>
+
         <NextLink href="/weeklies" passHref>
           <ListItemButton
             selected={selectedIndex === 10}

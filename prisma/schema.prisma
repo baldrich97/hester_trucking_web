@@ -5,11 +5,11 @@ generator client {
 
 generator zod {
   provider              = "zod-prisma"
+  modelSuffix           = "Model"
   prismaJsonNullability = "true"
   modelCase             = "PascalCase"
-  modelSuffix           = "Model"
-  useDecimalJs          = "true"
   relationModel         = "true"
+  useDecimalJs          = "true"
 }
 
 datasource db {
@@ -331,19 +331,14 @@ model PayStubs {
   /// @zod.custom(z.coerce.number())
   Percentage  Float     @db.Float
   /// @zod.custom(z.coerce.number())
-  FedTax      Float     @db.Float
-  /// @zod.custom(z.coerce.number())
-  StateTax    Float     @db.Float
-  /// @zod.custom(z.coerce.number())
-  SSTax       Float     @db.Float
-  /// @zod.custom(z.coerce.number())
-  MedTax      Float     @db.Float
-  /// @zod.custom(z.coerce.number())
   NetTotal    Float     @db.Float
   /// @zod.custom(z.coerce.date())
   LastPrinted DateTime? @db.DateTime(0)
   /// @zod.custom(z.coerce.number())
   TakeHome    Float     @db.Float
+  Deductions  Float     @default(0) @db.Float
+  Additions   Float     @default(0) @db.Float
+  Notes       String?   @db.VarChar(1000)
   Drivers     Drivers   @relation(fields: [DriverID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PayStubs_Driver")
   Jobs        Jobs[]
 

@@ -34,8 +34,8 @@ interface Data {
 }
 
 function descendingComparator<T>(a: any, b: any) {
-    const descA = a.LoadTypes?.Description ?? '';
-    const descB = b.LoadTypes?.Description ?? '';
+    const descA = a.LoadTypes?.StartDate ?? '';
+    const descB = b.LoadTypes?.StartDate ?? '';
 
     if (descB < descA) {
         return -1;

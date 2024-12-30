@@ -74,7 +74,7 @@ const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDr
         {name: 'Phone', size: 4, required: false, type: 'textfield'},
         {name: 'Email', size: 4, required: false, type: 'textfield', shouldErrorOn: ['invalid_string'], errorMessage: 'Please enter a valid email.'},
         {name: 'HireDate', size: 4, label: 'Hire Date', required: false, type: 'textfield'},
-        {name: "O. Operator", size: 4, required: false, type: "checkbox", disabled: false},
+        {name: "OwnerOperator", size: 4, required: false, type: "checkbox", disabled: false, label: 'O. Operator'},
         {name: 'Notes', size: 12, required: false, type: 'textfield', multiline: true},
     ]
 

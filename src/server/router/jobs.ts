@@ -420,6 +420,9 @@ export const jobsRouter = createRouter()
                         }
                     },
                     Loads: true
+                },
+                orderBy: {
+                    ID: 'asc'
                 }
             })
 

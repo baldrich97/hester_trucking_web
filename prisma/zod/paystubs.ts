@@ -8,13 +8,12 @@ export const PayStubsModel = z.object({
   CheckNumber: z.string(),
   Gross: z.coerce.number(),
   Percentage: z.coerce.number(),
-  FedTax: z.coerce.number(),
-  StateTax: z.coerce.number(),
-  SSTax: z.coerce.number(),
-  MedTax: z.coerce.number(),
   NetTotal: z.coerce.number(),
   LastPrinted: z.coerce.date().nullish(),
   TakeHome: z.coerce.number(),
+  Deductions: z.number(),
+  Additions: z.number(),
+  Notes: z.string().nullish(),
 })
 
 export interface CompletePayStubs extends z.infer<typeof PayStubsModel> {
