@@ -1,5 +1,7 @@
 import ChevronLeft from "@mui/icons-material/ChevronLeft";
 import ChevronRight from "@mui/icons-material/ChevronRight";
+import KeyboardDoubleArrowLeft from '@mui/icons-material/KeyboardDoubleArrowLeft';
+import KeyboardDoubleArrowRight from '@mui/icons-material/KeyboardDoubleArrowRight';
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
@@ -13,7 +15,6 @@ import ExpandMore from "@mui/icons-material/ExpandMore";
 import Tooltip from "@mui/material/Tooltip";
 import {z} from "zod";
 import {CompleteJobs, DailiesModel, DriversModel, LoadsModel} from "../../../prisma/zod";
-import {formatDateToWeek, getWeekNumber} from "../../utils/UtilityFunctions";
 import {useRouter} from "next/router"
 
 type Loads = z.infer<typeof LoadsModel>;
@@ -27,40 +28,38 @@ interface DriverSheet extends Daily {
     Jobs: CompleteJobs[]
 }
 
-type YearWeekFormat = `${number}-W${number}`;
-
 export default function Dailies() {
     const router= useRouter();
 
-    const date = new Date();
-    const defaultWeek = formatDateToWeek(date);
-    const [week, setWeek] = React.useState<YearWeekFormat>(defaultWeek);
+    const [page, setPage] = React.useState<number>(1);
     const [loading, setLoading] = React.useState<boolean>(false);
     const [shouldRefresh, setShouldRefresh] = React.useState<boolean>(false);
     const [data, setData] = React.useState<any>([]);
     const [initialExpand, setInitialExpand] = React.useState<any>(null);
+    const [grabCount, setGrabCount] = React.useState<number>(0);
 
     React.useEffect(() => {
         setData([])
         setLoading(true);
         setShouldRefresh(true);
-    }, [week]);
+    }, [page]);
 
     React.useEffect(() => {
         setLoading(true);
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        setWeek(router.query?.defaultWeek ?? defaultWeek)
+        setPage(1)
         setInitialExpand(router.query?.forceExpand ?? null)
         setforceExpand(false)
         setData([]);
         setShouldRefresh(true);
     }, [router.query]);
 
-    trpc.useQuery(["dailies.getByWeek", {week: week}], {
+    trpc.useQuery(["dailies.getByWeekOperator", {page: page}], {
         enabled: shouldRefresh,
-        onSuccess(data) {
-            setData(data ? data.filter((sheet) => sheet.Jobs.filter((job) => job.Loads.length !== 0).length > 0).sort((a, b) => a.Drivers.FirstName.localeCompare(b.Drivers.FirstName)) : []);
+        onSuccess(object) {
+            setGrabCount(object?.warnings[0] ?? 0)
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            setData(object ? object.data.filter((sheet) => sheet.Jobs.filter((job) => job.Loads.length !== 0).length > 0).sort((a, b) => a.Drivers.FirstName.localeCompare(b.Drivers.FirstName)) : []);
             setLoading(false);
             setShouldRefresh(false);
         },
@@ -71,9 +70,19 @@ export default function Dailies() {
     const [forceExpand, setforceExpand] = React.useState(true);
     return (
         <Box sx={{width: "100%"}}>
-            <b>OPERATOR</b>
+            <h1
+                style={{
+                    textAlign: 'left',
+                    paddingBottom: '10px',
+                    margin: 0,
+                    fontSize: '1.5rem',
+                    fontWeight: 'bold',
+                }}
+            >
+                {data.length > 0 ? 'Non-W2 Employees Missing Pay' : 'There are no W2 employees missing pay.'}
+            </h1>
             <LoadingModal isOpen={loading}/>
-            <Paper sx={{width: "100%", mb: 2}}>
+            {data && data.length > 0 && <Paper sx={{width: "100%", mb: 2}}>
                 <Grid2 container columnSpacing={1} rowSpacing={1} flexDirection={'row'} sx={{height: 50}}>
                     <Grid2 xs={"auto"}>
                         <Tooltip title={forceExpand ? 'Close all sheets.' : 'Expand all sheets.'}>
@@ -106,22 +115,24 @@ export default function Dailies() {
                         sx={{display: "flex", justifyContent: "space-between"}}
                     >
                         <Button
-                            variant="outlined"
+                            variant="text"
                             type={"button"}
                             size="small"
                             style={{
                                 minHeight: "30px",
                                 maxHeight: "30px",
-                                minWidth: "50px",
-                                maxWidth: "50px",
+                                minWidth: "40px",
+                                maxWidth: "40px",
                             }}
                             onClick={() => {
                                 setInitialExpand(null)
-                                setWeek(defaultWeek);
+                                setPage(1);
                             }}
+                            disabled={page === 1}
                         >
-                            Today
+                            <KeyboardDoubleArrowLeft sx={{fontSize: 20}}/>
                         </Button>
+
 
                         <Button
                             variant="text"
@@ -134,27 +145,10 @@ export default function Dailies() {
                                 maxWidth: "40px",
                             }}
                             onClick={() => {
-                                let [curyear, curweek] = week.split("-W").map(Number);
-                                if (!curyear || !curweek) {
-                                    return;
-                                }
-                                if (curweek === 1) {
-                                    curweek = 52;
-                                    curyear = curyear - 1;
-                                } else {
-                                    curweek--;
-                                }
-                                let returnable = `${curyear}-W`;
-                                if (curweek < 10) {
-                                    returnable += `0${curweek}`;
-                                } else {
-                                    returnable += curweek;
-                                }
                                 setInitialExpand(null)
-                                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                // @ts-ignore
-                                setWeek(returnable);
+                                setPage(page - 1);
                             }}
+                            disabled={page === 1}
                         >
                             <ChevronLeft sx={{fontSize: 20}}/>
                         </Button>
@@ -170,29 +164,31 @@ export default function Dailies() {
                                 maxWidth: "40px",
                             }}
                             onClick={() => {
-                                let [curyear, curweek] = week.split("-W").map(Number);
-                                if (!curyear || !curweek) {
-                                    return;
-                                }
-                                if (curweek === 52) {
-                                    curweek = 1;
-                                    curyear = curyear + 1;
-                                } else {
-                                    curweek++;
-                                }
-                                let returnable = `${curyear}-W`;
-                                if (curweek < 10) {
-                                    returnable += `0${curweek}`;
-                                } else {
-                                    returnable += curweek;
-                                }
                                 setInitialExpand(null)
-                                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                                // @ts-ignore
-                                setWeek(returnable);
+                                setPage(page + 1);
                             }}
+                            disabled={page === Math.floor((grabCount ?? 10) / 10)}
                         >
                             <ChevronRight sx={{fontSize: 20}}/>
+                        </Button>
+
+                        <Button
+                            variant="text"
+                            type={"button"}
+                            size="small"
+                            style={{
+                                minHeight: "30px",
+                                maxHeight: "30px",
+                                minWidth: "40px",
+                                maxWidth: "40px",
+                            }}
+                            onClick={() => {
+                                setInitialExpand(null)
+                                setPage(Math.floor((grabCount ?? 10) / 10));
+                            }}
+                            disabled={page === Math.floor((grabCount ?? 10) / 10)}
+                        >
+                            <KeyboardDoubleArrowRight sx={{fontSize: 20}}/>
                         </Button>
 
                         <Button
@@ -207,8 +203,7 @@ export default function Dailies() {
                             }}
                         >
                             <b style={{fontSize: 18}}>
-                                {moment(week).format("l")} -{" "}
-                                {moment(week).add(6, "days").format("l")}
+                                {`Page ${page}${grabCount ? (` of ${Math.floor((grabCount < 10 ? 10 : grabCount) / 10)}`) : ''}`}
                             </b>
                         </Button>
                     </Grid2>
@@ -218,47 +213,9 @@ export default function Dailies() {
                 </Grid2>
 
                 {data.map((sheet: DriverSheet, index: number) => <DailySheet key={'sheet-' + index} sheet={sheet}
-                                                                             week={week} forceExpand={forceExpand}
+                                                                             week={sheet.Week} forceExpand={forceExpand}
                                                                              initialExpand={initialExpand == sheet.DriverID}/>)}
-                {/* <EnhancedTableToolbar
-            numSelected={selected.length}
-            readOnly={readOnly}
-          />
-          <TableContainer>
-            <Table
-              aria-labelledby="tableTitle"
-              size={"small"}
-              //sx={{minWidth: 750}}
-            >
-              <EnhancedTableHead
-                numSelected={selected.length}
-                order={order}
-                orderBy={orderBy}
-                onSelectAllClick={handleSelectAllClick}
-                onRequestSort={handleRequestSort}
-                rowCount={rows.length}
-                readOnly={readOnly}
-              />
-              <TableBody>
-                {rows.sort(getComparator(order, orderBy)).map((row, index) => {
-                  const isItemSelected = isSelected(row.ID.toString());
-                  const labelId = `enhanced-table-checkbox-${index}`;
-
-                  return (
-                    <Row
-                      key={row.ID.toString()}
-                      readOnly={readOnly}
-                      row={row}
-                      isItemSelected={isItemSelected}
-                      labelId={labelId}
-                      handleClick={handleClick}
-                    />
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer> */}
-            </Paper>
+            </Paper>}
         </Box>
     );
 }

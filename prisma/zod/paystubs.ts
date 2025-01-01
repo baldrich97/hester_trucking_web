@@ -14,6 +14,7 @@ export const PayStubsModel = z.object({
   Deductions: z.number(),
   Additions: z.number(),
   Notes: z.string().nullish(),
+  DepositDate: z.coerce.date().nullish(),
 })
 
 export interface CompletePayStubs extends z.infer<typeof PayStubsModel> {

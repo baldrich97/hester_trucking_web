@@ -5,11 +5,11 @@ generator client {
 
 generator zod {
   provider              = "zod-prisma"
-  modelSuffix           = "Model"
-  prismaJsonNullability = "true"
+  useDecimalJs          = "true"
   modelCase             = "PascalCase"
   relationModel         = "true"
-  useDecimalJs          = "true"
+  prismaJsonNullability = "true"
+  modelSuffix           = "Model"
 }
 
 datasource db {
@@ -339,6 +339,7 @@ model PayStubs {
   Deductions  Float     @default(0) @db.Float
   Additions   Float     @default(0) @db.Float
   Notes       String?   @db.VarChar(1000)
+  DepositDate DateTime? @db.DateTime(0)
   Drivers     Drivers   @relation(fields: [DriverID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PayStubs_Driver")
   Jobs        Jobs[]
 

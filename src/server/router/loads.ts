@@ -259,8 +259,6 @@ export const loadsRouter = createRouter()
         async resolve({ctx, input}) {
             const {DriverID, TruckID, StartDate, CustomerID, LoadTypeID, DeliveryLocationID, TruckRate, MaterialRate, Week, TotalRate, DriverRate} = input;
 
-            //if ticket number exists already throw a soft error somehow
-
             if (!DriverID) {
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
@@ -328,6 +326,12 @@ export const loadsRouter = createRouter()
                             CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
                         }
                     })
+                } else {
+                    if (weekly.LastPrinted) {
+                        ctx.warnings.push('This weekly has already been printed.')
+                        ctx.warnings.push(daily.Week);
+                        ctx.warnings.push(weekly.ID.toString());
+                    }
                 }
 
                 //If a daily exists, grab job with that DailyID that match the criteria of this load
@@ -391,32 +395,33 @@ export const loadsRouter = createRouter()
                     input.JobID = job.ID;
                     if (job.PaidOut) {
 
-                        const driver = await ctx.prisma.drivers.findUnique({where: {ID: DriverID}});
-                        if (driver && !driver.OwnerOperator) {
-                            //if its a W2 driver then warn that it went to a paid out job?
-
-                        } else {
-                            const newJob = await ctx.prisma.jobs.create({
-                                data: {
-                                    DriverID: DriverID,
-                                    DailyID: daily.ID,
-                                    WeeklyID: weekly.ID,
-                                    CustomerID: CustomerID,
-                                    LoadTypeID: LoadTypeID,
-                                    DeliveryLocationID: DeliveryLocationID,
-                                    TruckingRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
-                                    CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
-                                    DriverRate: (Math.round((DriverRate ?? 0) * 100)) / 100,
-                                    MaterialRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
-                                }
-                            })
-
-                            input.JobID = newJob.ID;
-                        }
+                        // const driver = await ctx.prisma.drivers.findUnique({where: {ID: DriverID}});
+                        // if (driver && !driver.OwnerOperator) {
+                        //     //if its a W2 driver then warn that it went to a paid out job?
+                        //
+                        // } else {
+                        //     const newJob = await ctx.prisma.jobs.create({
+                        //         data: {
+                        //             DriverID: DriverID,
+                        //             DailyID: daily.ID,
+                        //             WeeklyID: weekly.ID,
+                        //             CustomerID: CustomerID,
+                        //             LoadTypeID: LoadTypeID,
+                        //             DeliveryLocationID: DeliveryLocationID,
+                        //             TruckingRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
+                        //             CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
+                        //             DriverRate: (Math.round((DriverRate ?? 0) * 100)) / 100,
+                        //             MaterialRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
+                        //         }
+                        //     })
+                        //
+                        //     input.JobID = newJob.ID;
+                        // }
                     } else if (job.CompanyRevenue || job.TruckingRevenue) {
                         //Error here that the revenues have been overridden and will need to be recalcualted
                     } else if (daily.LastPrinted || weekly.LastPrinted) {
                         //Error here that the daily/weekly has been printed already and needs to be reprinted
+                        //handled above
                     } else if (weekly.InvoiceID) {
                         //Error here that the weekly has already been invoiced and they should remake the invoice?
                     } else if (weekly.Revenue !== null) {

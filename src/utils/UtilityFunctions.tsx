@@ -5,7 +5,6 @@ export function formatDateToWeek(date: Date): YearWeekFormat {
     const year = getISOWeekYear(date);
     const weekNumber = getISOWeekNumber(date);
     const paddedWeek = weekNumber.toString().padStart(2, '0');
-    console.log('year', year, 'weeknumber', weekNumber, 'padded', paddedWeek)
     return `${year}-W${paddedWeek}` as YearWeekFormat;
 }
 
