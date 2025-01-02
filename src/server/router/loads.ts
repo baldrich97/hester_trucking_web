@@ -1,7 +1,7 @@
 import {createRouter} from "./context";
 import {z} from "zod";
 import {CustomerLoadTypesModel, LoadsModel} from '../../../prisma/zod';
-import { TRPCError } from "@trpc/server";
+import {TRPCError} from "@trpc/server";
 
 export const loadsRouter = createRouter()
     .query("getAll", {
@@ -17,27 +17,16 @@ export const loadsRouter = createRouter()
             search: z.number().nullish().optional()
         }),
         async resolve({ctx, input}) {
-            const extra = [];
-            if (input.customer !== 0) {
-                extra.push({CustomerID: input.customer})
-            }
-            if (input.driver !== 0) {
-                extra.push({DriverID: input.driver})
-            }
-            if (input.truck !== 0) {
-                extra.push({TruckID: input.truck})
-            }
-            if (input.loadType !== 0) {
-                extra.push({LoadTypeID: input.loadType})
-            }
-            if (input.deliveryLocation !== 0) {
-                extra.push({DeliveryLocationID: input.deliveryLocation})
-            }
-            if (input.search && input.search.toString().length > 0) {
-                extra.push({TicketNumber: input.search})
-            }
+            const { customer, driver, truck, loadType, deliveryLocation, search, order, orderBy, page } = input;
+            const extra = {
+                ...(customer !== 0 && { CustomerID: customer }),
+                ...(driver !== 0 && { DriverID: driver }),
+                ...(truck !== 0 && { TruckID: truck }),
+                ...(loadType !== 0 && { LoadTypeID: loadType }),
+                ...(deliveryLocation !== 0 && { DeliveryLocationID: deliveryLocation }),
+                ...(search && { TicketNumber: search }),
+            };
 
-            const {order, orderBy} = input;
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -57,22 +46,11 @@ export const loadsRouter = createRouter()
                 },
                 orderBy: orderObj,
                 where: {
-                    OR: [
-                        {
-                            Deleted: false
-                        },
-                        {
-                            Deleted: null
-                        },
-                    ],
-                    AND: {
-                        OR: [
-                            ...extra
-                        ],
-                    }
+                    Deleted: {not: true},
+                    ...extra
                 },
                 take: 10,
-                skip: input.page ? 10*input.page : 0
+                skip: input.page ? 10 * input.page : 0
             });
         },
     })
@@ -189,41 +167,20 @@ export const loadsRouter = createRouter()
             search: z.number().nullish().optional()
         }),
         async resolve({ctx, input}) {
-            const extra = [];
-            if (input.customer !== 0) {
-                extra.push({CustomerID: input.customer})
-            }
-            if (input.driver !== 0) {
-                extra.push({DriverID: input.driver})
-            }
-            if (input.truck !== 0) {
-                extra.push({TruckID: input.truck})
-            }
-            if (input.loadType !== 0) {
-                extra.push({LoadTypeID: input.loadType})
-            }
-            if (input.deliveryLocation !== 0) {
-                extra.push({DeliveryLocationID: input.deliveryLocation})
-            }
-            if (input.search && input.search.toString().length > 0) {
-                extra.push({TicketNumber: input.search})
-            }
+            const { customer, driver, truck, loadType, deliveryLocation, search, order, orderBy, page } = input;
+            const extra = {
+                ...(customer !== 0 && { CustomerID: customer }),
+                ...(driver !== 0 && { DriverID: driver }),
+                ...(truck !== 0 && { TruckID: truck }),
+                ...(loadType !== 0 && { LoadTypeID: loadType }),
+                ...(deliveryLocation !== 0 && { DeliveryLocationID: deliveryLocation }),
+                ...(search && { TicketNumber: search }),
+            };
 
             return ctx.prisma.loads.count({
                 where: {
-                    OR: [
-                        ...extra
-                    ],
-                    AND: {
-                        OR: [
-                            {
-                                Deleted: false
-                            },
-                            {
-                                Deleted: null
-                            },
-                        ]
-                    }
+                    Deleted: {not: true},
+                    ...extra
                 }
             });
 
@@ -254,8 +211,8 @@ export const loadsRouter = createRouter()
         }
     })
     .mutation('put', {
-        input: LoadsModel.omit({ ID: true, Deleted: true }),
-        async resolve({ ctx, input }) {
+        input: LoadsModel.omit({ID: true, Deleted: true}),
+        async resolve({ctx, input}) {
             const {
                 DriverID, TruckID, StartDate, CustomerID, LoadTypeID,
                 DeliveryLocationID, TruckRate, MaterialRate, Week,
@@ -264,10 +221,10 @@ export const loadsRouter = createRouter()
 
             // 🛡️ **Validation Checks**
             const requiredFields = [
-                { value: DriverID, message: "This load is missing a driver." },
-                { value: LoadTypeID, message: "This load is missing a load type." },
-                { value: CustomerID, message: "This load is missing a customer." },
-                { value: DeliveryLocationID, message: "This load is missing a delivery location." }
+                {value: DriverID, message: "This load is missing a driver."},
+                {value: LoadTypeID, message: "This load is missing a load type."},
+                {value: CustomerID, message: "This load is missing a customer."},
+                {value: DeliveryLocationID, message: "This load is missing a delivery location."}
             ];
             for (const field of requiredFields) {
                 if (!field.value) {
@@ -284,9 +241,9 @@ export const loadsRouter = createRouter()
 
             // 🗂️ **Fetch daily and weekly records in parallel**
             const [daily, weeklyRecord] = await Promise.all([
-                ctx.prisma.dailies.findFirst({ where: { DriverID, Week } }),
+                ctx.prisma.dailies.findFirst({where: {DriverID, Week}}),
                 ctx.prisma.weeklies.findFirst({
-                    where: { CustomerID, Week, DeliveryLocationID, LoadTypeID, InvoiceID: null, Revenue: null }
+                    where: {CustomerID, Week, DeliveryLocationID, LoadTypeID, InvoiceID: null, Revenue: null}
                 }),
             ]);
 
@@ -318,7 +275,7 @@ export const loadsRouter = createRouter()
                         DeliveryLocationID,
                         DailyID: daily.ID,
                         WeeklyID: weekly.ID,
-                        PaidOut: { not: true }
+                        PaidOut: {not: true}
                     }
                 });
 
@@ -357,7 +314,7 @@ export const loadsRouter = createRouter()
             } else {
                 // 🆕 **Create daily, weekly, and job if no daily exists**
                 const [newDaily, newWeekly] = await Promise.all([
-                    ctx.prisma.dailies.create({ data: { DriverID, Week } }),
+                    ctx.prisma.dailies.create({data: {DriverID, Week}}),
                     weekly
                         ? Promise.resolve(weekly)
                         : ctx.prisma.weeklies.create({
@@ -391,23 +348,29 @@ export const loadsRouter = createRouter()
 
             // 🔗 **Relational Data Creation with Explicit Models**
             const relationalRecords: { model: keyof typeof ctx.prisma; data: Record<string, any> }[] = [
-                TruckID && { model: 'trucksDriven', data: { TruckID, DriverID, DateDriven: StartDate } },
-                CustomerID && LoadTypeID && { model: 'customerLoadTypes', data: { CustomerID, LoadTypeID, DateDelivered: StartDate } },
-                CustomerID && DeliveryLocationID && { model: 'customerDeliveryLocations', data: { CustomerID, DeliveryLocationID, DateUsed: StartDate } }
+                TruckID && {model: 'trucksDriven', data: {TruckID, DriverID, DateDriven: StartDate}},
+                CustomerID && LoadTypeID && {
+                    model: 'customerLoadTypes',
+                    data: {CustomerID, LoadTypeID, DateDelivered: StartDate}
+                },
+                CustomerID && DeliveryLocationID && {
+                    model: 'customerDeliveryLocations',
+                    data: {CustomerID, DeliveryLocationID, DateUsed: StartDate}
+                }
             ].filter(Boolean) as { model: keyof typeof ctx.prisma; data: Record<string, any> }[];
 
             await Promise.all(
                 relationalRecords.map(record =>
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
-                    ctx.prisma[record.model].create({ data: record.data })
+                    ctx.prisma[record.model].create({data: record.data})
                 )
             );
 
             // 📦 **Create Load**
-            const data = await ctx.prisma.loads.create({ data: input });
+            const data = await ctx.prisma.loads.create({data: input});
 
-            return { data, warnings: ctx.warnings };
+            return {data, warnings: ctx.warnings};
         },
     }).mutation('post', {
         // validate input with Zod
@@ -415,7 +378,17 @@ export const loadsRouter = createRouter()
         async resolve({ctx, input}) {
             const {ID, ...data} = input;
 
-            const {DriverID, CustomerID, LoadTypeID, DeliveryLocationID, TruckRate, MaterialRate, Week, TotalRate, DriverRate} = input;
+            const {
+                DriverID,
+                CustomerID,
+                LoadTypeID,
+                DeliveryLocationID,
+                TruckRate,
+                MaterialRate,
+                Week,
+                TotalRate,
+                DriverRate
+            } = input;
 
             if (!DriverID) {
                 throw new TRPCError({
