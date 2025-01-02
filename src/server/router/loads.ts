@@ -167,7 +167,7 @@ export const loadsRouter = createRouter()
             search: z.number().nullish().optional()
         }),
         async resolve({ctx, input}) {
-            const { customer, driver, truck, loadType, deliveryLocation, search, order, orderBy, page } = input;
+            const { customer, driver, truck, loadType, deliveryLocation, search} = input;
             const extra = {
                 ...(customer !== 0 && { CustomerID: customer }),
                 ...(driver !== 0 && { DriverID: driver }),
