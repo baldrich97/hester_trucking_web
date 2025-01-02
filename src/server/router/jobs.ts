@@ -12,6 +12,7 @@ import {
     WeekliesModel
 } from '../../../prisma/zod';
 import moment from "moment";
+import {formatDateToWeek} from "../../utils/UtilityFunctions";
 
 type Driver = z.infer<typeof DriversModel>;
 
@@ -390,17 +391,38 @@ export const jobsRouter = createRouter()
             driver: z.number()
         }),
         async resolve({ctx, input}) {
+            const driver = await ctx.prisma.drivers.findUnique({where: {ID: input.driver}})
+            const ownerOperator = driver?.OwnerOperator;
+            const date = new Date();
+            const defaultWeek = formatDateToWeek(date);
+
+            const jobIds =
+                await ctx.prisma.$queryRaw<Array<{ ID: number }>>`SELECT DISTINCT(j.ID) FROM Jobs j
+            LEFT JOIN Weeklies w ON j.WeeklyID = w.ID
+            LEFT JOIN Invoices i ON w.InvoiceID = i.ID
+            LEFT JOIN PayStubs ps ON j.PayStubID = ps.ID
+            LEFT JOIN Loads l ON i.ID = l.InvoiceID
+            WHERE j.DriverID = ${input.driver}
+            AND (
+                (${ownerOperator} = true AND
+                j.PaidOut != true AND
+                i.Paid = true AND
+                w.Week != ${defaultWeek})
+            OR
+                (${ownerOperator} = false AND
+                j.PaidOut != TRUE
+                OR (j.PayStubID IS NOT NULL AND (SELECT MAX(l1.Created) FROM Loads l1 WHERE l1.JobID = j.ID) > ps.Created)
+                AND w.Week != ${defaultWeek})
+                )
+            ORDER BY l.StartDate ASC;`
+
+            const ids = jobIds.map(record => record.ID);
+
             return ctx.prisma.jobs.findMany({
                 where: {
-                    DriverID: input.driver,
-                    OR: [
-                        {
-                            PaidOut: false
-                        },
-                        {
-                            PayStubID: null
-                        }
-                    ],
+                    ID: {
+                        in: ids ?? []
+                    }
                 },
                 include: {
                     Drivers: true,
@@ -419,9 +441,14 @@ export const jobsRouter = createRouter()
                             Name: true
                         }
                     },
-                    Loads: true
-                }
-            })
+                    Loads: {
+                        orderBy: {
+                            StartDate: 'asc' // Order the loads by the oldest StartDate
+                        }
+                    }
+                },
+            });
+
 
         }
     })
