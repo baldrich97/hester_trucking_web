@@ -254,240 +254,162 @@ export const loadsRouter = createRouter()
         }
     })
     .mutation('put', {
-        // validate input with Zod
-        input: LoadsModel.omit({ID: true, Deleted: true}),
-        async resolve({ctx, input}) {
-            const {DriverID, TruckID, StartDate, CustomerID, LoadTypeID, DeliveryLocationID, TruckRate, MaterialRate, Week, TotalRate, DriverRate} = input;
+        input: LoadsModel.omit({ ID: true, Deleted: true }),
+        async resolve({ ctx, input }) {
+            const {
+                DriverID, TruckID, StartDate, CustomerID, LoadTypeID,
+                DeliveryLocationID, TruckRate, MaterialRate, Week,
+                TotalRate, DriverRate
+            } = input;
 
-            //if ticket number exists already throw a soft error somehow
-
-            if (!DriverID) {
-                throw new TRPCError({
-                    code: 'INTERNAL_SERVER_ERROR',
-                    message: `This load is missing a driver.`,
-                })
-            }
-            if (!LoadTypeID) {
-                throw new TRPCError({
-                    code: 'INTERNAL_SERVER_ERROR',
-                    message: `This load is missing a load type.`,
-                })
-            }
-            if (!CustomerID) {
-                throw new TRPCError({
-                    code: 'INTERNAL_SERVER_ERROR',
-                    message: `This load is missing a customer.`,
-                })
-            }
-            if (!DeliveryLocationID) {
-                throw new TRPCError({
-                    code: 'INTERNAL_SERVER_ERROR',
-                    message: `This load is missing a delivery location.`,
-                })
-            }
-
-            //Check if a daily already exists for this driver for this week
-            const daily = await ctx.prisma.dailies.findFirst({
-                where: {
-                    DriverID: DriverID,
-                    Week: Week
+            // 🛡️ **Validation Checks**
+            const requiredFields = [
+                { value: DriverID, message: "This load is missing a driver." },
+                { value: LoadTypeID, message: "This load is missing a load type." },
+                { value: CustomerID, message: "This load is missing a customer." },
+                { value: DeliveryLocationID, message: "This load is missing a delivery location." }
+            ];
+            for (const field of requiredFields) {
+                if (!field.value) {
+                    throw new TRPCError({
+                        code: 'INTERNAL_SERVER_ERROR',
+                        message: field.message,
+                    });
                 }
-            })
+            }
 
-            let weekly = await ctx.prisma.weeklies.findFirst({
-                where: {
-                    CustomerID: CustomerID,
-                    Week: Week,
-                    DeliveryLocationID: DeliveryLocationID,
-                    LoadTypeID: LoadTypeID,
-                    InvoiceID: null,
-                    Revenue: null
-                    //should do this eventually but for now we'll see how it goes
-                }
-            })
+            if (!DriverID || !DeliveryLocationID || !LoadTypeID || !TruckID || !CustomerID) {
+                return;
+            }
 
+            // 🗂️ **Fetch daily and weekly records in parallel**
+            const [daily, weeklyRecord] = await Promise.all([
+                ctx.prisma.dailies.findFirst({ where: { DriverID, Week } }),
+                ctx.prisma.weeklies.findFirst({
+                    where: { CustomerID, Week, DeliveryLocationID, LoadTypeID, InvoiceID: null, Revenue: null }
+                }),
+            ]);
 
+            let weekly = weeklyRecord;
+
+            // 🛠️ **If Daily Exists**
             if (daily) {
-                //if (!weekly || ((Math.round((weekly.CompanyRate ?? 0) * 100)) / 100) !== ((Math.round((TotalRate ?? 0) * 100)) / 100)) {
-                //should implement this at some point but for now is fine?
-
                 if (daily.LastPrinted) {
-                    ctx.warnings.push('This daily has already been printed.')
-                    ctx.warnings.push(daily.Week);
-                    ctx.warnings.push(daily.DriverID.toString());
+                    ctx.warnings.push('This daily has already been printed.', daily.Week, daily.DriverID.toString());
                 }
 
                 if (!weekly) {
-                    //Create a new weekly with the corresponding info
                     weekly = await ctx.prisma.weeklies.create({
                         data: {
-                            Week: Week,
-                            CustomerID: CustomerID,
-                            LoadTypeID: LoadTypeID,
-                            DeliveryLocationID: DeliveryLocationID,
-                            CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
+                            Week,
+                            CustomerID,
+                            LoadTypeID,
+                            DeliveryLocationID,
+                            CompanyRate: parseFloat((TotalRate ?? 0).toFixed(2)),
                         }
-                    })
+                    });
                 }
 
-                //If a daily exists, grab job with that DailyID that match the criteria of this load
-                let jobs = await ctx.prisma.jobs.findMany({
+                const jobs = await ctx.prisma.jobs.findMany({
                     where: {
-                        AND: [
-                            {DriverID: DriverID},
-                            {CustomerID: CustomerID},
-                            {LoadTypeID: LoadTypeID},
-                            {DeliveryLocationID: DeliveryLocationID},
-                            {DailyID: daily.ID},
-                            {WeeklyID: weekly.ID},
-                            {PaidOut: {not: true}}
-                        ]
+                        DriverID,
+                        CustomerID,
+                        LoadTypeID,
+                        DeliveryLocationID,
+                        DailyID: daily.ID,
+                        WeeklyID: weekly.ID,
+                        PaidOut: { not: true }
                     }
-                })
+                });
 
-                jobs = jobs.filter((item) => {
-                    let shouldReturn = true;
-                    if (TruckRate) {
-                        const loadTR = (Math.round(TruckRate * 100)) / 100
-                        shouldReturn = (Math.round(item.TruckingRate * 100)) / 100 === loadTR
-                    } else {
-                        shouldReturn = (TruckRate ?? 0) === (item.TruckingRate ?? 0);
-                    }
-                    if (!shouldReturn) {
-                        return false;
-                    }
-                    if (MaterialRate) {
-                        const loadMR = (Math.round(MaterialRate * 100)) / 100
-                        shouldReturn = (Math.round(item.MaterialRate * 100)) / 100 === loadMR
-                    } else {
-                        shouldReturn = (MaterialRate ?? 0) === (item.MaterialRate ?? 0);
-                    }
-                    if (!shouldReturn) {
-                        return false;
-                    }
-                    if (DriverRate) {
-                        const loadDR = (Math.round(DriverRate * 100)) / 100
-                        shouldReturn = (Math.round(item.DriverRate * 100)) / 100 === loadDR
-                    } else {
-                        shouldReturn = (DriverRate ?? 0) === (item.DriverRate ?? 0);
-                    }
-                    if (!shouldReturn) {
-                        return false;
-                    }
-                    if (TotalRate) {
-                        const loadTR = (Math.round(TotalRate * 100)) / 100
-                        shouldReturn = (Math.round(item.CompanyRate * 100)) / 100 === loadTR
-                    } else {
-                        shouldReturn = (TotalRate ?? 0) === (item.CompanyRate ?? 0);
-                    }
-                    return shouldReturn;
-                })
+                const job = jobs.find(job => {
+                    const compareRates = (a: number | null | undefined, b: number | null | undefined) =>
+                        parseFloat((a ?? 0).toFixed(2)) === parseFloat((b ?? 0).toFixed(2));
 
-                const job = jobs.length > 0 ? jobs[0] : null;
+                    return (
+                        compareRates(job.TruckingRate, TruckRate) &&
+                        compareRates(job.MaterialRate, MaterialRate) &&
+                        compareRates(job.DriverRate, DriverRate) &&
+                        compareRates(job.CompanyRate, TotalRate)
+                    );
+                });
 
-                //If a job exists, check if that job has been paidout, if the daily/weekly was printed, and if the weekly has been invoiced and warn accordingly
                 if (job) {
-                    if (job.PaidOut) {
-                        //Error here that has been paid out
-                        //TODO ADD IN WARNINGS HERE AND MAYBE RETURN IF IT IS ALREADY PAID OUT
-                    } else if (job.CompanyRevenue || job.TruckingRevenue) {
-                        //Error here that the revenues have been overridden and will need to be recalcualted
-                    } else if (daily.LastPrinted || weekly.LastPrinted) {
-                        //Error here that the daily/weekly has been printed already and needs to be reprinted
-                    } else if (weekly.InvoiceID) {
-                        //Error here that the weekly has already been invoiced and they should remake the invoice?
-                    } else if (weekly.Revenue !== null) {
-                        //Error here that the weekly has a revenue already
-                    }
-
-                    //Set JobID to this job
                     input.JobID = job.ID;
                 } else {
-                    //Else create this job and assign it to the daily/weekly
                     const newJob = await ctx.prisma.jobs.create({
                         data: {
-                            DriverID: DriverID,
+                            DriverID,
                             DailyID: daily.ID,
                             WeeklyID: weekly.ID,
-                            CustomerID: CustomerID,
-                            LoadTypeID: LoadTypeID,
-                            DeliveryLocationID: DeliveryLocationID,
-                            TruckingRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
-                            CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
-                            DriverRate: (Math.round((DriverRate ?? 0) * 100)) / 100,
-                            MaterialRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
+                            CustomerID,
+                            LoadTypeID,
+                            DeliveryLocationID,
+                            TruckingRate: parseFloat((TruckRate ?? 0).toFixed(2)),
+                            CompanyRate: parseFloat((TotalRate ?? 0).toFixed(2)),
+                            DriverRate: parseFloat((DriverRate ?? 0).toFixed(2)),
+                            MaterialRate: parseFloat((MaterialRate ?? 0).toFixed(2)),
                         }
-                    })
+                    });
 
                     input.JobID = newJob.ID;
                 }
             } else {
-                //Create the daily, weekly, and the job
-                const newDaily = await ctx.prisma.dailies.create({
-                    data: {
-                        DriverID: DriverID,
-                        Week: Week
-                    }
-                })
-
-                let newWeekly = null;
-
-                if (!weekly) {
-                    newWeekly = await ctx.prisma.weeklies.create({
-                        data: {
-                            Week: Week,
-                            CustomerID: CustomerID,
-                            LoadTypeID: LoadTypeID,
-                            DeliveryLocationID: DeliveryLocationID,
-                            CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
-                        }
-                    })
-                }
+                // 🆕 **Create daily, weekly, and job if no daily exists**
+                const [newDaily, newWeekly] = await Promise.all([
+                    ctx.prisma.dailies.create({ data: { DriverID, Week } }),
+                    weekly
+                        ? Promise.resolve(weekly)
+                        : ctx.prisma.weeklies.create({
+                            data: {
+                                Week,
+                                CustomerID,
+                                LoadTypeID,
+                                DeliveryLocationID,
+                                CompanyRate: parseFloat((TotalRate ?? 0).toFixed(2)),
+                            }
+                        })
+                ]);
 
                 const newJob = await ctx.prisma.jobs.create({
                     data: {
-                        DriverID: DriverID,
+                        DriverID,
                         DailyID: newDaily.ID,
-                        WeeklyID: newWeekly ? newWeekly.ID : weekly?.ID ?? 1,
-                        CustomerID: CustomerID,
-                        LoadTypeID: LoadTypeID,
-                        DeliveryLocationID: DeliveryLocationID,
-                        TruckingRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
-                        CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
-                        DriverRate: (Math.round((DriverRate ?? 0) * 100)) / 100,
-                        MaterialRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
+                        WeeklyID: newWeekly?.ID ?? weekly?.ID ?? 1,
+                        CustomerID,
+                        LoadTypeID,
+                        DeliveryLocationID,
+                        TruckingRate: parseFloat((TruckRate ?? 0).toFixed(2)),
+                        CompanyRate: parseFloat((TotalRate ?? 0).toFixed(2)),
+                        DriverRate: parseFloat((DriverRate ?? 0).toFixed(2)),
+                        MaterialRate: parseFloat((MaterialRate ?? 0).toFixed(2)),
                     }
-                })
+                });
 
                 input.JobID = newJob.ID;
             }
 
-            if (DriverID && TruckID) {
-                await ctx.prisma.trucksDriven.create({
-                    data: {TruckID, DriverID, DateDriven: StartDate}
-                })
-            }
+            // 🔗 **Relational Data Creation with Explicit Models**
+            const relationalRecords: { model: keyof typeof ctx.prisma; data: Record<string, any> }[] = [
+                TruckID && { model: 'trucksDriven', data: { TruckID, DriverID, DateDriven: StartDate } },
+                CustomerID && LoadTypeID && { model: 'customerLoadTypes', data: { CustomerID, LoadTypeID, DateDelivered: StartDate } },
+                CustomerID && DeliveryLocationID && { model: 'customerDeliveryLocations', data: { CustomerID, DeliveryLocationID, DateUsed: StartDate } }
+            ].filter(Boolean) as { model: keyof typeof ctx.prisma; data: Record<string, any> }[];
 
-            if (CustomerID && LoadTypeID) {
-                await ctx.prisma.customerLoadTypes.create({
-                    data: {CustomerID, LoadTypeID, DateDelivered: StartDate}
-                })
-            }
+            await Promise.all(
+                relationalRecords.map(record =>
+                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                    // @ts-ignore
+                    ctx.prisma[record.model].create({ data: record.data })
+                )
+            );
 
-            if (CustomerID && DeliveryLocationID) {
-                await ctx.prisma.customerDeliveryLocations.create({
-                    data: {CustomerID, DeliveryLocationID, DateUsed: StartDate}
-                })
-            }
+            // 📦 **Create Load**
+            const data = await ctx.prisma.loads.create({ data: input });
 
-            // use your ORM of choice
-            const data = await ctx.prisma.loads.create({
-                data: input
-            });
-            return {data, warnings: ctx.warnings}
+            return { data, warnings: ctx.warnings };
         },
-    })
-    .mutation('post', {
+    }).mutation('post', {
         // validate input with Zod
         input: LoadsModel,
         async resolve({ctx, input}) {
