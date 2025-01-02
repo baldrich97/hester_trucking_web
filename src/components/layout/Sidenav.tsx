@@ -82,11 +82,8 @@ function Sidenav(props: any) {
         selectedLink = 11;
     }
 
-    const [isDailiesOpen, setDailiesOpen] = React.useState<boolean>(false); // Tracks if Dailies submenu is open
-
-    const handleDailiesClick = () => {
-        setDailiesOpen(!isDailiesOpen);
-    };
+    const [isDailiesOpen, setDailiesOpen] = React.useState<boolean>(false);
+    const [isLoadsOpen, setLoadsOpen] = React.useState<boolean>(false);
 
     const [selectedIndex, setSelectedIndex] = React.useState(selectedLink);
     return (
@@ -150,8 +147,8 @@ function Sidenav(props: any) {
                             setSelectedIndex(9);
                         }} />
                     </NextLink>
-                    {isDailiesOpen ? <ExpandLess onClick={() => handleDailiesClick()} /> :
-                        <ExpandMore onClick={() => handleDailiesClick()} />}
+                    {isDailiesOpen ? <ExpandLess onClick={() => setDailiesOpen(!isDailiesOpen)} /> :
+                        <ExpandMore onClick={() => setDailiesOpen(!isDailiesOpen)} />}
                 </ListItemButton>
 
                 <Collapse in={isDailiesOpen} timeout="auto" unmountOnExit>
@@ -222,17 +219,49 @@ function Sidenav(props: any) {
                     </ListItemButton>
                 </NextLink>
 
-                <NextLink href="/loads" passHref>
-                    <ListItemButton
-                        selected={selectedIndex === 6}
-                        onClick={() => setSelectedIndex(6)}
-                    >
+                <ListItemButton
+                    selected={[6, 15, 16].includes(selectedIndex)}
+                >
+                    <NextLink href="/loads" passHref>
                         <ListItemIcon>
-                            <CategoryIcon />
+                            <CategoryIcon
+                                onClick={() => {
+                                    setSelectedIndex(6);
+                                }}
+                            />
                         </ListItemIcon>
-                        <ListItemText primary="Loads" />
-                    </ListItemButton>
-                </NextLink>
+                    </NextLink>
+                    <NextLink href="/loads" passHref>
+                        <ListItemText primary="Loads" onClick={() => {
+                            setSelectedIndex(6);
+                        }} />
+                    </NextLink>
+                    {isLoadsOpen ? <ExpandLess onClick={() => setLoadsOpen(!isLoadsOpen)} /> :
+                        <ExpandMore onClick={() => setLoadsOpen(!isLoadsOpen)} />}
+                </ListItemButton>
+
+                <Collapse in={isLoadsOpen} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                        <NextLink href="/loads" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 15}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(15)} // Use unique index for nested items
+                            >
+                                <ListItemText primary="Table" />
+                            </ListItemButton>
+                        </NextLink>
+                        <NextLink href="/loads/massedit" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 16}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(16)}
+                            >
+                                <ListItemText primary="Mass Edit" />
+                            </ListItemButton>
+                        </NextLink>
+                    </List>
+                </Collapse>
 
                 <NextLink href="/loadtypes" passHref>
                     <ListItemButton

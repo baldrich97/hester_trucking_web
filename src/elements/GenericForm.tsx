@@ -65,6 +65,7 @@ const GenericForm = ({
                         }
 
                         const {data, optionValue, optionLabel, defaultValue} = foundData;
+                        console.log('FOUNDDATA', foundData)
 
                         return (
                             <Grid2
