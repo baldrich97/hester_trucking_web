@@ -19,14 +19,15 @@ export const loadsRouter = createRouter()
         async resolve({ctx, input}) {
             const { customer, driver, truck, loadType, deliveryLocation, search, order, orderBy, page } = input;
             const extra = {
-                ...(customer !== 0 && { CustomerID: customer }),
-                ...(driver !== 0 && { DriverID: driver }),
-                ...(truck !== 0 && { TruckID: truck }),
-                ...(loadType !== 0 && { LoadTypeID: loadType }),
-                ...(deliveryLocation !== 0 && { DeliveryLocationID: deliveryLocation }),
+                ...(customer && { CustomerID: customer }),
+                ...(driver && { DriverID: driver }),
+                ...(truck && { TruckID: truck }),
+                ...(loadType && { LoadTypeID: loadType }),
+                ...(deliveryLocation && { DeliveryLocationID: deliveryLocation }),
                 ...(search && { TicketNumber: search }),
             };
 
+            console.log('INPUT', input)
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -46,7 +47,7 @@ export const loadsRouter = createRouter()
                 },
                 orderBy: orderObj,
                 where: {
-                    Deleted: {not: true},
+                    Deleted: null,
                     ...extra
                 },
                 take: 10,
@@ -169,17 +170,17 @@ export const loadsRouter = createRouter()
         async resolve({ctx, input}) {
             const { customer, driver, truck, loadType, deliveryLocation, search} = input;
             const extra = {
-                ...(customer !== 0 && { CustomerID: customer }),
-                ...(driver !== 0 && { DriverID: driver }),
-                ...(truck !== 0 && { TruckID: truck }),
-                ...(loadType !== 0 && { LoadTypeID: loadType }),
-                ...(deliveryLocation !== 0 && { DeliveryLocationID: deliveryLocation }),
+                ...(customer && { CustomerID: customer }),
+                ...(driver && { DriverID: driver }),
+                ...(truck && { TruckID: truck }),
+                ...(loadType && { LoadTypeID: loadType }),
+                ...(deliveryLocation && { DeliveryLocationID: deliveryLocation }),
                 ...(search && { TicketNumber: search }),
             };
 
             return ctx.prisma.loads.count({
                 where: {
-                    Deleted: {not: true},
+                    Deleted: null,
                     ...extra
                 }
             });
