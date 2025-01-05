@@ -63,7 +63,13 @@ export const loadsRouter = createRouter()
                         gte: chosenLoad.TotalRate - epsilon,
                         lte: chosenLoad.TotalRate + epsilon
                     }
-                })
+                }),
+                ...(chosenLoad?.StartDate && {
+                    StartDate: chosenLoad.StartDate
+                }),
+                ...(chosenLoad?.Week && {
+                    Week: chosenLoad.Week
+                }),
             };
 
 
@@ -239,7 +245,13 @@ export const loadsRouter = createRouter()
                         gte: chosenLoad.TotalRate - epsilon,
                         lte: chosenLoad.TotalRate + epsilon
                     }
-                })
+                }),
+                ...(chosenLoad?.StartDate && {
+                    StartDate: chosenLoad.StartDate
+                }),
+                ...(chosenLoad?.Week && {
+                    Week: chosenLoad.Week
+                }),
             };
 
             return ctx.prisma.loads.count({
@@ -265,10 +277,31 @@ export const loadsRouter = createRouter()
     })
     .mutation('post_mass_edit', {
         input: z.object({
-            selectedLoads: z.array(z.number()).optional()
+            selectedLoads: z.array(z.number()).optional(),
+            data: LoadsModel.omit({ID: true, Deleted: true}).optional()
         }),
         async resolve({ctx, input}) {
-            //grab all loads that match the obj.ID that is passed
+            if (!input.data) {
+                return false;
+            }
+            await ctx.prisma.loads.updateMany({
+                where: {
+                    ID: { in: input.selectedLoads }
+                },
+                data: {
+                    CustomerID: input.data.CustomerID,
+                    DriverID: input.data.DriverID,
+                    TruckID: input.data.TruckID,
+                    LoadTypeID: input.data.LoadTypeID,
+                    DeliveryLocationID: input.data.DeliveryLocationID,
+                    StartDate: input.data.StartDate,
+                    Week: input.data.Week,
+                    MaterialRate: input.data.MaterialRate,
+                    TruckRate: input.data.TruckRate,
+                    DriverRate: input.data.DriverRate,
+                    TotalRate: input.data.TotalRate,
+                },
+            });
 
             return true;
         }

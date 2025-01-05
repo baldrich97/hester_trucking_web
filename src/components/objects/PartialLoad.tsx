@@ -62,16 +62,16 @@ const defaultValues = {
 };
 
 function PartialLoad({
-                  customers,
-                  loadTypes,
-                  deliveryLocations,
-                  trucks,
-                  drivers,
-                  initialLoad = null,
-                  refreshData,
-                  resetButton = false,
-    selectedLoads = []
-              }: {
+                         customers,
+                         loadTypes,
+                         deliveryLocations,
+                         trucks,
+                         drivers,
+                         initialLoad = null,
+                         refreshData,
+                         resetButton = false,
+                         selectedLoads = []
+                     }: {
     customers: CustomersType[];
     loadTypes: LoadTypesType[];
     deliveryLocations: DeliveryLocationsType[];
@@ -110,6 +110,8 @@ function PartialLoad({
         defaultValues: initialLoad ?? defaultValues,
     });
 
+    console.log('ERRORSW', errors)
+
     const doMassEdit = trpc.useMutation('loads.post_mass_edit', {
         async onSuccess() {
             toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
@@ -124,11 +126,71 @@ function PartialLoad({
         },
     });
 
-    const onSubmit = async () => {
-        //todo add confirm alert here to make sure they want to actually change all those loads show ticket numbers via selectedLoads.map TicketNumber
-        toast("Submitting...", {autoClose: 2000, type: "info"});
-        await doMassEdit.mutateAsync({selectedLoads: selectedLoads ?? []});
-        reset(defaultValues);
+    const onSubmit = async (data: ValidationSchema) => {
+        const fieldsToValidate = [
+            {key: "CustomerID", name: "Customer ID"},
+            {key: "DriverID", name: "Driver ID"},
+            {key: "TruckID", name: "Truck ID"},
+            {key: "LoadTypeID", name: "Load Type ID"},
+            {key: "DeliveryLocationID", name: "Delivery Location ID"},
+            {key: "StartDate", name: "Start Date"},
+            {key: "Week", name: "Week"},
+            {key: "MaterialRate", name: "Material Rate"},
+            {key: "TruckRate", name: "Truck Rate"},
+            {key: "DriverRate", name: "Driver Rate"},
+            {key: "TotalRate", name: "Total Rate"},
+        ];
+
+        // Validate fields
+        for (const field of fieldsToValidate) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            if (!data[field.key]) {
+                toast(`Missing ${field.name}`, {
+                    autoClose: 100000,
+                    type: "error",
+                });
+                return; // Stop execution if a required field is missing
+            }
+        }
+
+
+        confirmAlert({
+            overlayClassName: "custom-overlay-style",
+            title: "Confirm Mass Edit",
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            message: (<>
+                <p>Are you sure you want to change the following ticket numbers to match the form on the right?</p>
+                <p><b>Ticket Numbers:</b> {selectedLoads.map((record) => record.TicketNumber).join(', ')}</p>
+                <p>If any of these are incorrect, please close this and remove the incorrect tickets.</p>
+                <p style={{color: 'red', fontWeight: 'bold'}}>ALL FIELDS SHOWN WILL BE CHANGED!</p>
+            </>),
+            buttons: [
+                {
+                    label: "Do Mass Edit",
+                    onClick: async () => {
+                        toast("Submitting...", {autoClose: 2000, type: "info"});
+                        await doMassEdit.mutateAsync({
+                            selectedLoads: selectedLoads.map((record) => record.ID) ?? [],
+                            data
+                        });
+                        refreshData()
+                    },
+                },
+                {
+                    label: "Close",
+                    //onClick: () => {}
+                },
+            ],
+        });
+        const style = document.createElement('style');
+        style.innerHTML = `
+    .custom-overlay-style {
+        background: rgba(0, 0, 0, 0.5) !important;
+    }
+`;
+        document.head.appendChild(style);
     };
 
     const [customer, setCustomer] = useState(
@@ -200,7 +262,7 @@ function PartialLoad({
                 setValue("Week", formatDateToWeek(value.StartDate ? value.StartDate : new Date()))
             }
             if (
-                ["MaterialRate", "TruckRate", "Hours", "Weight"].includes(name ?? "") &&
+                ["MaterialRate", "TruckRate"].includes(name ?? "") &&
                 type === "change"
             ) {
                 const hours = value.Hours ?? 0;
@@ -213,13 +275,6 @@ function PartialLoad({
                     ) / 100
                 );
                 totalRate = (value.MaterialRate ?? 0) + (value.TruckRate ?? 0);
-                setValue(
-                    "TotalAmount",
-                    Math.round(
-                        ((totalRate ?? 0) * (hours > 0 ? hours : weight) + Number.EPSILON) *
-                        100
-                    ) / 100
-                );
             }
 
             if (name === "TruckRate") {
@@ -229,14 +284,6 @@ function PartialLoad({
             if (name === "TotalRate") {
                 const hours = value.Hours ?? 0;
                 const weight = value.Weight ?? 0;
-                setValue(
-                    "TotalAmount",
-                    Math.round(
-                        ((value.TotalRate ?? 0) * (hours > 0 ? hours : weight) +
-                            Number.EPSILON) *
-                        100
-                    ) / 100
-                );
             }
             if (name === "CustomerID" && type === "change") {
                 setCustomer(value.CustomerID ?? 0);
@@ -380,15 +427,7 @@ function PartialLoad({
             size: 6,
             number: true,
             label: "Company Rate",
-        },
-        {
-            name: "TotalAmount",
-            required: false,
-            type: "textfield",
-            size: 6,
-            number: true,
-            label: "Total Amount",
-        },
+        }
     ];
 
     const selectData: SelectDataType = [

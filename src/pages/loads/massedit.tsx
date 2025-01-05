@@ -146,6 +146,7 @@ const Loads = ({
         setDeliveryLocation(load.DeliveryLocations.ID);
         setChosenLoad(load)
         setShouldRefresh(true)
+        setSearch(null)
         setSearchSet(true)
     }
 
@@ -157,6 +158,10 @@ const Loads = ({
 
     const [order, setOrder] = React.useState<'asc'|'desc'>('desc');
     const [orderBy, setOrderBy] = React.useState('ID')
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const {Customers, DeliveryLocations, Drivers, LoadTypes, Trucks, ...rest} = chosenLoad ?? {};
 
 
 
@@ -176,7 +181,7 @@ const Loads = ({
     trpc.useQuery(
         [
             "loads.getAll",
-            { page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search, chosenLoad: chosenLoad ? {MaterialRate: chosenLoad?.MaterialRate, DriverRate: chosenLoad?.DriverRate, TruckRate: chosenLoad?.TruckRate, TotalRate: chosenLoad?.TotalRate} : null },
+            { page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search, chosenLoad: chosenLoad ? {...rest} : null },
         ],
         {
             enabled: shouldRefresh,
@@ -355,7 +360,16 @@ const Loads = ({
                     trucks={trucks}
                     drivers={drivers}
                     refreshData={() => {
+                        setPage(0);
+                        setCustomer(0);
+                        setDriver(0);
+                        setTruck(0);
+                        setLoadType(0);
+                        setDeliveryLocation(0);
+                        setSearch(null);
                         setShouldRefresh(true);
+                        setSearchSet(false);
+                        setChosenLoad(null)
                     }}
                     selectedLoads={(chosenLoad && newData) ? newData.map((record) => {return {ID: record.ID, TicketNumber: record.TicketNumber}}) : []}
                 />
