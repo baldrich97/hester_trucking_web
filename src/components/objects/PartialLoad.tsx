@@ -70,6 +70,7 @@ function PartialLoad({
                   initialLoad = null,
                   refreshData,
                   resetButton = false,
+    selectedLoads = []
               }: {
     customers: CustomersType[];
     loadTypes: LoadTypesType[];
@@ -79,6 +80,7 @@ function PartialLoad({
     initialLoad?: null | LoadsType;
     refreshData?: any;
     resetButton?: any;
+    selectedLoads?: any[] | undefined;
 }) {
     function useForceUpdate() {
         const [value, setValue] = useState(0); // integer state
@@ -108,12 +110,9 @@ function PartialLoad({
         defaultValues: initialLoad ?? defaultValues,
     });
 
-    const addOrUpdateLoad = trpc.useMutation('loads.massEdit', {
-        async onSuccess(object) {
+    const doMassEdit = trpc.useMutation('loads.post_mass_edit', {
+        async onSuccess() {
             toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            initialLoad && reset(object.data);
         },
         async onError(error) {
             toast(
@@ -125,10 +124,10 @@ function PartialLoad({
         },
     });
 
-    const onSubmit = async (data: ValidationSchema) => {
-        //todo add confirm alert here to make sure they want to actually change all those loads
+    const onSubmit = async () => {
+        //todo add confirm alert here to make sure they want to actually change all those loads show ticket numbers via selectedLoads.map TicketNumber
         toast("Submitting...", {autoClose: 2000, type: "info"});
-        await addOrUpdateLoad.mutateAsync(data);
+        await doMassEdit.mutateAsync({selectedLoads: selectedLoads ?? []});
         reset(defaultValues);
     };
 

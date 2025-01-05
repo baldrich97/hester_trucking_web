@@ -9,6 +9,8 @@ export const invoicesRouter = createRouter()
     .query("getAll", {
         input: z.object({
             customer: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
             orderBy: z.string().optional(),
@@ -60,20 +62,37 @@ export const invoicesRouter = createRouter()
     .query("getAllPaid", {
         input: z.object({
             customer: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
             orderBy: z.string().optional(),
             order: z.string().optional()
         }),
         async resolve({ctx, input}) {
-            const extra = [];
-            if (input.search && input.search.toString().length > 0) {
-                extra.push({TotalAmount: input.search})
-                if (!input.search.toString().includes('.')) {
-                    extra.push({Number: input.search})
-                }
-            }
-            const {order, orderBy} = input;
+            const {search, customer, order, loadType, deliveryLocation, orderBy} = input;
+
+            const extra = {
+                ...(search && search?.toString().length > 0 && {
+                    TotalAmount: search,
+                    ...(!search.toString().includes('.') && {Number: search})
+                }),
+                ...(customer !== 0 && {CustomerID: customer}),
+                ...(deliveryLocation && {
+                    Loads: {
+                        some: {
+                            DeliveryLocationID: deliveryLocation
+                        }
+                    }
+                }),
+                ...(loadType && {
+                    Loads: {
+                        some: {
+                            LoadTypeID: loadType
+                        }
+                    }
+                }),
+            };
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -82,21 +101,10 @@ export const invoicesRouter = createRouter()
             // @ts-ignore
             orderObj[orderBy] = order;
 
-            if (input.customer !== 0) {
-                extra.push({CustomerID: input.customer})
-            }
             return ctx.prisma.invoices.findMany({
                 where: {
-                    OR: [
-                        {Paid: true}
-                    ],
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    AND: {
-                        OR: [
-                            ...extra
-                        ]
-                    }
+                    Paid: true,
+                    ...extra
                 },
                 include: {
                     Customers: true,
@@ -111,6 +119,8 @@ export const invoicesRouter = createRouter()
     .query("getAllUnpaid", {
         input: z.object({
             customer: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
             orderBy: z.string().optional(),
@@ -118,15 +128,29 @@ export const invoicesRouter = createRouter()
             showAll: z.boolean().optional()
         }),
         async resolve({ctx, input}) {
-            const extra = [];
-            if (input.search && input.search.toString().length > 0) {
-                extra.push({TotalAmount: input.search})
-                if (!input.search.toString().includes('.')) {
-                    extra.push({Number: input.search})
-                }
-            }
+            const {search, customer, order, loadType, deliveryLocation, orderBy} = input;
 
-            const {order, orderBy} = input;
+            const extra = {
+                ...(search && search?.toString().length > 0 && {
+                    TotalAmount: search,
+                    ...(!search.toString().includes('.') && {Number: search})
+                }),
+                ...(customer !== 0 && {CustomerID: customer}),
+                ...(deliveryLocation && {
+                    Loads: {
+                        some: {
+                            DeliveryLocationID: deliveryLocation
+                        }
+                    }
+                }),
+                ...(loadType && {
+                    Loads: {
+                        some: {
+                            LoadTypeID: loadType
+                        }
+                    }
+                }),
+            };
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -135,21 +159,11 @@ export const invoicesRouter = createRouter()
             // @ts-ignore
             orderObj[orderBy] = order;
 
-            if (input.customer !== 0 && input.customer) {
-                extra.push({CustomerID: input.customer})
-            }
-
             return ctx.prisma.invoices.findMany({
                 where: {
-                    OR: [
-                        {Paid: false}, {Paid: null}
-                    ],
-                    AND: {
-                        Consolidated: false,
-                        OR: [
-                            ...extra
-                        ],
-                    }
+                    Paid: {not: true},
+                    Consolidated: false,
+                    ...extra
 
                 },
                 include: {
@@ -166,6 +180,8 @@ export const invoicesRouter = createRouter()
     .query("getAllConsolidated", {
         input: z.object({
             customer: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
             orderBy: z.string().optional(),
@@ -173,15 +189,29 @@ export const invoicesRouter = createRouter()
             showAll: z.boolean().optional()
         }),
         async resolve({ctx, input}) {
-            const extra = [];
-            if (input.search && input.search.toString().length > 0) {
-                extra.push({TotalAmount: input.search})
-                if (!input.search.toString().includes('.')) {
-                    extra.push({Number: input.search})
-                }
-            }
+            const {search, customer, order, loadType, deliveryLocation, orderBy} = input;
 
-            const {order, orderBy} = input;
+            const extra = {
+                ...(search && search?.toString().length > 0 && {
+                    TotalAmount: search,
+                    ...(!search.toString().includes('.') && {Number: search})
+                }),
+                ...(customer !== 0 && {CustomerID: customer}),
+                ...(deliveryLocation && {
+                    Loads: {
+                        some: {
+                            DeliveryLocationID: deliveryLocation
+                        }
+                    }
+                }),
+                ...(loadType && {
+                    Loads: {
+                        some: {
+                            LoadTypeID: loadType
+                        }
+                    }
+                }),
+            };
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -190,21 +220,12 @@ export const invoicesRouter = createRouter()
             // @ts-ignore
             orderObj[orderBy] = order;
 
-            if (input.customer !== 0) {
-                extra.push({CustomerID: input.customer})
-            }
 
             return ctx.prisma.invoices.findMany({
                 where: {
-                    OR: [
-                        {Paid: false}, {Paid: null}
-                    ],
-                    AND: {
-                        Consolidated: true,
-                        OR: [
-                            ...extra
-                        ],
-                    }
+                    Paid: {not: true},
+                    Consolidated: true,
+                    ...extra
                 },
                 include: {
                     Customers: true,
@@ -273,41 +294,42 @@ export const invoicesRouter = createRouter()
     .query("getCount", {
         input: z.object({
             customer: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
             page: z.number().optional(),
             search: z.number().nullish().optional(),
             tabValue: z.number().optional()
         }),
         async resolve({ctx, input}) {
-            const extra = [];
-            const paidValue = [];
-            if (input.search && input.search.toString().length > 0) {
-                extra.push({TotalAmount: input.search})
-                if (!input.search.toString().includes('.')) {
-                    extra.push({Number: input.search})
-                }
-            }
+            const {search, customer, tabValue, loadType, deliveryLocation} = input;
 
-            if (input.customer !== 0) {
-                extra.push({CustomerID: input.customer})
-            }
-            if (input.tabValue === 0) {
-                paidValue.push({Paid: false})
-            }
-            if (input.tabValue === 1) {
-                paidValue.push({Paid: true})
-            }
+            const extra = {
+                ...(search && search?.toString().length > 0 && {
+                    TotalAmount: search,
+                    ...(!search.toString().includes('.') && {Number: search})
+                }),
+                ...(customer !== 0 && {CustomerID: customer}),
+                ...(tabValue === 0 && {Paid: {not: true}}),
+                ...(tabValue === 1 && {Paid: true}),
+                ...(deliveryLocation && {
+                    Loads: {
+                        some: {
+                            DeliveryLocationID: deliveryLocation
+                        }
+                    }
+                }),
+                ...(loadType && {
+                    Loads: {
+                        some: {
+                            LoadTypeID: loadType
+                        }
+                    }
+                }),
+            };
+
             return ctx.prisma.invoices.count({
                 where: {
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    OR: [
-                        ...extra
-                    ],
-                    AND: {
-                        OR: [
-                            ...paidValue
-                        ]
-                    }
+                    ...extra
                 },
             });
         },
@@ -366,93 +388,79 @@ export const invoicesRouter = createRouter()
     //     }
     // })
     .mutation('put', {
-        // validate input with Zod
         input: InvoicesModel.omit({ID: true, Deleted: true}).extend({selected: z.array(z.string())}),
         async resolve({ctx, input}) {
-            // use your ORM of choice
             const {selected, ...rest} = input;
-            // const invoicedWeeklies = await ctx.prisma.weeklies.findMany({
-            //     where: {
-            //         AND: [
-            //             {ID: { in: selected.map((pkey) => parseInt(pkey))}},
-            //             {InvoiceID: null}
-            //         ]
-            //     },
-            //     include: {Invoices: true}
-            // })
-            //
-            // if (invoicedWeeklies.length > 0) {
-            //     throw new TRPCError({
-            //         code: 'INTERNAL_SERVER_ERROR',
-            //         message: `Weekly(ies) with ID's ${invoicedWeeklies.map((item) => item.ID ?? 'N/A').join(', ')} have already been invoiced in invoice number(s) ${invoicedWeeklies.map((item) => item.Invoices?.Number ?? 'N/A').join(', ')}.`,
-            //     })
-            // }
 
-            const dupeInvoice = await ctx.prisma.invoices.findMany({where: {Number: input.Number}})
+            // 🚨 Validate duplicate invoice number
+            const dupeInvoice = await ctx.prisma.invoices.findFirst({
+                where: {Number: input.Number}
+            });
 
-            if (dupeInvoice.length > 0) {
+            if (dupeInvoice) {
                 throw new TRPCError({
                     code: 'INTERNAL_SERVER_ERROR',
                     message: `There is already an invoice numbered ${input.Number}. Please change the invoice number.`,
-                })
+                });
             }
 
+            // 🚀 Create Invoice
             const returnable = await ctx.prisma.invoices.create({
-                data: rest
-            })
+                data: rest,
+            });
 
-            for (const weeklyPkey of selected) {
-                await ctx.prisma.weeklies.update({
+            // 📝 Batch Update Weeklies
+            await ctx.prisma.weeklies.updateMany({
+                where: {
+                    ID: {in: selected.map((id) => parseInt(id))},
+                },
+                data: {InvoiceID: returnable.ID},
+            });
+
+            // 📝 Fetch All Relevant Jobs and Loads in Batch
+            const jobs = await ctx.prisma.jobs.findMany({
+                where: {
+                    WeeklyID: {in: selected.map((id) => parseInt(id))},
+                },
+                select: {
+                    ID: true,
+                },
+            });
+
+            if (jobs.length === 0) {
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: `Missing jobs for selected weeklies.`,
+                });
+            }
+
+            const jobIDs = jobs.map((job) => job.ID);
+
+            const loads = await ctx.prisma.loads.findMany({
+                where: {
+                    JobID: {in: jobIDs},
+                },
+                select: {
+                    ID: true,
+                },
+            });
+
+            // 📝 Batch Update Loads
+            if (loads.length > 0) {
+                await ctx.prisma.loads.updateMany({
                     where: {
-                        ID: parseInt(weeklyPkey)
+                        ID: {in: loads.map((load) => load.ID)},
                     },
                     data: {
-                        InvoiceID: returnable.ID
-                    }
-                })
-                const job = await ctx.prisma.jobs.findFirst({
-                    where: {
-                        WeeklyID: parseInt(weeklyPkey)
-                    }
-                })
-
-                if (!job) {
-                    throw new TRPCError({
-                        code: 'INTERNAL_SERVER_ERROR',
-                        message: `Missing job for weekly ${weeklyPkey}.`,
-                    })
-                }
-
-                const loads = await ctx.prisma.loads.findMany({
-                    where: {
-                        JobID: job.ID
+                        Invoiced: true,
+                        InvoiceID: returnable.ID,
                     },
-                    select: {
-                        ID: true
-                    }
-                })
-
-                if (loads && loads.length > 0) {
-                    await ctx.prisma.$transaction(
-                        loads.map((item) => {
-                            return ctx.prisma.loads.update({
-                                where: {
-                                    ID: item.ID
-                                },
-                                data: {
-                                    Invoiced: true, InvoiceID: returnable.ID
-                                }
-                            })
-                        })
-
-                    )
-                }
+                });
             }
 
             return true;
         },
-    })
-    .mutation('putConsolidated', {
+    }).mutation('putConsolidated', {
         // validate input with Zod
         input: z.object({ids: z.array(z.number())}),
         async resolve({ctx, input}) {

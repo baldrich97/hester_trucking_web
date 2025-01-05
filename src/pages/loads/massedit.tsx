@@ -21,6 +21,7 @@ import deliverylocations from "../deliverylocations";
 import BasicAutocomplete from "elements/Autocomplete";
 import TextField from "@mui/material/TextField";
 import ArrowRight from "@mui/icons-material/ArrowRight";
+import CloseIcon from "@mui/icons-material/Close";
 
 type LoadsType = z.infer<typeof LoadsModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
@@ -60,6 +61,8 @@ const Loads = ({
 }) => {
     const [search, setSearch] = useState<number|null>(null);
 
+    const [searchSet, setSearchSet] = useState<boolean>(false);
+
     const [trpcData, setData] = useState<LoadsType[]>([]);
 
     const [newData, setNewData] = useState<LoadsType[]>([]);
@@ -84,7 +87,7 @@ const Loads = ({
 
     const [deliveryLocation, setDeliveryLocation] = useState(0);
 
-    const [chosenLoad, setChosenLoad] = useState(null)
+    const [chosenLoad, setChosenLoad] = useState<LoadsType|null>(null)
 
     const [customers, setCustomers] = useState(_customers)
     const [loadTypes, setLTypes] = useState(_loadTypes)
@@ -93,6 +96,23 @@ const Loads = ({
     const [drivers, setDrivers] = useState(_drivers)
 
     const handleLoad = (load: any) => {
+        if (searchSet) {
+            setNewData(newData.filter((record) => record.ID !== load.ID))
+            if (newData.filter((record) => record.ID !== load.ID).length === 0) {
+                setPage(0);
+                setCustomer(0);
+                setDriver(0);
+                setTruck(0);
+                setLoadType(0);
+                setDeliveryLocation(0);
+                setSearch(null);
+                setShouldRefresh(true);
+                setSearchSet(false);
+                setChosenLoad(null)
+            }
+            return;
+        }
+
         if (_customers.filter((customer) => customer.ID === load.CustomerID).length === 0) {
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -126,10 +146,11 @@ const Loads = ({
         setDeliveryLocation(load.DeliveryLocations.ID);
         setChosenLoad(load)
         setShouldRefresh(true)
+        setSearchSet(true)
     }
 
     const overrides: TableColumnOverridesType = [
-        { name: "ID", type: "action", callback: handleLoad, icon: <ArrowRight/> },
+        { name: "ID", type: "action", callback: handleLoad, icon: searchSet ? <CloseIcon style={{ color: "white" }} /> : <ArrowRight/> },
         { name: "Customers.Name", type: "link" },
         { name: "StartDate", type: "date" },
     ];
@@ -155,7 +176,7 @@ const Loads = ({
     trpc.useQuery(
         [
             "loads.getAll",
-            { page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search, chosenLoad },
+            { page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search, chosenLoad: chosenLoad ? {MaterialRate: chosenLoad?.MaterialRate, DriverRate: chosenLoad?.DriverRate, TruckRate: chosenLoad?.TruckRate, TotalRate: chosenLoad?.TotalRate} : null },
         ],
         {
             enabled: shouldRefresh,
@@ -171,7 +192,7 @@ const Loads = ({
     );
 
     trpc.useQuery(
-        ["loads.getCount", { customer, driver, truck, loadType, deliveryLocation, search, chosenLoad }],
+        ["loads.getCount", { customer, driver, truck, loadType, deliveryLocation, search, chosenLoad: chosenLoad ? {MaterialRate: chosenLoad?.MaterialRate, DriverRate: chosenLoad?.DriverRate, TruckRate: chosenLoad?.TruckRate, TotalRate: chosenLoad?.TotalRate} : null }],
         {
             enabled: shouldRefresh,
             onSuccess(data) {
@@ -192,6 +213,7 @@ const Loads = ({
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Loads'}/>
                 </Grid2>*/}
                 <GenericTable
+                    key={'key-' + shouldRefresh ? '1' : '2'}
                     data={newData.length >= 1 || (order !== 'desc' || orderBy !== 'ID')  ? newData : loads}
                     columns={columns}
                     overrides={overrides}
@@ -215,7 +237,10 @@ const Loads = ({
                         setDeliveryLocation(0);
                         setSearch(null);
                         setShouldRefresh(true);
+                        setSearchSet(false);
+                        setChosenLoad(null)
                     }}
+                    searchSet={searchSet}
                     filterBody={
                         <div style={{display: "flex", flexDirection: "column"}}>
                             <b style={{textAlign: "center"}}>Specify Search Terms</b>
@@ -332,6 +357,7 @@ const Loads = ({
                     refreshData={() => {
                         setShouldRefresh(true);
                     }}
+                    selectedLoads={(chosenLoad && newData) ? newData.map((record) => {return {ID: record.ID, TicketNumber: record.TicketNumber}}) : []}
                 />
             </Grid2>
         </Grid2>
