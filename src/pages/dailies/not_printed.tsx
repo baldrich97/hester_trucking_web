@@ -29,7 +29,7 @@ interface DriverSheet extends Daily {
 }
 
 export default function Dailies() {
-    const router = useRouter();
+    const router= useRouter();
 
     const [page, setPage] = React.useState<number>(1);
     const [loading, setLoading] = React.useState<boolean>(false);
@@ -53,7 +53,7 @@ export default function Dailies() {
         setShouldRefresh(true);
     }, [router.query]);
 
-    trpc.useQuery(["dailies.getByWeekW2", {page: page}], {
+    trpc.useQuery(["dailies.getNotPrinted", {page: page}], {
         enabled: shouldRefresh,
         onSuccess(object) {
             setGrabCount(parseInt(object?.warnings[0] ?? '0') ?? 0)
@@ -64,6 +64,7 @@ export default function Dailies() {
             setShouldRefresh(false);
         },
     });
+
 
 
     const [forceExpand, setforceExpand] = React.useState(true);
@@ -78,8 +79,9 @@ export default function Dailies() {
                     fontWeight: 'bold',
                 }}
             >
-                {data.length > 0 ? 'W2 Employees Missing Pay' : 'There are no W2 employees missing pay.'}
+                {data.length > 0 ? 'Dailies Unprinted' : 'There are no unprinted Dailies.'}
             </h1>
+            <b>If a daily on here has been printed, it means there are new loads that have not been printed.</b>
             <LoadingModal isOpen={loading}/>
             {data && data.length > 0 && <Paper sx={{width: "100%", mb: 2}}>
                 <Grid2 container columnSpacing={1} rowSpacing={1} flexDirection={'row'} sx={{height: 50}}>
@@ -213,8 +215,7 @@ export default function Dailies() {
 
                 {data.map((sheet: DriverSheet, index: number) => <DailySheet key={'sheet-' + index} sheet={sheet}
                                                                              week={sheet.Week} forceExpand={forceExpand}
-                                                                             initialExpand={initialExpand == sheet.DriverID}
-                                                                             toInvoiceButton={true}/>)}
+                                                                             initialExpand={initialExpand == sheet.DriverID}/>)}
 
             </Paper>}
         </Box>

@@ -42,6 +42,71 @@ export const weekliesRouter = createRouter()
             })
         },
     })
+    .query('getNotPrinted', {
+        input: z.object({
+            page: z.number()
+        }),
+        async resolve({ctx, input}) {
+            const page = input.page;
+
+            const result = await ctx.prisma.$queryRaw<
+                Array<{ ID: number }>
+            >`SELECT DISTINCT w.ID
+              FROM Weeklies w
+              WHERE w.LastPrinted IS NULL
+                 OR w.ID IN
+                    (SELECT w1.ID
+                     FROM Weeklies w1
+                              JOIN Jobs j ON w1.ID = j.WeeklyID
+                              JOIN Loads l ON j.ID = l.JobID
+                     WHERE w.LastPrinted IS NOT NULL
+                       AND l.Created > w1.LastPrinted)
+              ORDER BY w.ID ASC LIMIT 10
+              OFFSET ${10 * (page - 1)};`;
+
+            const countData = await ctx.prisma.$queryRaw<
+                Array<{ count: number }>
+            >`
+                SELECT COUNT(DISTINCT w.ID) AS count
+                FROM Weeklies w
+                WHERE w.LastPrinted IS NULL
+                   OR w.ID IN
+                    (SELECT w1.ID
+                    FROM Weeklies w1
+                    JOIN Jobs j ON w1.ID = j.WeeklyID
+                    JOIN Loads l ON j.ID = l.JobID
+                    WHERE w.LastPrinted IS NOT NULL
+                  AND l.Created > w1.LastPrinted)
+            `;
+
+            ctx.warnings.push(countData ? `${countData[0]?.count}` : '0')
+
+            const ids = result.map(record => record.ID);
+
+            const data = await ctx.prisma.weeklies.findMany({
+                where: {
+                    ID: {in: ids ?? []}
+                },
+                include: {
+                    Jobs: {
+                        include: {
+                            Loads:
+                                {
+                                    include: {Trucks: true}
+                                },
+                            Drivers: true
+                        }
+                    },
+                    DeliveryLocations: true,
+                    LoadTypes: true,
+                    Customers: true
+                },
+                orderBy: {ID: 'asc'}
+            });
+
+            return {data, warnings: ctx.warnings}
+        }
+    })
     .query('getByCustomer', {
         input: z.object({
             customer: z.number()

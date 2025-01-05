@@ -35,7 +35,6 @@ const overrides: TableColumnOverridesType = [
     {name: 'ID', type: 'button'}
 ]
 
-//TODO ADD PAYSTUBS CALL IN HERE
 const PayStubs = ({count, drivers, payStubs}: { count: number, drivers: DriversType[], payStubs: PayStubData[] }) => {
 
     const [search, setSearch] = useState('');
@@ -70,7 +69,7 @@ const PayStubs = ({count, drivers, payStubs}: { count: number, drivers: DriversT
     })
 
     return (
-        <Grid2 container>
+        <Grid2 container wrap={'nowrap'}>
             <Grid2 xs={8} sx={{paddingRight: 2.5}}>
                 <Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search}

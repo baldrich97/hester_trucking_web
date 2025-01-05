@@ -29,7 +29,7 @@ interface DriverSheet extends Daily {
 }
 
 export default function Dailies() {
-    const router= useRouter();
+    const router = useRouter();
 
     const [page, setPage] = React.useState<number>(1);
     const [loading, setLoading] = React.useState<boolean>(false);
@@ -64,7 +64,6 @@ export default function Dailies() {
             setShouldRefresh(false);
         },
     });
-
 
 
     const [forceExpand, setforceExpand] = React.useState(true);
@@ -214,7 +213,8 @@ export default function Dailies() {
 
                 {data.map((sheet: DriverSheet, index: number) => <DailySheet key={'sheet-' + index} sheet={sheet}
                                                                              week={sheet.Week} forceExpand={forceExpand}
-                                                                             initialExpand={initialExpand == sheet.DriverID}/>)}
+                                                                             initialExpand={initialExpand == sheet.DriverID}
+                                                                             toInvoiceButton={true}/>)}
             </Paper>}
         </Box>
     );

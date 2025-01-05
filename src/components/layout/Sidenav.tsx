@@ -83,6 +83,7 @@ function Sidenav(props: any) {
     }
 
     const [isDailiesOpen, setDailiesOpen] = React.useState<boolean>(false);
+    const [isWeekliesOpen, setWeekliesOpen] = React.useState<boolean>(false);
     const [isLoadsOpen, setLoadsOpen] = React.useState<boolean>(false);
 
     const [selectedIndex, setSelectedIndex] = React.useState(selectedLink);
@@ -131,7 +132,7 @@ function Sidenav(props: any) {
                 </NextLink>
 
                 <ListItemButton
-                    selected={[9, 12, 13, 14].includes(selectedIndex)}
+                    selected={[9, 12, 13, 14, 17].includes(selectedIndex)}
                 >
                     <NextLink href="/dailies" passHref>
                         <ListItemIcon>
@@ -178,6 +179,15 @@ function Sidenav(props: any) {
                                 onClick={() => setSelectedIndex(14)}
                             >
                                 <ListItemText primary="Non-W2 Missing Pay" />
+                            </ListItemButton>
+                        </NextLink>
+                        <NextLink href="/dailies/not_printed" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 17}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(17)}
+                            >
+                                <ListItemText primary="Unprinted" />
                             </ListItemButton>
                         </NextLink>
                     </List>
@@ -286,6 +296,57 @@ function Sidenav(props: any) {
                         <ListItemText primary="Trucks" />
                     </ListItemButton>
                 </NextLink>
+
+
+
+
+
+
+                <ListItemButton
+                    selected={[10, 18, 19].includes(selectedIndex)}
+                >
+                    <NextLink href="/weeklies" passHref>
+                        <ListItemIcon>
+                            <CalendarMonth
+                                onClick={() => {
+                                    setSelectedIndex(9);
+                                }}
+                            />
+                        </ListItemIcon>
+                    </NextLink>
+                    <NextLink href="/weeklies" passHref>
+                        <ListItemText primary="Weeklies" onClick={() => {
+                            setSelectedIndex(10);
+                        }} />
+                    </NextLink>
+                    {isWeekliesOpen ? <ExpandLess onClick={() => setWeekliesOpen(!isWeekliesOpen)} /> :
+                        <ExpandMore onClick={() => setWeekliesOpen(!isWeekliesOpen)} />}
+                </ListItemButton>
+
+                <Collapse in={isWeekliesOpen} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                        <NextLink href="/weeklies" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 18}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(18)} // Use unique index for nested items
+                            >
+                                <ListItemText primary="By Date" />
+                            </ListItemButton>
+                        </NextLink>
+                        <NextLink href="/weeklies/not_printed" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 19}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(19)}
+                            >
+                                <ListItemText primary="Unprinted" />
+                            </ListItemButton>
+                        </NextLink>
+                    </List>
+                </Collapse>
+
+
 
                 <NextLink href="/weeklies" passHref>
                     <ListItemButton

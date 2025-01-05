@@ -1,7 +1,5 @@
 import ChevronLeft from "@mui/icons-material/ChevronLeft";
 import ChevronRight from "@mui/icons-material/ChevronRight";
-import KeyboardDoubleArrowLeft from '@mui/icons-material/KeyboardDoubleArrowLeft';
-import KeyboardDoubleArrowRight from '@mui/icons-material/KeyboardDoubleArrowRight';
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import Paper from "@mui/material/Paper";
@@ -10,26 +8,29 @@ import React from "react";
 import LoadingModal from "elements/LoadingModal";
 import moment from "moment";
 import {trpc} from "utils/trpc";
-import DailySheet from "components/objects/DailySheet";
+import WeeklySheet from "components/objects/WeeklySheet";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import Tooltip from "@mui/material/Tooltip";
-import {z} from "zod";
-import {CompleteJobs, DailiesModel, DriversModel, LoadsModel} from "../../../prisma/zod";
 import {useRouter} from "next/router"
+import {formatDateToWeek} from "../../utils/UtilityFunctions";
+import {
+    CompleteJobs, CompleteWeeklies, CompleteCustomers, CompleteDeliveryLocations, CompleteLoadTypes
+} from "../../../prisma/zod";
+import KeyboardDoubleArrowLeft from "@mui/icons-material/KeyboardDoubleArrowLeft";
+import KeyboardDoubleArrowRight from "@mui/icons-material/KeyboardDoubleArrowRight";
+import DailySheet from "../../components/objects/DailySheet";
 
-type Loads = z.infer<typeof LoadsModel>;
-
-type Driver = z.infer<typeof DriversModel>;
-
-type Daily = z.infer<typeof DailiesModel>;
-
-interface DriverSheet extends Daily {
-    Drivers: Driver,
-    Jobs: CompleteJobs[]
+interface CustomerSheet extends CompleteWeeklies {
+    Customers: CompleteCustomers,
+    Jobs: CompleteJobs[],
+    DeliveryLocations: CompleteDeliveryLocations,
+    LoadTypes: CompleteLoadTypes
 }
 
-export default function Dailies() {
-    const router = useRouter();
+type YearWeekFormat = `${number}-W${number}`;
+
+export default function Weeklies() {
+    const router= useRouter();
 
     const [page, setPage] = React.useState<number>(1);
     const [loading, setLoading] = React.useState<boolean>(false);
@@ -39,32 +40,28 @@ export default function Dailies() {
     const [grabCount, setGrabCount] = React.useState<number>(0);
 
     React.useEffect(() => {
-        setData([])
         setLoading(true);
+        setData([]);
         setShouldRefresh(true);
     }, [page]);
 
     React.useEffect(() => {
         setLoading(true);
-        setPage(1)
         setInitialExpand(router.query?.forceExpand ?? null)
         setforceExpand(false)
         setData([]);
         setShouldRefresh(true);
     }, [router.query]);
 
-    trpc.useQuery(["dailies.getByWeekW2", {page: page}], {
+    trpc.useQuery(["weeklies.getNotPrinted", {page: page}], {
         enabled: shouldRefresh,
         onSuccess(object) {
             setGrabCount(parseInt(object?.warnings[0] ?? '0') ?? 0)
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            setData(object ? object.data.filter((sheet) => sheet.Jobs.filter((job) => job.Loads.length !== 0).length > 0).sort((a, b) => a.Drivers.FirstName.localeCompare(b.Drivers.FirstName)) : []);
+            setData(object.data ? object.data.filter((sheet) => sheet.Jobs.filter((job) => job.Loads.length !== 0).length > 0).sort((a, b) => a.Customers.Name.localeCompare(b.Customers.Name)) : []);
             setLoading(false);
             setShouldRefresh(false);
         },
     });
-
 
     const [forceExpand, setforceExpand] = React.useState(true);
     return (
@@ -78,8 +75,9 @@ export default function Dailies() {
                     fontWeight: 'bold',
                 }}
             >
-                {data.length > 0 ? 'W2 Employees Missing Pay' : 'There are no W2 employees missing pay.'}
+                {data.length > 0 ? 'Weeklies Unprinted' : 'There are no unprinted Weeklies.'}
             </h1>
+            <b>If a weekly on here has been printed, it means there are new loads that have not been printed.</b>
             <LoadingModal isOpen={loading}/>
             {data && data.length > 0 && <Paper sx={{width: "100%", mb: 2}}>
                 <Grid2 container columnSpacing={1} rowSpacing={1} flexDirection={'row'} sx={{height: 50}}>
@@ -211,10 +209,11 @@ export default function Dailies() {
                     <hr style={{height: 1, width: "100%"}}/>
                 </Grid2>
 
-                {data.map((sheet: DriverSheet, index: number) => <DailySheet key={'sheet-' + index} sheet={sheet}
-                                                                             week={sheet.Week} forceExpand={forceExpand}
-                                                                             initialExpand={initialExpand == sheet.DriverID}
-                                                                             toInvoiceButton={true}/>)}
+                {data.map((weekly: CustomerSheet, index: number) => (
+                    <>
+                        {weekly.Jobs.length > 0 && <WeeklySheet key={'sheet-' + index} weekly={weekly} week={weekly.Week} forceExpand={forceExpand} initialExpand={initialExpand == weekly.ID}/>}
+                    </>
+                ))}
 
             </Paper>}
         </Box>

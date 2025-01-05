@@ -36,7 +36,6 @@ const columns: TableColumnsType = [
     { name: "LoadTypes.Description", as: "Load Type", column: 'LoadTypeID'  },
     { name: "DeliveryLocations.Description", as: "Delivery Notes", column: 'DeliveryLocationID'  },
     { name: "TicketNumber", as: "Ticket #" },
-    { name: "Invoiced" },
     { name: "ID", as: "", navigateTo: "/loads/" },
 ];
 
@@ -119,14 +118,20 @@ const Loads = ({
             // @ts-ignore
             setTrucks([..._trucks, load.Trucks])
         }
+
+        setCustomer(load.Customers.ID);
+        setDriver(load.Drivers.ID);
+        setTruck(load.Trucks.ID);
+        setLoadType(load.LoadTypes.ID);
+        setDeliveryLocation(load.DeliveryLocations.ID);
         setChosenLoad(load)
+        setShouldRefresh(true)
     }
 
     const overrides: TableColumnOverridesType = [
         { name: "ID", type: "action", callback: handleLoad, icon: <ArrowRight/> },
         { name: "Customers.Name", type: "link" },
         { name: "StartDate", type: "date" },
-        { name: "Invoiced", type: "checkbox" },
     ];
 
     const [order, setOrder] = React.useState<'asc'|'desc'>('desc');
@@ -150,7 +155,7 @@ const Loads = ({
     trpc.useQuery(
         [
             "loads.getAll",
-            { page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search },
+            { page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search, chosenLoad },
         ],
         {
             enabled: shouldRefresh,
@@ -166,7 +171,7 @@ const Loads = ({
     );
 
     trpc.useQuery(
-        ["loads.getCount", { customer, driver, truck, loadType, deliveryLocation, search }],
+        ["loads.getCount", { customer, driver, truck, loadType, deliveryLocation, search, chosenLoad }],
         {
             enabled: shouldRefresh,
             onSuccess(data) {
@@ -181,7 +186,7 @@ const Loads = ({
     );
 
     return (
-        <Grid2 container>
+        <Grid2 container wrap={'nowrap'}>
             <Grid2 xs={8} sx={{ paddingRight: 2.5 }}>
                 {/*<Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Loads'}/>

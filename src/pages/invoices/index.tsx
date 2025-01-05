@@ -384,7 +384,7 @@ const Invoices = ({
   });
 
   return (
-    <Grid2 container>
+      <Grid2 container wrap={'nowrap'}>
       <Grid2 xs={8} sx={{ paddingRight: 2.5 }}>
         <Box
           sx={{

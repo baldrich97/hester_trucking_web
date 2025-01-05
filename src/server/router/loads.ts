@@ -3,6 +3,8 @@ import {z} from "zod";
 import {CustomerLoadTypesModel, LoadsModel} from '../../../prisma/zod';
 import { TRPCError } from "@trpc/server";
 
+type loadType = z.infer<typeof LoadsModel>;
+
 export const loadsRouter = createRouter()
     .query("getAll", {
         input: z.object({
@@ -14,10 +16,13 @@ export const loadsRouter = createRouter()
             deliveryLocation: z.number().optional(),
             orderBy: z.string().optional(),
             order: z.string().optional(),
-            search: z.number().nullish().optional()
+            search: z.number().nullish().optional(),
+            chosenLoad: z.any().optional()
         }),
         async resolve({ctx, input}) {
+            const {order, orderBy, chosenLoad} = input;
             const extra = [];
+            const epsilon = 0.001;
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
             }
@@ -36,8 +41,20 @@ export const loadsRouter = createRouter()
             if (input.search && input.search.toString().length > 0) {
                 extra.push({TicketNumber: input.search})
             }
-
-            const {order, orderBy} = input;
+            if (chosenLoad) {
+                if (chosenLoad.MaterialRate) {
+                    extra.push({MaterialRate: {gte: chosenLoad.MaterialRate - epsilon, lte: chosenLoad.MaterialRate + epsilon}})
+                }
+                if (chosenLoad.TruckRate) {
+                    extra.push({TruckRate: {gte: chosenLoad.TruckRate - epsilon, lte: chosenLoad.TruckRate + epsilon}})
+                }
+                if (chosenLoad.DriverRate) {
+                    extra.push({DriverRate: {gte: chosenLoad.DriverRate - epsilon, lte: chosenLoad.DriverRate + epsilon}})
+                }
+                if (chosenLoad.TotalRate) {
+                    extra.push({TotalRate: {gte: chosenLoad.TotalRate - epsilon, lte: chosenLoad.TotalRate + epsilon}})
+                }
+            }
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -186,10 +203,15 @@ export const loadsRouter = createRouter()
             driver: z.number().optional(),
             loadType: z.number().optional(),
             deliveryLocation: z.number().optional(),
-            search: z.number().nullish().optional()
+            search: z.number().nullish().optional(),
+            chosenLoad: z.any().optional()
         }),
         async resolve({ctx, input}) {
             const extra = [];
+
+            const {chosenLoad} = input;
+            const epsilon = 0.001;
+
             if (input.customer !== 0) {
                 extra.push({CustomerID: input.customer})
             }
@@ -207,6 +229,20 @@ export const loadsRouter = createRouter()
             }
             if (input.search && input.search.toString().length > 0) {
                 extra.push({TicketNumber: input.search})
+            }
+            if (chosenLoad) {
+                if (chosenLoad.MaterialRate) {
+                    extra.push({MaterialRate: {gte: chosenLoad.MaterialRate - epsilon, lte: chosenLoad.MaterialRate + epsilon}})
+                }
+                if (chosenLoad.TruckRate) {
+                    extra.push({TruckRate: {gte: chosenLoad.TruckRate - epsilon, lte: chosenLoad.TruckRate + epsilon}})
+                }
+                if (chosenLoad.DriverRate) {
+                    extra.push({DriverRate: {gte: chosenLoad.DriverRate - epsilon, lte: chosenLoad.DriverRate + epsilon}})
+                }
+                if (chosenLoad.TotalRate) {
+                    extra.push({TotalRate: {gte: chosenLoad.TotalRate - epsilon, lte: chosenLoad.TotalRate + epsilon}})
+                }
             }
 
             return ctx.prisma.loads.count({
@@ -389,45 +425,33 @@ export const loadsRouter = createRouter()
 
                 const job = jobs.length > 0 ? jobs[0] : null;
 
-                //If a job exists, check if that job has been paidout, if the daily/weekly was printed, and if the weekly has been invoiced and warn accordingly
                 if (job) {
-                    //Set JobID to this job
-                    input.JobID = job.ID;
-                    if (job.PaidOut) {
+                    if (job.PaidOut || (job.CompanyRevenue || job.TruckingRevenue)) {
 
-                        // const driver = await ctx.prisma.drivers.findUnique({where: {ID: DriverID}});
-                        // if (driver && !driver.OwnerOperator) {
-                        //     //if its a W2 driver then warn that it went to a paid out job?
-                        //
-                        // } else {
-                        //     const newJob = await ctx.prisma.jobs.create({
-                        //         data: {
-                        //             DriverID: DriverID,
-                        //             DailyID: daily.ID,
-                        //             WeeklyID: weekly.ID,
-                        //             CustomerID: CustomerID,
-                        //             LoadTypeID: LoadTypeID,
-                        //             DeliveryLocationID: DeliveryLocationID,
-                        //             TruckingRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
-                        //             CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
-                        //             DriverRate: (Math.round((DriverRate ?? 0) * 100)) / 100,
-                        //             MaterialRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
-                        //         }
-                        //     })
-                        //
-                        //     input.JobID = newJob.ID;
-                        // }
-                    } else if (job.CompanyRevenue || job.TruckingRevenue) {
-                        //Error here that the revenues have been overridden and will need to be recalcualted
-                    } else if (daily.LastPrinted || weekly.LastPrinted) {
-                        //Error here that the daily/weekly has been printed already and needs to be reprinted
-                        //handled above
-                    } else if (weekly.InvoiceID) {
-                        //Error here that the weekly has already been invoiced and they should remake the invoice?
-                    } else if (weekly.Revenue !== null) {
-                        //Error here that the weekly has a revenue already
+                        //if it matches everything except the job is closed (revs set) or the job is paid out, alert them that the load matches a closed or paid out job and to remember to
+                        //close the weekly and re-invoice
+                        const newJob = await ctx.prisma.jobs.create({
+                            data: {
+                                DriverID: DriverID,
+                                DailyID: daily.ID,
+                                WeeklyID: weekly.ID,
+                                CustomerID: CustomerID,
+                                LoadTypeID: LoadTypeID,
+                                DeliveryLocationID: DeliveryLocationID,
+                                TruckingRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
+                                CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
+                                DriverRate: (Math.round((DriverRate ?? 0) * 100)) / 100,
+                                MaterialRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
+                            }
+                        })
+
+                        ctx.warnings.push('This load matches a closed/paid out job. A new job has been made, please close the job/weekly if there are no other tickets for this job so it can be invoiced.')
+                        ctx.warnings.push(daily.Week);
+                        ctx.warnings.push(weekly.ID.toString());
+
+                        input.JobID = newJob.ID;
                     }
-
+                    input.JobID = job.ID;
                 } else {
                     //Else create this job and assign it to the daily/weekly
                     const newJob = await ctx.prisma.jobs.create({

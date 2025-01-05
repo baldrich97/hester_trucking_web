@@ -111,12 +111,12 @@ function Load({
 
     const addOrUpdateLoad = trpc.useMutation(key, {
         async onSuccess(object) {
-            let shouldReturn = false;
+            let shouldToast = true;
             toggleOverride(false)
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             if (object.warnings?.length > 0 && object.warnings?.includes("This daily has already been printed.")) {
-                shouldReturn = true;
+                shouldToast = false;
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
                 const warningIndex = object.warnings.findIndex((item) => item === "This daily has already been printed.")
@@ -138,7 +138,7 @@ function Load({
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
             } if (object.warnings?.length > 0 && object.warnings?.includes("This weekly has already been printed.")) {
-                shouldReturn = true;
+                shouldToast = false;
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
                 const warningIndex = object.warnings.findIndex((item) => item === "This weekly has already been printed.")
@@ -157,9 +157,30 @@ function Load({
                         textAlign: 'center',  // Center the text
                     },
                 })
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+            } if (object.warnings?.length > 0 && object.warnings?.includes("This load matches a closed/paid out job. A new job has been made, please close the job/weekly if there are no other tickets for this job so it can be invoiced.")) {
+                shouldToast = false;
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                const warningIndex = object.warnings.findIndex((item) => item === "This load matches a closed/paid out job. A new job has been made, please close the job/weekly if there are no other tickets for this job so it can be invoiced.")
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                const weekID = object.warnings[warningIndex + 1];
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                const customerID = object.warnings[warningIndex + 2];
+                toast(<JobClosedCustomToast Week={weekID} CustomerID={customerID}/>, {
+                    autoClose: 500000, type: "warning", position: "top-left",
+                    style: {
+                        width: "98vw",       // Full viewport width
+                        margin: 0,            // Remove margin to avoid cut-off
+                        borderRadius: 0,      // Remove border-radius for full-width look
+                        textAlign: 'center',  // Center the text
+                    },
+                })
             }
-
-            if (!shouldReturn) {
+            if (shouldToast) {
                 toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
             }
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -678,6 +699,30 @@ class DuplicateCustomToast extends React.Component<DuplicateCustomToastProps> {
                 If you want to override this warning and make continue with the duplicate ticket number,&nbsp;
                 <b onClick={() => this.props.onClickTrigger()}>click here to override this warning. </b>
                 Then save this load again. Click anywhere else to dismiss this warning.
+              </span>
+
+        )
+            ;
+    }
+}
+
+class JobClosedCustomToast extends React.Component<DailyPrintedCustomToastProps> {
+    render() {
+        return (
+
+            <span>
+                This load was created successfully, however it matches a closed or paid out job. A new job has been made, please remember to close the weekly and invoice this new load.&nbsp;
+                <NextLink
+                    href={{
+                        pathname: "/weeklies",
+                        query: {forceExpand: this.props.CustomerID, defaultWeek: this.props.Week}
+                    }}
+                    passHref
+                >
+                    <a target={"_blank"}>
+                        <b>Click here to open the weekly in a new tab. </b>
+                    </a>
+                </NextLink>
               </span>
 
         )

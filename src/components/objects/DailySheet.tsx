@@ -1,6 +1,7 @@
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import ChevronRight from "@mui/icons-material/ChevronRight";
 import AttachMoney from '@mui/icons-material/AttachMoney';
+import ArrowForward from '@mui/icons-material/ArrowForward';
 import DoneIcon from '@mui/icons-material/Done';
 import Button from "@mui/material/Button";
 import Grid2 from "@mui/material/Unstable_Grid2";
@@ -34,7 +35,13 @@ interface DriverSheet extends Daily {
 //     },
 // });
 
-const DailySheet = ({sheet, week, forceExpand, initialExpand = null,}: { sheet: DriverSheet, week: string, forceExpand: boolean, initialExpand: any  }) => {
+const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceButton = false}: {
+    sheet: DriverSheet,
+    week: string,
+    forceExpand: boolean,
+    initialExpand: any,
+    toInvoiceButton: boolean
+}) => {
     const [isOpen, setIsOpen] = useState(forceExpand);
 
     useEffect(() => {
@@ -86,14 +93,17 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null,}: { sheet: 
                         onClick={async () => {
                             if (daily.LastPrinted) {
                                 confirmAlert({
-                                    customUI: ({ onClose }) => {
+                                    customUI: ({onClose}) => {
                                         return (
-                                            <div className="react-confirm-alert" style={{ width: '800px' }}> {/* Adjust width here */}
+                                            <div className="react-confirm-alert"
+                                                 style={{width: '800px'}}> {/* Adjust width here */}
                                                 <div className="react-confirm-alert-body" style={{width: '100%'}}>
                                                     <h1>Daily Sheet Print Options</h1>
-                                                    <p>This Daily has already been printed. Do you want to print out only loads created after the last print date, or print the entire sheet?</p>
+                                                    <p>This Daily has already been printed. Do you want to print out
+                                                        only loads created after the last print date, or print the
+                                                        entire sheet?</p>
                                                     <div className="react-confirm-alert-button-group">
-                                                        <button   onClick={async () => {
+                                                        <button onClick={async () => {
                                                             toast("Generating PDF...", {autoClose: 2000, type: "info"});
                                                             const element = document.createElement("a");
                                                             element.href = `/api/getPDF/daily/${daily.ID}|${week}|partial`;
@@ -103,10 +113,14 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null,}: { sheet: 
                                                             document.body.removeChild(element);
                                                             setDaily({...daily, LastPrinted: new Date})
                                                             onClose();
-                                                        }}>New Data Only/Partial Sheet</button>
+                                                        }}>New Data Only/Partial Sheet
+                                                        </button>
                                                         <button
                                                             onClick={async () => {
-                                                                toast("Generating PDF...", {autoClose: 2000, type: "info"});
+                                                                toast("Generating PDF...", {
+                                                                    autoClose: 2000,
+                                                                    type: "info"
+                                                                });
                                                                 const element = document.createElement("a");
                                                                 element.href = `/api/getPDF/daily/${daily.ID}|${week}|full`;
                                                                 element.download = "daily-download.pdf";
@@ -119,7 +133,8 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null,}: { sheet: 
                                                         >
                                                             All Data/Full Sheet
                                                         </button>
-                                                        <button style={{marginLeft: 'auto'}} onClick={onClose}>Close</button>
+                                                        <button style={{marginLeft: 'auto'}} onClick={onClose}>Close
+                                                        </button>
                                                     </div>
                                                 </div>
                                             </div>
@@ -152,7 +167,8 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null,}: { sheet: 
                 <HeaderRow/>
                 {daily.Jobs?.map(
                     (job: CompleteJobs) =>
-                        <Job job={job} key={"job-" + job.ID} ownerOperator={daily.Drivers.OwnerOperator}/>
+                        <Job job={job} key={"job-" + job.ID} ownerOperator={daily.Drivers.OwnerOperator}
+                             toInvoiceButton={toInvoiceButton}/>
                 )}
             </div>
         </div>
@@ -161,7 +177,11 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null,}: { sheet: 
 
 export default DailySheet;
 
-const Job = ({job, ownerOperator}: { job: CompleteJobs, ownerOperator: boolean }) => {
+const Job = ({job, ownerOperator, toInvoiceButton}: {
+    job: CompleteJobs,
+    ownerOperator: boolean,
+    toInvoiceButton: boolean
+}) => {
     const [jobState, setJobState] = useState<CompleteJobs>(job);
 
     let weightSum = 0;
@@ -175,7 +195,8 @@ const Job = ({job, ownerOperator}: { job: CompleteJobs, ownerOperator: boolean }
                            <Load load={load} job={job} index={index} key={"load-" + load.ID}/>
                         {index === jobState.Loads.length - 1 &&
                             <TotalsRow job={job} index={index} load={load} weightSum={weightSum}
-                                       key={"totalrow-" + job.ID} ownerOperator={ownerOperator}/>}
+                                       key={"totalrow-" + job.ID} ownerOperator={ownerOperator}
+                                       toInvoiceButton={toInvoiceButton}/>}
                         </span>
                 )
             })}
@@ -189,8 +210,16 @@ const TotalsRow = ({
                        load,
                        weightSum,
                        ownerOperator,
+                       toInvoiceButton
 
-                   }: { index: number, job: CompleteJobs, load: Loads, weightSum: number, ownerOperator: boolean}) => {
+                   }: {
+    index: number,
+    job: CompleteJobs,
+    load: Loads,
+    weightSum: number,
+    ownerOperator: boolean,
+    toInvoiceButton: boolean
+}) => {
     const [jobState, setJobState] = useState(job);
     const [isClosed, setIsClosed] = useState(job.TruckingRevenue !== null || job.CompanyRevenue !== null);
     const [isPaidOut, setIsPaidOut] = useState(job.PaidOut)
@@ -221,7 +250,27 @@ const TotalsRow = ({
         >
 
             <b style={{width: 50, display: 'grid', alignItems: 'center', justifyItems: 'center'}}>
-                <Tooltip
+                {toInvoiceButton && job.Weeklies?.InvoiceID ? <Tooltip
+                    title={'Go to Invoice'}>
+                    <span>
+                        <NextLink
+                            href={{pathname: `/invoices/${job.Weeklies.InvoiceID}`}}
+                            passHref
+                        >
+                        <a target={"_blank"}>
+                            <Button
+                                variant="contained"
+                                color={"primary"}
+                                style={{backgroundColor: "#ffa726"}}
+                                sx={{minWidth: 30, minHeight: 30, maxWidth: 30, maxHeight: 30}}
+                            >
+                        <ArrowForward/>
+                    </Button>
+                        </a>
+                    </NextLink>
+
+                    </span>
+                </Tooltip> : <Tooltip
                     title={isPaidOut ? 'This job has already been paid.' : isClosed ? 'Mark this job as paid out.' : 'Save the revenues for this job.'}>
                     <span>
                         <Button
@@ -309,7 +358,7 @@ const TotalsRow = ({
                         {job.PaidOut || isClosed ? <AttachMoney/> : <DoneIcon/>}
                     </Button>
                     </span>
-                </Tooltip>
+                </Tooltip>}
             </b>
             <Grid2
                 sx={{

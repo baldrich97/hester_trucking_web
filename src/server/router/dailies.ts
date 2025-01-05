@@ -48,6 +48,68 @@ export const dailiesRouter = createRouter()
             })
         }
     })
+    .query('getNotPrinted', {
+        input: z.object({
+            page: z.number()
+        }),
+        async resolve({ctx, input}) {
+            const page = input.page;
+
+            const result = await ctx.prisma.$queryRaw<
+                Array<{ ID: number }>
+            >`SELECT DISTINCT d.ID
+              FROM Dailies d
+              WHERE d.LastPrinted IS NULL
+                 OR d.ID IN
+                    (SELECT d1.ID
+                     FROM Dailies d1
+                              JOIN Jobs j ON d1.ID = j.DailyID
+                              JOIN Loads l ON j.ID = l.JobID
+                     WHERE d.LastPrinted IS NOT NULL
+                       AND l.Created > d1.LastPrinted)
+              ORDER BY d.ID ASC LIMIT 10
+              OFFSET ${10 * (page - 1)};`;
+
+            const countData = await ctx.prisma.$queryRaw<
+                Array<{ count: number }>
+            >`
+                SELECT COUNT(DISTINCT d.ID) AS count
+                FROM Dailies d
+                WHERE d.LastPrinted IS NULL
+                   OR d.ID IN
+                    (SELECT d1.ID
+                    FROM Dailies d1
+                    JOIN Jobs j ON d1.ID = j.DailyID
+                    JOIN Loads l ON j.ID = l.JobID
+                    WHERE d.LastPrinted IS NOT NULL
+                  AND l.Created > d1.LastPrinted);
+            `;
+
+            ctx.warnings.push(countData ? `${countData[0]?.count}` : '0')
+
+            const ids = result.map(record => record.ID);
+
+            const data = await ctx.prisma.dailies.findMany({
+                where: {
+                    ID: {in: ids ?? []}
+                },
+                include: {
+                    Jobs: {
+                        include: {
+                            Loads: true,
+                            Customers: true,
+                            LoadTypes: true,
+                            DeliveryLocations: true,
+                        }
+                    },
+                    Drivers: true
+                },
+                orderBy: {ID: 'asc'}
+            });
+
+            return {data, warnings: ctx.warnings}
+}
+        })
     .query('getByWeekW2', {
         input: z.object({
             page: z.number()
@@ -60,19 +122,22 @@ export const dailiesRouter = createRouter()
             const result = await ctx.prisma.$queryRaw<
                 Array<{ ID: number }>
             >`SELECT DISTINCT Dailies.ID
-  FROM Dailies
-           JOIN Drivers ON Dailies.DriverID = Drivers.ID
-           JOIN Jobs ON Jobs.DailyID = Dailies.ID
-           LEFT JOIN Loads ON Loads.JobID = Jobs.ID
-           LEFT JOIN PayStubs ON Jobs.PayStubID = PayStubs.ID
-  WHERE Drivers.OwnerOperator <> TRUE
-    AND Dailies.Week != ${defaultWeek}
-    AND (
-        Jobs.PaidOut <> TRUE
-        OR (Jobs.PayStubID IS NOT NULL AND Loads.Created > PayStubs.Created)
-    )
-  ORDER BY Dailies.ID ASC
-  LIMIT 10 OFFSET ${10 * (page - 1)};`;
+              FROM Dailies
+                       JOIN Drivers ON Dailies.DriverID = Drivers.ID
+                       JOIN Jobs ON Jobs.DailyID = Dailies.ID
+                       LEFT JOIN Loads ON Loads.JobID = Jobs.ID
+                       LEFT JOIN PayStubs ON Jobs.PayStubID = PayStubs.ID
+              WHERE Drivers.OwnerOperator <> TRUE
+                AND Dailies.Week != ${defaultWeek}
+                AND (
+                  Jobs.PaidOut <> TRUE
+                 OR (Jobs.PayStubID IS NOT NULL
+                AND Loads.Created
+                  > PayStubs.Created)
+                  )
+              ORDER BY Dailies.ID ASC
+                  LIMIT 10
+              OFFSET ${10 * (page - 1)};`;
 
 
 // Flatten the array to just IDs
@@ -110,11 +175,17 @@ export const dailiesRouter = createRouter()
                             Loads: true,
                             Customers: true,
                             LoadTypes: true,
-                            DeliveryLocations: true
+                            DeliveryLocations: true,
+                            Weeklies: {
+                                select: {
+                                    InvoiceID: true
+                                }
+                            }
                         }
                     },
                     Drivers: true
-                }
+                },
+                orderBy: {ID: 'asc'}
             });
 
             return {data, warnings: ctx.warnings}
@@ -154,7 +225,7 @@ export const dailiesRouter = createRouter()
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
                 return weekly.Jobs.filter(job => !job.PaidOut).map(job => job.DailyID)
-        });
+            });
 
             const weeklyIds = weeklies.map((weekly) => weekly.ID);
 
@@ -174,6 +245,11 @@ export const dailiesRouter = createRouter()
                             Customers: true,
                             LoadTypes: true,
                             DeliveryLocations: true,
+                            Weeklies: {
+                                select: {
+                                    InvoiceID: true
+                                }
+                            }
                         },
                         where: {
                             WeeklyID: {
