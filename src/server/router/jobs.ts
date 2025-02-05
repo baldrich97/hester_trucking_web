@@ -406,7 +406,7 @@ export const jobsRouter = createRouter()
             AND (
                 (${ownerOperator} = true AND
                 j.PaidOut != true AND
-                i.Paid = true AND
+                
                 w.Week != ${defaultWeek})
             OR
                 (${ownerOperator} = false AND
@@ -444,6 +444,15 @@ export const jobsRouter = createRouter()
                     Loads: {
                         orderBy: {
                             StartDate: 'asc' // Order the loads by the oldest StartDate
+                        }
+                    },
+                    Weeklies: {
+                        include: {
+                            Invoices: {
+                                select: {
+                                    Paid: true
+                                }
+                            }
                         }
                     }
                 },

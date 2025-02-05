@@ -415,12 +415,6 @@ const Invoices = ({
         </div>
     );
 
-    const createConsolidated = trpc.useMutation("invoices.putConsolidated", {
-        async onSuccess(data) {
-            toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
-        },
-    });
-
   const createConsolidated = trpc.useMutation("invoices.putConsolidated", {
     async onSuccess(data) {
       toast("Successfully Submitted!", { autoClose: 2000, type: "success" });

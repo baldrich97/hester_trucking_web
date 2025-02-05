@@ -99,6 +99,63 @@ export const loadsRouter = createRouter()
             });
         },
     })
+    .query("getUninv", {
+        input: z.object({
+            page: z.number().optional(),
+            customer: z.number().optional(),
+            truck: z.number().optional(),
+            driver: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional(),
+            search: z.number().nullish().optional()
+        }),
+        async resolve({ctx, input}) {
+            const {
+                customer,
+                driver,
+                truck,
+                loadType,
+                deliveryLocation,
+                search,
+                order,
+                orderBy,
+                page
+            } = input;
+            const epsilon = 0.001;
+            const extra = {
+                ...(customer && {CustomerID: customer}),
+                ...(driver && {DriverID: driver}),
+                ...(truck && {TruckID: truck}),
+                ...(loadType && {LoadTypeID: loadType}),
+                ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
+                ...(search && {TicketNumber: search}),
+            };
+
+
+            //const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
+            return ctx.prisma.loads.findMany({
+                include: {
+                    Customers: true,
+                    Trucks: true,
+                    Drivers: true,
+                    LoadTypes: true,
+                    DeliveryLocations: true
+                },
+                orderBy: {
+                    StartDate: 'asc'
+                },
+                where: {
+                    Deleted: null,
+                    Invoiced: null,
+                    ...extra
+                },
+                take: 10,
+                skip: page ? 10 * page : 0
+            });
+        },
+    })
     .query('get', {
         input: z.object({
             ID: z.number()
@@ -257,6 +314,38 @@ export const loadsRouter = createRouter()
             return ctx.prisma.loads.count({
                 where: {
                     Deleted: null,
+                    ...extra
+                }
+            });
+
+        }
+    })
+    .query('getUninvCount', {
+        input: z.object({
+            page: z.number().optional(),
+            customer: z.number().optional(),
+            truck: z.number().optional(),
+            driver: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
+            search: z.number().nullish().optional()
+        }),
+        async resolve({ctx, input}) {
+            const {customer, driver, truck, loadType, deliveryLocation, search} = input;
+            const epsilon = 0.001;
+            const extra = {
+                ...(customer && {CustomerID: customer}),
+                ...(driver && {DriverID: driver}),
+                ...(truck && {TruckID: truck}),
+                ...(loadType && {LoadTypeID: loadType}),
+                ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
+                ...(search && {TicketNumber: search}),
+            };
+
+            return ctx.prisma.loads.count({
+                where: {
+                    Deleted: null,
+                    Invoiced: null,
                     ...extra
                 }
             });

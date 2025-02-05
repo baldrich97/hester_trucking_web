@@ -17,6 +17,7 @@ import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import {confirmAlert} from "react-confirm-alert";
 
 interface Data {
     "ID": number,
@@ -293,6 +294,7 @@ function Row(props: {
                 tabIndex={-1}
                 key={Math.random().toString()}
                 selected={isItemSelected}
+                sx={{backgroundColor: row.Weeklies?.Invoices?.Paid ? "#3acf00" : "#ff6161"}}
             >
                 {!readOnly && (
                     <TableCell padding="checkbox" size={"small"}>
@@ -302,9 +304,28 @@ function Row(props: {
                             inputProps={{
                                 "aria-labelledby": labelId,
                             }}
-                            onClick={() =>
-                                handleClick(row.ID.toString(), Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100)
-                            }
+                            onClick={() =>{
+                                if (!row.Weeklies?.Invoices?.Paid && !isItemSelected) {
+                                    confirmAlert({
+                                        title: "Confirm Non Paid Selection",
+                                        message: "This job's invoice has not yet been paid. Are you sure you want to add it to the paystub?",
+                                        buttons: [
+                                            {
+                                                label: "Yes",
+                                                onClick: async () => {
+                                                    handleClick(row.ID.toString(), Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100)
+                                                },
+                                            },
+                                            {
+                                                label: "No",
+                                                //onClick: () => {}
+                                            },
+                                        ],
+                                    });
+                                } else {
+                                    handleClick(row.ID.toString(), Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100)
+                                }
+                            }}
                         />
                     </TableCell>
                 )}
