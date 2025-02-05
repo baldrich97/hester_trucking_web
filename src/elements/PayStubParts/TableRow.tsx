@@ -16,7 +16,8 @@ const styles = StyleSheet.create({
         borderRightWidth: 1,
         borderColor: 'black',
         margin: 0,
-        padding: 0
+        padding: 0,
+        lineHeight: .9
     },
     text: {
         color: 'black',

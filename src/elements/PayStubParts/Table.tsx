@@ -26,6 +26,7 @@ const styles = StyleSheet.create({
         display: 'flex',
         padding: 0,
         margin: 0,
+        lineHeight: .9
     },
     text: {
         color: 'black',
@@ -70,7 +71,7 @@ const Table = ({jobs, payStub}: { jobs: any[], payStub: PayStubsType }) => {
                 flexDirection: 'row',
                 width: '100%',
                 display: 'flex',
-                justifyContent: 'flex-end', margin: 0, padding: 0,
+                justifyContent: 'flex-end', margin: 0, padding: 0, lineHeight: .9
             }}>
                 <Text style={{
                     width: '12.65%',
@@ -94,7 +95,7 @@ const Table = ({jobs, payStub}: { jobs: any[], payStub: PayStubsType }) => {
                 flexDirection: 'row',
                 width: '100%',
                 display: 'flex',
-                justifyContent: 'flex-end', margin: 0, padding: 0
+                justifyContent: 'flex-end', margin: 0, padding: 0, lineHeight: .9
             }}>
                 <Text style={{
                     width: '12.65%',
@@ -123,7 +124,7 @@ const Table = ({jobs, payStub}: { jobs: any[], payStub: PayStubsType }) => {
                 flexDirection: 'row',
                 width: '100%',
                 display: 'flex',
-                justifyContent: 'flex-end', margin: 0, padding: 0,
+                justifyContent: 'flex-end', margin: 0, padding: 0, lineHeight: .9
             }}>
                 <Text style={{
                     width: '12.75%',
@@ -149,7 +150,7 @@ const Table = ({jobs, payStub}: { jobs: any[], payStub: PayStubsType }) => {
                 flexDirection: 'row',
                 width: '100%',
                 display: 'flex',
-                justifyContent: 'flex-end', margin: 0, padding: 0
+                justifyContent: 'flex-end', margin: 0, padding: 0, lineHeight: .9
             }}>
                 <Text style={{
                     width: '12.75%',
@@ -173,7 +174,7 @@ const Table = ({jobs, payStub}: { jobs: any[], payStub: PayStubsType }) => {
                 flexDirection: 'row',
                 width: '100%',
                 display: 'flex',
-                justifyContent: 'flex-end', margin: 0, padding: 0,
+                justifyContent: 'flex-end', margin: 0, padding: 0, lineHeight: .9
             }}>
                 <Text style={{
                     width: '12.75%',
@@ -197,7 +198,7 @@ const Table = ({jobs, payStub}: { jobs: any[], payStub: PayStubsType }) => {
                 flexDirection: 'row',
                 width: '100%',
                 display: 'flex',
-                justifyContent: 'flex-end', margin: 0, padding: 0
+                justifyContent: 'flex-end', margin: 0, padding: 0, lineHeight: .9
             }}>
                 <Text style={{
                     width: '12.75%',
@@ -222,7 +223,7 @@ const Table = ({jobs, payStub}: { jobs: any[], payStub: PayStubsType }) => {
                 flexDirection: 'row',
                 width: '100%',
                 display: 'flex',
-                justifyContent: 'flex-end', margin: 0, padding: 0
+                justifyContent: 'flex-end', margin: 0, padding: 0, lineHeight: .9
             }}>
                 <View style={{
                     flexDirection: 'row',
