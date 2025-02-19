@@ -16,11 +16,12 @@ const BlankRow = ({key}: { key: number }) => {
             borderRightWidth: 1,
             borderColor: 'black',
             margin: 0,
-            padding: 0
+            padding: 0,
+            lineHeight: .9
         },
         text: {
             color: 'white',
-            letterSpacing: 0,
+            //letterSpacing: 0,
             fontSize: 11,
             padding: 0
         },

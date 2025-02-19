@@ -16,7 +16,8 @@ const styles = StyleSheet.create({
         color: 'black',
         letterSpacing: 0,
         fontSize: 11,
-        fontFamily: 'Times-Bold'
+        fontFamily: 'Times-Bold',
+        lineHeight: 1.5
     },
     leftAlignNoPadding: {
         textAlign: 'center',

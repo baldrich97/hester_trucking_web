@@ -7,6 +7,7 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
         width: '100%',
         display: 'flex',
+        lineHeight: 1
     },
     innerContainer: {
         display: 'flex',

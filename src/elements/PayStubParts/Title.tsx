@@ -10,7 +10,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         textAlign: 'center',
         backgroundColor: '#D5DAB8',
-        width: '100%'
+        width: '100%',
     },
     title:{
         color: 'black',
@@ -22,7 +22,8 @@ const styles = StyleSheet.create({
         color: 'black',
         letterSpacing: 0,
         fontSize: 12,
-        fontFamily: 'Times-Roman'
+        fontFamily: 'Times-Roman',
+        lineHeight: 1.5
     }
 });
 
