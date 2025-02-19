@@ -56,6 +56,9 @@ const RHDatePicker = ({ name, control, required = false, defaultValue = '', shou
                     field.value = moment.utc(field.value, "YYYY-MM-DD").format('YYYY-MM-DD')
                     field.value += "T10:00:00.000Z"
                 }
+                if (name === 'StartDate') {
+                    field.value = moment(field.value).format("YYYY-MM-DD 08:00:00");
+                }
                 return (
                     <FormControl fullWidth={true} error={shouldError} onKeyPress={(e) => checkKeyDown(e)}>
                         <LocalizationProvider dateAdapter={AdapterDateFns}>
