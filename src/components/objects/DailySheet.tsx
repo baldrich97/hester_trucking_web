@@ -40,7 +40,7 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
     week: string,
     forceExpand: boolean,
     initialExpand: any,
-    toInvoiceButton: boolean
+    toInvoiceButton?: boolean
 }) => {
     const [isOpen, setIsOpen] = useState(forceExpand);
 
