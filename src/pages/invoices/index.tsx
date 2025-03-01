@@ -415,47 +415,47 @@ const Invoices = ({
         </div>
     );
 
-    const createConsolidated = trpc.useMutation("invoices.putConsolidated", {
-        async onSuccess(data) {
-            toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
-        },
-    });
+  const createConsolidated = trpc.useMutation("invoices.putConsolidated", {
+    async onSuccess(data) {
+      toast("Successfully Submitted!", { autoClose: 2000, type: "success" });
+    },
+  });
 
-    return (
-        <Grid2 container>
-            <Grid2 xs={8} sx={{paddingRight: 2.5}}>
-                <Box
-                    sx={{
-                        borderBottom: 1,
-                        borderColor: "divider",
-                        paddingBottom: 1,
-                        display: "flex",
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                    }}
-                >
-                    <Tabs value={tabValue} onChange={handleChange}>
-                        <Tab label="Unpaid"/>
-                        <Tab label="Paid"/>
-                        <Tab label="All"/>
-                        <Tab label="Consolidated"/>
-                    </Tabs>
-                    <Button
-                        type={"button"}
-                        variant={"contained"}
-                        style={{
-                            backgroundColor: "#FFA726",
-                            alignSelf: "flex-end",
-                            height: 32,
-                        }}
-                        onClick={() => {
-                            toggleModal(true);
-                        }}
-                    >
-                        Create Consolidated
-                    </Button>
-                </Box>
-                {/*<Grid2 xs={4}>
+  return (
+      <Grid2 container wrap={'nowrap'}>
+      <Grid2 xs={8} sx={{ paddingRight: 2.5 }}>
+        <Box
+          sx={{
+            borderBottom: 1,
+            borderColor: "divider",
+            paddingBottom: 1,
+            display: "flex",
+            flexDirection: "row",
+            justifyContent: "space-between",
+          }}
+        >
+          <Tabs value={tabValue} onChange={handleChange}>
+            <Tab label="Unpaid" />
+            <Tab label="Paid" />
+            <Tab label="All" />
+            <Tab label="Consolidated" />
+          </Tabs>
+          <Button
+            type={"button"}
+            variant={"contained"}
+            style={{
+              backgroundColor: "#FFA726",
+              alignSelf: "flex-end",
+              height: 32,
+            }}
+            onClick={() => {
+              toggleModal(true);
+            }}
+          >
+            Create Consolidated
+          </Button>
+        </Box>
+        {/*<Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Invoices'}/>
                 </Grid2>*/}
                 {tabValue === 0 && (

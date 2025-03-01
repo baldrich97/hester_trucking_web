@@ -57,7 +57,7 @@ const DeliveryLocations = ({loadtypes, count}: {loadtypes: LoadTypesType[], coun
     })
 
     return (
-        <Grid2 container>
+        <Grid2 container wrap={'nowrap'}>
             <Grid2 xs={8} sx={{paddingRight: 2.5}}>
                 <Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Load Types'}/>

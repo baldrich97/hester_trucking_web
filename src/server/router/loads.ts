@@ -3,6 +3,8 @@ import {z} from "zod";
 import {CustomerLoadTypesModel, LoadsModel} from '../../../prisma/zod';
 import {TRPCError} from "@trpc/server";
 
+type loadType = z.infer<typeof LoadsModel>;
+
 export const loadsRouter = createRouter()
     .query("getAll", {
         input: z.object({
@@ -14,20 +16,62 @@ export const loadsRouter = createRouter()
             deliveryLocation: z.number().optional(),
             orderBy: z.string().optional(),
             order: z.string().optional(),
-            search: z.number().nullish().optional()
+            search: z.number().nullish().optional(),
+            chosenLoad: z.any().optional()
         }),
         async resolve({ctx, input}) {
-            const { customer, driver, truck, loadType, deliveryLocation, search, order, orderBy, page } = input;
+            const {
+                customer,
+                driver,
+                truck,
+                loadType,
+                deliveryLocation,
+                search,
+                order,
+                orderBy,
+                page,
+                chosenLoad
+            } = input;
+            const epsilon = 0.001;
             const extra = {
-                ...(customer && { CustomerID: customer }),
-                ...(driver && { DriverID: driver }),
-                ...(truck && { TruckID: truck }),
-                ...(loadType && { LoadTypeID: loadType }),
-                ...(deliveryLocation && { DeliveryLocationID: deliveryLocation }),
-                ...(search && { TicketNumber: search }),
+                ...(customer && {CustomerID: customer}),
+                ...(driver && {DriverID: driver}),
+                ...(truck && {TruckID: truck}),
+                ...(loadType && {LoadTypeID: loadType}),
+                ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
+                ...(search && {TicketNumber: search}),
+                ...(chosenLoad?.MaterialRate && {
+                    MaterialRate: {
+                        gte: chosenLoad.MaterialRate - epsilon,
+                        lte: chosenLoad.MaterialRate + epsilon
+                    }
+                }),
+                ...(chosenLoad?.TruckRate && {
+                    TruckRate: {
+                        gte: chosenLoad.TruckRate - epsilon,
+                        lte: chosenLoad.TruckRate + epsilon
+                    }
+                }),
+                ...(chosenLoad?.DriverRate && {
+                    DriverRate: {
+                        gte: chosenLoad.DriverRate - epsilon,
+                        lte: chosenLoad.DriverRate + epsilon
+                    }
+                }),
+                ...(chosenLoad?.TotalRate && {
+                    TotalRate: {
+                        gte: chosenLoad.TotalRate - epsilon,
+                        lte: chosenLoad.TotalRate + epsilon
+                    }
+                }),
+                ...(chosenLoad?.StartDate && {
+                    StartDate: chosenLoad.StartDate
+                }),
+                ...(chosenLoad?.Week && {
+                    Week: chosenLoad.Week
+                }),
             };
 
-            console.log('INPUT', input)
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -51,7 +95,64 @@ export const loadsRouter = createRouter()
                     ...extra
                 },
                 take: 10,
-                skip: input.page ? 10 * input.page : 0
+                skip: page ? 10 * page : 0
+            });
+        },
+    })
+    .query("getUninv", {
+        input: z.object({
+            page: z.number().optional(),
+            customer: z.number().optional(),
+            truck: z.number().optional(),
+            driver: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional(),
+            search: z.number().nullish().optional()
+        }),
+        async resolve({ctx, input}) {
+            const {
+                customer,
+                driver,
+                truck,
+                loadType,
+                deliveryLocation,
+                search,
+                order,
+                orderBy,
+                page
+            } = input;
+            const epsilon = 0.001;
+            const extra = {
+                ...(customer && {CustomerID: customer}),
+                ...(driver && {DriverID: driver}),
+                ...(truck && {TruckID: truck}),
+                ...(loadType && {LoadTypeID: loadType}),
+                ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
+                ...(search && {TicketNumber: search}),
+            };
+
+
+            //const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
+            return ctx.prisma.loads.findMany({
+                include: {
+                    Customers: true,
+                    Trucks: true,
+                    Drivers: true,
+                    LoadTypes: true,
+                    DeliveryLocations: true
+                },
+                orderBy: {
+                    StartDate: 'asc'
+                },
+                where: {
+                    Deleted: null,
+                    Invoiced: null,
+                    ...extra
+                },
+                take: 10,
+                skip: page ? 10 * page : 0
             });
         },
     })
@@ -165,22 +266,86 @@ export const loadsRouter = createRouter()
             driver: z.number().optional(),
             loadType: z.number().optional(),
             deliveryLocation: z.number().optional(),
-            search: z.number().nullish().optional()
+            search: z.number().nullish().optional(),
+            chosenLoad: z.any().optional()
         }),
         async resolve({ctx, input}) {
-            const { customer, driver, truck, loadType, deliveryLocation, search} = input;
+            const {customer, driver, truck, loadType, deliveryLocation, search, chosenLoad} = input;
+            const epsilon = 0.001;
             const extra = {
-                ...(customer && { CustomerID: customer }),
-                ...(driver && { DriverID: driver }),
-                ...(truck && { TruckID: truck }),
-                ...(loadType && { LoadTypeID: loadType }),
-                ...(deliveryLocation && { DeliveryLocationID: deliveryLocation }),
-                ...(search && { TicketNumber: search }),
+                ...(customer && {CustomerID: customer}),
+                ...(driver && {DriverID: driver}),
+                ...(truck && {TruckID: truck}),
+                ...(loadType && {LoadTypeID: loadType}),
+                ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
+                ...(search && {TicketNumber: search}),
+                ...(chosenLoad?.MaterialRate && {
+                    MaterialRate: {
+                        gte: chosenLoad.MaterialRate - epsilon,
+                        lte: chosenLoad.MaterialRate + epsilon
+                    }
+                }),
+                ...(chosenLoad?.TruckRate && {
+                    TruckRate: {
+                        gte: chosenLoad.TruckRate - epsilon,
+                        lte: chosenLoad.TruckRate + epsilon
+                    }
+                }),
+                ...(chosenLoad?.DriverRate && {
+                    DriverRate: {
+                        gte: chosenLoad.DriverRate - epsilon,
+                        lte: chosenLoad.DriverRate + epsilon
+                    }
+                }),
+                ...(chosenLoad?.TotalRate && {
+                    TotalRate: {
+                        gte: chosenLoad.TotalRate - epsilon,
+                        lte: chosenLoad.TotalRate + epsilon
+                    }
+                }),
+                ...(chosenLoad?.StartDate && {
+                    StartDate: chosenLoad.StartDate
+                }),
+                ...(chosenLoad?.Week && {
+                    Week: chosenLoad.Week
+                }),
             };
 
             return ctx.prisma.loads.count({
                 where: {
                     Deleted: null,
+                    ...extra
+                }
+            });
+
+        }
+    })
+    .query('getUninvCount', {
+        input: z.object({
+            page: z.number().optional(),
+            customer: z.number().optional(),
+            truck: z.number().optional(),
+            driver: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
+            search: z.number().nullish().optional()
+        }),
+        async resolve({ctx, input}) {
+            const {customer, driver, truck, loadType, deliveryLocation, search} = input;
+            const epsilon = 0.001;
+            const extra = {
+                ...(customer && {CustomerID: customer}),
+                ...(driver && {DriverID: driver}),
+                ...(truck && {TruckID: truck}),
+                ...(loadType && {LoadTypeID: loadType}),
+                ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
+                ...(search && {TicketNumber: search}),
+            };
+
+            return ctx.prisma.loads.count({
+                where: {
+                    Deleted: null,
+                    Invoiced: null,
                     ...extra
                 }
             });
@@ -197,6 +362,37 @@ export const loadsRouter = createRouter()
             } else {
                 return false;
             }
+        }
+    })
+    .mutation('post_mass_edit', {
+        input: z.object({
+            selectedLoads: z.array(z.number()).optional(),
+            data: LoadsModel.omit({ID: true, Deleted: true}).optional()
+        }),
+        async resolve({ctx, input}) {
+            if (!input.data) {
+                return false;
+            }
+            await ctx.prisma.loads.updateMany({
+                where: {
+                    ID: { in: input.selectedLoads }
+                },
+                data: {
+                    CustomerID: input.data.CustomerID,
+                    DriverID: input.data.DriverID,
+                    TruckID: input.data.TruckID,
+                    LoadTypeID: input.data.LoadTypeID,
+                    DeliveryLocationID: input.data.DeliveryLocationID,
+                    StartDate: input.data.StartDate,
+                    Week: input.data.Week,
+                    MaterialRate: input.data.MaterialRate,
+                    TruckRate: input.data.TruckRate,
+                    DriverRate: input.data.DriverRate,
+                    TotalRate: input.data.TotalRate,
+                },
+            });
+
+            return true;
         }
     })
     .mutation('post_duplicate_checker', {

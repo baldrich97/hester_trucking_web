@@ -56,7 +56,7 @@ const Home = ({
                 </Box>
             </Grid2>
             <Grid2 xs={12}>
-                <Grid2 container>
+                <Grid2 container wrap={'nowrap'}>
                     {tabValue === 0 && (
 
                         <>

@@ -17,6 +17,7 @@ import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import {confirmAlert} from "react-confirm-alert";
 
 interface Data {
     "ID": number,
@@ -34,8 +35,8 @@ interface Data {
 }
 
 function descendingComparator<T>(a: any, b: any) {
-    const descA = a.LoadTypes?.Description ?? '';
-    const descB = b.LoadTypes?.Description ?? '';
+    const descA = a.LoadTypes?.StartDate ?? '';
+    const descB = b.LoadTypes?.StartDate ?? '';
 
     if (descB < descA) {
         return -1;
@@ -293,6 +294,7 @@ function Row(props: {
                 tabIndex={-1}
                 key={Math.random().toString()}
                 selected={isItemSelected}
+                sx={{backgroundColor: row.Weeklies?.Invoices?.Paid ? "#3acf00" : "#ff6161"}}
             >
                 {!readOnly && (
                     <TableCell padding="checkbox" size={"small"}>
@@ -302,9 +304,28 @@ function Row(props: {
                             inputProps={{
                                 "aria-labelledby": labelId,
                             }}
-                            onClick={(event) =>
-                                handleClick(event, row.ID.toString(), Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100)
-                            }
+                            onClick={() =>{
+                                if (!row.Weeklies?.Invoices?.Paid && !isItemSelected) {
+                                    confirmAlert({
+                                        title: "Confirm Non Paid Selection",
+                                        message: "This job's invoice has not yet been paid. Are you sure you want to add it to the paystub?",
+                                        buttons: [
+                                            {
+                                                label: "Yes",
+                                                onClick: async () => {
+                                                    handleClick(row.ID.toString(), Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100)
+                                                },
+                                            },
+                                            {
+                                                label: "No",
+                                                //onClick: () => {}
+                                            },
+                                        ],
+                                    });
+                                } else {
+                                    handleClick(row.ID.toString(), Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100)
+                                }
+                            }}
                         />
                     </TableCell>
                 )}
@@ -392,23 +413,50 @@ export default function PayStubJobs({
                                          readOnly,
                                          rows,
                                          updateTotal,
-                                         updateSelected
+                                         updateSelected,
+                                        initialSelected = null,
+    shouldClick = false,
+    setShouldClick = null,
+    parentSelected = [],
+    parentTotal = 0,
                                      }: {
     readOnly: boolean;
     rows: any[];
     updateTotal: any;
     updateSelected: any;
-
+    initialSelected?: any;
+    shouldClick?: boolean;
+    setShouldClick?: any;
+    parentSelected?: string[];
+    parentTotal?: number;
 }) {
     const [order, setOrder] = React.useState<Order>("asc");
     const [orderBy, setOrderBy] = React.useState<keyof Data>("DeliveryLocations");
-    const [selected, setSelected] = React.useState<readonly string[]>([]);
+    const [selected, setSelected] = React.useState<any>([]);
     const [total, setTotal] = React.useState<number>(0);
 
+
     React.useEffect(() => {
-        setSelected([]);
-        setTotal(0);
+        if (!!initialSelected && selected.length === 0 && shouldClick) {
+            setShouldClick(false)
+            handleClick(initialSelected.ID.toString(), (Math.round((calculateRevenue(initialSelected) + Number.EPSILON) * 100) / 100))
+        } else if (!initialSelected) {
+            setSelected([]);
+            setTotal(0);
+        }
     }, [rows]);
+
+    React.useEffect(() => {
+        if (parentSelected !== selected) {
+            setSelected(parentSelected)
+        }
+    }, [parentSelected])
+
+    React.useEffect(() => {
+        if (parentTotal !== total) {
+            setTotal(parentTotal)
+        }
+    }, [parentTotal])
 
     const handleRequestSort = (
         event: React.MouseEvent<unknown>,
@@ -439,14 +487,12 @@ export default function PayStubJobs({
     };
 
     const handleClick = (
-        event: React.MouseEvent<unknown>,
         ID: string,
         TotalAmount: number
     ) => {
-        //TODO FIX THIS
         const selectedIndex = selected.indexOf(ID);
-        let newSelected: readonly string[] = [];
-        let newTotal = 0;
+        let newSelected: string[] = [];
+        let newTotal = total;
 
         if (selectedIndex === -1) {
             newSelected = newSelected.concat(selected, ID);
@@ -465,8 +511,8 @@ export default function PayStubJobs({
             newTotal = total - TotalAmount;
         }
         setTotal(Math.round((newTotal + Number.EPSILON) * 100) / 100);
-        setSelected(newSelected);
         updateTotal(Math.round((newTotal + Number.EPSILON) * 100) / 100);
+        setSelected(newSelected);
         updateSelected(newSelected);
     };
 
@@ -475,15 +521,14 @@ export default function PayStubJobs({
     return (
         <Box sx={{ width: "100%" }}>
             <Paper sx={{ width: "100%", mb: 2 }}>
-                <EnhancedTableToolbar
+                {!readOnly &&  <EnhancedTableToolbar
                     numSelected={selected.length}
                     readOnly={readOnly}
-                />
+                />}
                 <TableContainer>
                     <Table
                         aria-labelledby="tableTitle"
                         size={"small"}
-                        //sx={{minWidth: 750}}
                     >
                         <EnhancedTableHead
                             numSelected={selected.length}

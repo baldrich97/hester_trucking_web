@@ -575,7 +575,9 @@ const Invoice = ({
               />
           ) : (
               <InvoiceWeeklies
+                  key={initialInvoice ? initialInvoice.Paid ? 'paid-true' : 'paid-false' : 'invweeks'}
                   readOnly={!!initialInvoice}
+                  isPaid={initialInvoice ? initialInvoice.Paid : false}
                   rows={weeklies.length > 0 ? weeklies : customerWeeklies ?? []}
                   updateTotal={(newTotal: number) => {
                     setValue("TotalAmount", newTotal);

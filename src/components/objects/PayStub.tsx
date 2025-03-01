@@ -37,27 +37,34 @@ interface PayStubData extends PayStubsType {
 
 const defaultValues = {
     Created: new Date(),
-    FedTax: 2.757,
-    StateTax: 1.655,
-    SSTax: 2.500,
-    MedTax: 5.123,
+    Deductions: 0,
+    Additions: 0,
+    DepositDate: new Date(),
     Percentage: 0,
     CheckNumber: '',
+    Gross: 0,
+    TakeHome: 0,
+    NetTotal: 0
 };
 
 const PayStub = ({
                      drivers,
                      initialPayStub = null,
+                     initialJob = null,
+                     closeModal = null
                  }: {
     drivers: DriversType[];
     initialPayStub?: null | PayStubData;
+    initialJob?: null | JobsType;
     refreshData?: any;
+    closeModal?: any;
 }) => {
-    const [driver, setDriver] = useState(0);
-    const [shouldFetchJobs, setShouldFetchJobs] = useState(false);
+    const [driver, setDriver] = useState(initialJob ? initialJob.DriverID : 0);
+    const [shouldFetchJobs, setShouldFetchJobs] = useState(!!initialJob);
     const [driverJobs, setDriverJobs] = useState<any>([]);
+    const [shouldClick, setShouldClick] = React.useState<boolean>(true);
     const [selected, setSelected] = useState<any>(
-        !initialPayStub ? [] : initialPayStub.Jobs?.map((job) => job.ID.toString())
+        !initialPayStub ? initialJob ? [initialJob.ID] : [] : initialPayStub.Jobs?.map((job) => job.ID.toString())
     );
     //this is for forcing it to rerender
     const [_, forceUpdate] = React.useReducer((x) => x + 1, 0);
@@ -65,7 +72,6 @@ const PayStub = ({
     const handleOpen = () => setOpen(true);
     const handleClose = () => setOpen(false);
     const router = useRouter();
-
 
     let validationSchema = initialPayStub
         ? PayStubsModel
@@ -90,6 +96,12 @@ const PayStub = ({
         defaultValues: initialPayStub ?? defaultValues,
     });
 
+    const grossValue = watch("Gross");
+
+    // React.useEffect(() => {
+    //     defaultValues.Gross = grossValue;
+    // }, [grossValue])
+
     if (initialPayStub) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
@@ -103,7 +115,13 @@ const PayStub = ({
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             reset(initialPayStub ? data : defaultValues);
+            console.log('IN HERE')
             toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
+
+            if (closeModal) {
+                closeModal()
+                window.location.reload();
+            }
         },
         async onError(error) {
             toast("There was an issue creating this invoice. The issue was: " + error.message, {
@@ -169,10 +187,8 @@ const PayStub = ({
             if (["Gross", "Percentage"].includes(name ?? "") || (name === "NetTotal" && type === "change")) {
                 const nettotal = (name === "NetTotal" && type === "change") ? value.NetTotal ?? 0 : (Math.round(((((value.Gross ?? 0) * (value.Percentage ? (value.Percentage / 100) : 1))) + Number.EPSILON) * 100) / 100);
 
-                const fedtax = value.FedTax ? nettotal * (value.FedTax / 100) : 0;
-                const statetax = value.StateTax ? nettotal * (value.StateTax / 100) : 0;
-                const sstax = value.SSTax ? nettotal * (value.SSTax / 100) : 0;
-                const medtax = value.MedTax ? nettotal * (value.MedTax / 100) : 0;
+                const adds = value.Additions ? value.Additions : 0;
+                const deds = value.Deductions ? value.Deductions : 0;
 
                 if (name === "NetTotal" && type === "change") {
                     //do nothing
@@ -180,21 +196,19 @@ const PayStub = ({
                     setValue("NetTotal", nettotal);
                 }
 
-                setValue("TakeHome", (Math.round(((nettotal - fedtax - statetax - sstax - medtax) + Number.EPSILON) * 100) / 100), {
+                setValue("TakeHome", (Math.round(((nettotal - deds + adds) + Number.EPSILON) * 100) / 100), {
                     shouldValidate: true,
                     shouldDirty: true
                 });
             }
 
-            if (["FedTax", "StateTax", "SSTax", "MedTax"].includes(name ?? "")) {
+            if (["Additions", "Deductions"].includes(name ?? "")) {
                 const nettotal = (value.Gross ?? 0) * (value.Percentage ? (value.Percentage / 100) : 1);
 
-                const fedtax = value.FedTax ? value.FedTax : 0;
-                const statetax = value.StateTax ? value.StateTax : 0;
-                const sstax = value.SSTax ? value.SSTax : 0;
-                const medtax = value.MedTax ? value.MedTax : 0;
+                const adds = value.Additions ? value.Additions : 0;
+                const deds = value.Deductions ? value.Deductions : 0;
 
-                setValue("TakeHome", (Math.round(((nettotal - fedtax - statetax - sstax - medtax) + Number.EPSILON) * 100) / 100), {
+                setValue("TakeHome", (Math.round(((nettotal - deds + adds) + Number.EPSILON) * 100) / 100), {
                     shouldValidate: true,
                     shouldDirty: true
                 });
@@ -216,11 +230,11 @@ const PayStub = ({
                 searchQuery: "drivers",
             },
             {
-                name: "Created",
+                name: "DepositDate",
                 size: 5,
                 required: false,
                 type: "date",
-                label: 'Invoice Date',
+                label: 'Deposit Date',
             },
             {
                 name: "CheckNumber",
@@ -246,7 +260,15 @@ const PayStub = ({
                 size: 2,
                 required: false,
                 type: "date",
-                label: 'Invoice Date',
+                label: 'Created',
+                disabled: true
+            },
+            {
+                name: "DepositDate",
+                size: 2,
+                required: false,
+                type: "date",
+                label: 'Deposit Date',
                 disabled: true
             },
             {
@@ -259,7 +281,7 @@ const PayStub = ({
             },
             {
                 name: "CheckNumber",
-                size: 4,
+                size: 2,
                 required: false,
                 type: "textfield",
                 label: "Check Number",
@@ -267,7 +289,7 @@ const PayStub = ({
         ]
 
 
-    const fields2: FormFieldsType = [{name: "", size: 6, required: false, type: "padding"},
+    const fields2: FormFieldsType = [
         {
             name: "Gross",
             size: 6,
@@ -276,7 +298,6 @@ const PayStub = ({
             number: true,
             disabled: !!initialPayStub
         },
-        {name: "", size: 6, required: false, type: "padding"},
         {
             name: "Percentage",
             label: "Percentage (eg. 2.75)",
@@ -286,7 +307,15 @@ const PayStub = ({
             number: true,
             disabled: !!initialPayStub
         },
-        {name: "", size: 6, required: false, type: "padding"},
+
+        {
+            name: "Additions",
+            size: 6,
+            required: false,
+            type: "textfield",
+            number: true,
+            disabled: !!initialPayStub
+        },
         {
             name: "NetTotal",
             label: "Net Total",
@@ -296,45 +325,14 @@ const PayStub = ({
             number: true,
             disabled: !!initialPayStub
         },
-        {name: "", size: 6, required: false, type: "padding"},
         {
-            name: "FedTax",
-            label: "Fed Tax",
-            size: 3,
+            name: "Deductions",
+            size: 6,
             required: false,
             type: "textfield",
             number: true,
             disabled: !!initialPayStub
         },
-        {
-            name: "StateTax",
-            label: "State Tax",
-            size: 3,
-            required: false,
-            type: "textfield",
-            number: true,
-            disabled: !!initialPayStub
-        },
-        {name: "", size: 6, required: false, type: "padding"},
-        {
-            name: "SSTax",
-            label: "SS Tax",
-            size: 3,
-            required: false,
-            type: "textfield",
-            number: true,
-            disabled: !!initialPayStub
-        },
-        {
-            name: "MedTax",
-            label: "Med Tax",
-            size: 3,
-            required: false,
-            type: "textfield",
-            number: true,
-            disabled: !!initialPayStub
-        },
-        {name: "", size: 6, required: false, type: "padding"},
         {
             name: "TakeHome",
             label: "Take Home Total",
@@ -342,6 +340,15 @@ const PayStub = ({
             required: false,
             type: "textfield",
             number: true,
+            disabled: !!initialPayStub
+        },
+        {
+            name: "Notes",
+            size: 12,
+            required: false,
+            type: "textfield",
+            multiline: true,
+            maxRows: 10,
             disabled: !!initialPayStub
         },];
 
@@ -351,7 +358,7 @@ const PayStub = ({
             data: drivers,
             optionValue: "ID",
             optionLabel: "FirstName+LastName",
-            defaultValue: initialPayStub ? initialPayStub.DriverID : null,
+            defaultValue: initialJob ? initialJob.DriverID : initialPayStub ? initialPayStub.DriverID : null,
         },
     ];
 
@@ -437,6 +444,7 @@ const PayStub = ({
                             )}
                             errorMessage={field.errorMessage}
                             label={field.label}
+                            disabled={field.disabled}
                         />
                     </Grid2>
                 );
@@ -506,6 +514,7 @@ const PayStub = ({
 
                 <Grid2 xs={12}>
                     <PayStubJobs
+                        key={grossValue}
                         readOnly={!!initialPayStub}
                         rows={(initialPayStub && initialPayStub.Jobs.length > 0) ? initialPayStub.Jobs : driverJobs ?? []}
                         updateTotal={(newTotal: number) => {
@@ -518,6 +527,11 @@ const PayStub = ({
                             // @ts-ignore
                             setValue("selected", newSelected);
                         }}
+                        initialSelected={initialJob ? initialJob : null}
+                        shouldClick={shouldClick}
+                        setShouldClick={setShouldClick}
+                        parentSelected={selected}
+                        parentTotal={grossValue}
                     />
                 </Grid2>
 

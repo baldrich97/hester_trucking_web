@@ -93,6 +93,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         };
     }
 
+    console.log('ASD;LFKJASDF;LKASDJFA', initialPaystub)
+
     const drivers = await prisma.drivers.findMany({});
 
     return {
