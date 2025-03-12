@@ -45,7 +45,7 @@ const Header = ({ driver, invoiceDate, checkNumber }: { driver: string; invoiceD
             </View>
 
             <View style={styles.column}>
-                <Text style={{...styles.label, marginRight: 25}}>Invoice Date:</Text>
+                <Text style={{...styles.label, marginRight: 25}}>Deposit Date:</Text>
                 <Text style={styles.data}>{invoiceDate}</Text>
             </View>
         </View>

@@ -127,14 +127,15 @@ export const dailiesRouter = createRouter()
                        JOIN Jobs ON Jobs.DailyID = Dailies.ID
                        LEFT JOIN Loads ON Loads.JobID = Jobs.ID
                        LEFT JOIN PayStubs ON Jobs.PayStubID = PayStubs.ID
-              WHERE Drivers.OwnerOperator <> TRUE
+              WHERE Drivers.OwnerOperator IS NOT TRUE
                 AND Dailies.Week != ${defaultWeek}
                 AND (
-                  Jobs.PaidOut <> TRUE
+                  Jobs.PaidOut IS NOT TRUE
                  OR (Jobs.PayStubID IS NOT NULL
-                AND Loads.Created
+                AND (SELECT MAX(l.Created) FROM Loads l WHERE l.JobID = Jobs.ID)
                   > PayStubs.Created)
                   )
+                AND (SELECT MAX(l2.StartDate) FROM Loads l2 WHERE l2.JobID = Jobs.ID) >= "2025-02-01"
               ORDER BY Dailies.ID ASC
                   LIMIT 10
               OFFSET ${10 * (page - 1)};`;
@@ -153,14 +154,15 @@ export const dailiesRouter = createRouter()
                     JOIN Jobs ON Jobs.DailyID = Dailies.ID
                     LEFT JOIN Loads ON Loads.JobID = Jobs.ID
                     LEFT JOIN PayStubs ON Jobs.PayStubID = PayStubs.ID
-                WHERE Drivers.OwnerOperator <> TRUE
+                WHERE Drivers.OwnerOperator IS NOT TRUE
                   AND Dailies.Week != ${defaultWeek}
                   AND (
-                    Jobs.PaidOut <> TRUE
+                    Jobs.PaidOut IS NOT TRUE
                    OR (Jobs.PayStubID IS NOT NULL
-                  AND Loads.Created
+                  AND (SELECT MAX(l.Created) FROM Loads l WHERE l.JobID = Jobs.ID)
                     > PayStubs.Created)
-                    );
+                    )
+                  AND (SELECT MAX(l2.StartDate) FROM Loads l2 WHERE l2.JobID = Jobs.ID) >= "2025-02-01";
             `;
 
             ctx.warnings.push(countData ? `${countData[0]?.count}` : '0')
@@ -207,6 +209,13 @@ export const dailiesRouter = createRouter()
                         some: {
                             Drivers: {OwnerOperator: true},
                             PaidOut: {not: true}, // Ensure there are Jobs where PaidOut is false
+                            Loads: {
+                                some: {
+                                    Created: {
+                                        gte: new Date("2025-01-01")
+                                    }
+                                }
+                            }
                         },
                     },
                 },

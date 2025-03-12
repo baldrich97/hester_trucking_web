@@ -285,6 +285,19 @@ function Sidenav(props: any) {
                     </ListItemButton>
                 </NextLink>
 
+                <NextLink href="/paystubs" passHref>
+                    <ListItemButton
+                        selected={selectedIndex === 11}
+                        onClick={() => setSelectedIndex(11)}
+                    >
+                        <ListItemIcon>
+                            <PaymentsIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="Paystubs" />
+                    </ListItemButton>
+                </NextLink>
+
+
                 <NextLink href="/trucks" passHref>
                     <ListItemButton
                         selected={selectedIndex === 8}
@@ -296,9 +309,6 @@ function Sidenav(props: any) {
                         <ListItemText primary="Trucks" />
                     </ListItemButton>
                 </NextLink>
-
-
-
 
 
 
@@ -346,31 +356,6 @@ function Sidenav(props: any) {
                     </List>
                 </Collapse>
 
-
-
-                <NextLink href="/weeklies" passHref>
-                    <ListItemButton
-                        selected={selectedIndex === 10}
-                        onClick={() => setSelectedIndex(10)}
-                    >
-                        <ListItemIcon>
-                            <CalendarMonth />
-                        </ListItemIcon>
-                        <ListItemText primary="Weeklies" />
-                    </ListItemButton>
-                </NextLink>
-
-                <NextLink href="/paystubs" passHref>
-                    <ListItemButton
-                        selected={selectedIndex === 11}
-                        onClick={() => setSelectedIndex(11)}
-                    >
-                        <ListItemIcon>
-                            <PaymentsIcon />
-                        </ListItemIcon>
-                        <ListItemText primary="Paystubs" />
-                    </ListItemButton>
-                </NextLink>
             </List>
         </Drawer>
 

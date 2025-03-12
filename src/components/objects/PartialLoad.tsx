@@ -110,8 +110,6 @@ function PartialLoad({
         defaultValues: initialLoad ?? defaultValues,
     });
 
-    console.log('ERRORSW', errors)
-
     const doMassEdit = trpc.useMutation('loads.post_mass_edit', {
         async onSuccess() {
             toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
@@ -135,9 +133,6 @@ function PartialLoad({
             {key: "DeliveryLocationID", name: "Delivery Location ID"},
             {key: "StartDate", name: "Start Date"},
             {key: "Week", name: "Week"},
-            {key: "MaterialRate", name: "Material Rate"},
-            {key: "TruckRate", name: "Truck Rate"},
-            {key: "DriverRate", name: "Driver Rate"},
             {key: "TotalRate", name: "Total Rate"},
         ];
 

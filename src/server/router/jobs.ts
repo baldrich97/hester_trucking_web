@@ -392,29 +392,25 @@ export const jobsRouter = createRouter()
         }),
         async resolve({ctx, input}) {
             const driver = await ctx.prisma.drivers.findUnique({where: {ID: input.driver}})
-            const ownerOperator = driver?.OwnerOperator;
+            const ownerOperator = !!driver?.OwnerOperator;
             const date = new Date();
             const defaultWeek = formatDateToWeek(date);
 
+            //removed from below for now
+            //AND (${ownerOperator} = true OR ${ownerOperator} = false)
             const jobIds =
-                await ctx.prisma.$queryRaw<Array<{ ID: number }>>`SELECT DISTINCT(j.ID) FROM Jobs j
-            LEFT JOIN Weeklies w ON j.WeeklyID = w.ID
-            LEFT JOIN Invoices i ON w.InvoiceID = i.ID
-            LEFT JOIN PayStubs ps ON j.PayStubID = ps.ID
-            LEFT JOIN Loads l ON i.ID = l.InvoiceID
-            WHERE j.DriverID = ${input.driver}
-            AND (
-                (${ownerOperator} = true AND
-                j.PaidOut != true AND
-                
-                w.Week != ${defaultWeek})
-            OR
-                (${ownerOperator} = false AND
-                j.PaidOut != TRUE
-                OR (j.PayStubID IS NOT NULL AND (SELECT MAX(l1.Created) FROM Loads l1 WHERE l1.JobID = j.ID) > ps.Created)
-                AND w.Week != ${defaultWeek})
-                )
-            ORDER BY l.StartDate ASC;`
+                await ctx.prisma.$queryRaw<Array<{ ID: number }>>`SELECT DISTINCT(j.ID)
+                                                                  FROM Jobs j
+                                                                           LEFT JOIN Weeklies w ON j.WeeklyID = w.ID
+                                                                           LEFT JOIN Invoices i ON w.InvoiceID = i.ID
+                                                                           LEFT JOIN PayStubs ps ON j.PayStubID = ps.ID
+                                                                           LEFT JOIN Loads l ON i.ID = l.InvoiceID
+                                                                  WHERE j.DriverID = ${input.driver}
+                                                                    AND (j.PaidOut != TRUE OR (j.PayStubID IS NOT NULL AND (SELECT MAX(l1.Created) FROM Loads l1 WHERE l1.JobID = j.ID) > ps.Created))
+                                                                    AND w.Week != ${defaultWeek}
+                                                                    AND (SELECT MAX(l2.StartDate) FROM Loads l2 WHERE l2.JobID = j.ID) >= "2025-02-01"
+                                                                    AND (SELECT COUNT(*) FROM Loads l3 WHERE l3.JobID = j.ID) > 0
+                                                                  ORDER BY l.StartDate ASC;`
 
             const ids = jobIds.map(record => record.ID);
 

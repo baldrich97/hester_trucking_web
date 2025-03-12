@@ -22,6 +22,7 @@ interface PayStubData extends PayStubsType {
 
 const columns: TableColumnsType = [
     {name: 'Created'},
+    {name: 'DepositDate', as: 'Deposit Date'},
     {name: 'Drivers.FirstName+Drivers.LastName', as: 'Driver', column: 'DriverID'},
     {name: 'Gross', as: 'Gross Pay'},
     {name: 'NetTotal', as: 'Net Pay'},
@@ -32,6 +33,7 @@ const columns: TableColumnsType = [
 
 const overrides: TableColumnOverridesType = [
     {name: 'Created', type: 'date'},
+    {name: 'DepositDate', type: 'date'},
     {name: 'ID', type: 'button'}
 ]
 

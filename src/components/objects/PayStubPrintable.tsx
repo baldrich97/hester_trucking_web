@@ -49,7 +49,7 @@ const PayStubPrintable = ({payStub}: { payStub: PayStubData}) => {
                 <PayStubParts.Title/>
                 <Html>{linebreakhtml}</Html>
                 <PayStubParts.Header driver={(Drivers.FirstName + " " + Drivers.LastName)}
-                                     invoiceDate={new Date(rest.Created).toLocaleDateString('en-US', {timeZone: 'UTC'})}
+                                     invoiceDate={new Date(rest.DepositDate ?? rest.Created).toLocaleDateString('en-US', {timeZone: 'UTC'})}
                                      checkNumber={rest.CheckNumber ? rest.CheckNumber : 'N/A'}/>
                 <PayStubParts.Table jobs={Jobs} payStub={rest}/>
 
