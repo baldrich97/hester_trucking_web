@@ -413,7 +413,7 @@ export const loadsRouter = createRouter()
             const {
                 DriverID, TruckID, StartDate, CustomerID, LoadTypeID,
                 DeliveryLocationID, TruckRate, MaterialRate, Week,
-                TotalRate, DriverRate
+                TotalRate, DriverRate, Weight, Hours
             } = input;
 
             // 🛡️ **Validation Checks**
@@ -430,6 +430,13 @@ export const loadsRouter = createRouter()
                         message: field.message,
                     });
                 }
+            }
+
+            if (!Weight && !Hours) {
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'This load is missing either weight or hours.'
+                })
             }
 
             if (!DriverID || !DeliveryLocationID || !LoadTypeID || !TruckID || !CustomerID) {
