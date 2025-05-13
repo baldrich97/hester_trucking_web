@@ -1,6 +1,7 @@
 generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["interactiveTransactions", "fullTextSearch", "fullTextIndex"]
+  binaryTargets   = ["native", "debian-openssl-3.0.x"] // Good default for Vercel
 }
 
 generator zod {
