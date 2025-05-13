@@ -1,6 +1,6 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import {CustomerLoadTypesModel, LoadsModel} from '../../../prisma/zod';
+import {LoadsModel} from '../../../prisma/zod';
 import {TRPCError} from "@trpc/server";
 
 type loadType = z.infer<typeof LoadsModel>;
@@ -444,14 +444,17 @@ export const loadsRouter = createRouter()
             }
 
             // 🗂️ **Fetch daily and weekly records in parallel**
-            const [daily, weeklyRecord] = await Promise.all([
-                ctx.prisma.dailies.findFirst({where: {DriverID, Week}}),
-                ctx.prisma.weeklies.findFirst({
-                    where: {CustomerID, Week, DeliveryLocationID, LoadTypeID, InvoiceID: null, Revenue: null}
-                }),
-            ]);
+            const daily= await ctx.prisma.dailies.findFirst({where: {DriverID, Week}});
+            const weeklies = await ctx.prisma.weeklies.findMany({
+                where: {CustomerID, Week, DeliveryLocationID, LoadTypeID, InvoiceID: null, Revenue: null}
+            });
 
-            let weekly = weeklyRecord;
+            let weekly = weeklies.find(weekly => {
+                const compareRates = (a: number | null | undefined, b: number | null | undefined) =>
+                    parseFloat((a ?? 0).toFixed(2)) === parseFloat((b ?? 0).toFixed(2));
+
+                return (compareRates(weekly.CompanyRate, TotalRate));
+            });
 
             // 🛠️ **If Daily Exists**
             if (daily) {
@@ -628,16 +631,16 @@ export const loadsRouter = createRouter()
             })
 
             if (daily) {
-                let weekly = await ctx.prisma.weeklies.findFirst({
-                    where: {
-                        CustomerID: CustomerID,
-                        Week: Week,
-                        DeliveryLocationID: DeliveryLocationID,
-                        LoadTypeID: LoadTypeID,
-                        InvoiceID: null,
-                        Revenue: null
-                    }
-                })
+                const weeklies = await ctx.prisma.weeklies.findMany({
+                    where: {CustomerID, Week, DeliveryLocationID, LoadTypeID, InvoiceID: null, Revenue: null}
+                });
+
+                let weekly = weeklies.find(weekly => {
+                    const compareRates = (a: number | null | undefined, b: number | null | undefined) =>
+                        parseFloat((a ?? 0).toFixed(2)) === parseFloat((b ?? 0).toFixed(2));
+
+                    return (compareRates(weekly.CompanyRate, TotalRate));
+                });
 
                 if (!weekly) {
                     //Create a new weekly with the corresponding info
