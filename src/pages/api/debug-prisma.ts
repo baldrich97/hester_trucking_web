@@ -9,6 +9,8 @@ const handler: NextApiHandler = (req, res) => {
     try {
         files = fs.readdirSync(folder);
     } catch (e) {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
         files = [`Error reading ${folder}: ${e.message}`];
     }
     res.json({
