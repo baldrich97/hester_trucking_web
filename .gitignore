@@ -38,3 +38,8 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
+
+# prisma engine (manually included to avoid OpenSSL 3.2 errors on Vercel)
+!node_modules/.prisma
+!node_modules/.prisma/client
+
