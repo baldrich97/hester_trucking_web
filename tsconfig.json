@@ -15,7 +15,10 @@
     "jsx": "preserve",
     "incremental": true,
     "noUncheckedIndexedAccess": true,
-    "baseUrl": "src"
+    "baseUrl": "src",
+    "paths": {
+      "@prisma/client": ["../prisma/generated/client"]
+    }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.cjs", "**/*.mjs", "types/**/*.ts", "src"],
   "exclude": ["node_modules"]

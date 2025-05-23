@@ -2,9 +2,6 @@
 
 # dependencies
 /node_modules
-# Allow Prisma engine binaries to be committed
-!node_modules/.prisma/
-!node_modules/.prisma/client/
 
 /.pnp
 .pnp.js
@@ -43,7 +40,5 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
-# prisma engine (manually included to avoid OpenSSL 3.2 errors on Vercel)
-!node_modules/.prisma
-!node_modules/.prisma/client
-
+# Don't ignore the generated Prisma client
+!prisma/generated/
