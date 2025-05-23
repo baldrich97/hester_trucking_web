@@ -2,7 +2,6 @@
 
 # dependencies
 /node_modules
-/node_modules/.prisma
 
 
 /.pnp
@@ -41,8 +40,3 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-
-!prisma/generated/
-!prisma/generated/client/
-!prisma/generated/client/**
-
