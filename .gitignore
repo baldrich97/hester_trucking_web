@@ -2,6 +2,10 @@
 
 # dependencies
 /node_modules
+# Allow Prisma engine binaries to be committed
+!node_modules/.prisma/
+!node_modules/.prisma/client/
+
 /.pnp
 .pnp.js
 
