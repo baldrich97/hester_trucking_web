@@ -2,7 +2,7 @@ generator client {
   provider        = "prisma-client-js"
   output          = "./generated/client"
   previewFeatures = ["interactiveTransactions", "fullTextSearch", "fullTextIndex"]
-  binaryTargets   = ["rhel-openssl-3.0.x"]
+    binaryTargets = ["native"]
 }
 
 generator zod {

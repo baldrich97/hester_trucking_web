@@ -410,7 +410,7 @@ const config = {
     "binaryTargets": [
       {
         "fromEnvVar": null,
-        "value": "rhel-openssl-3.0.x"
+        "value": "windows"
       }
     ],
     "previewFeatures": [
@@ -450,7 +450,7 @@ const PrismaClient = getPrismaClient(config)
 exports.PrismaClient = PrismaClient
 Object.assign(exports, Prisma)
 
-path.join(__dirname, "libquery_engine-rhel-openssl-3.0.x.so.node");
-path.join(process.cwd(), "prisma\\generated\\client\\libquery_engine-rhel-openssl-3.0.x.so.node")
+path.join(__dirname, "query_engine-windows.dll.node");
+path.join(process.cwd(), "prisma\\generated\\client\\query_engine-windows.dll.node")
 path.join(__dirname, "schema.prisma");
 path.join(process.cwd(), "prisma\\generated\\client\\schema.prisma")
