@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+/node_modules/.prisma
+
 
 /.pnp
 .pnp.js
@@ -40,5 +42,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 
-# Don't ignore the generated Prisma client
 !prisma/generated/
+!prisma/generated/client/
+!prisma/generated/client/**
+
