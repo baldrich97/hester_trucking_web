@@ -17,14 +17,31 @@ export const invoicesRouter = createRouter()
             order: z.string().optional()
         }),
         async resolve({ctx, input}) {
-            const extra = [];
-            if (input.search && input.search.toString().length > 0) {
-                extra.push({TotalAmount: input.search})
-                if (!input.search.toString().includes('.')) {
-                    extra.push({Number: input.search})
-                }
-            }
-            const {order, orderBy} = input;
+            const {search, customer, order, loadType, deliveryLocation, orderBy} = input;
+
+            const extra = {
+                ...(search && search?.toString().length > 0 && {
+                    OR: [
+                        {TotalAmount: search},
+                        ...(!search.toString().includes('.') ? [{Number: search}] : [])
+                    ]
+                }),
+                ...(customer !== 0 && {CustomerID: customer}),
+                ...(deliveryLocation && {
+                    Loads: {
+                        some: {
+                            DeliveryLocationID: deliveryLocation
+                        }
+                    }
+                }),
+                ...(loadType && {
+                    Loads: {
+                        some: {
+                            LoadTypeID: loadType
+                        }
+                    }
+                }),
+            };
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
@@ -33,21 +50,10 @@ export const invoicesRouter = createRouter()
             // @ts-ignore
             orderObj[orderBy] = order;
 
-            if (input.customer !== 0) {
-                extra.push({CustomerID: input.customer})
-            }
+
             return ctx.prisma.invoices.findMany({
                 where: {
-                    OR: [
-                        {Paid: true}, {Paid: false}, {Paid: null}
-                    ],
-                    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                    // @ts-ignore
-                    AND: {
-                        OR: [
-                            ...extra
-                        ],
-                    }
+                    ...extra
                 },
                 take: 10,
                 include: {
@@ -74,8 +80,10 @@ export const invoicesRouter = createRouter()
 
             const extra = {
                 ...(search && search?.toString().length > 0 && {
-                    TotalAmount: search,
-                    ...(!search.toString().includes('.') && {Number: search})
+                    OR: [
+                        {TotalAmount: search},
+                        ...(!search.toString().includes('.') ? [{Number: search}] : [])
+                    ]
                 }),
                 ...(customer !== 0 && {CustomerID: customer}),
                 ...(deliveryLocation && {
@@ -94,6 +102,8 @@ export const invoicesRouter = createRouter()
                 }),
             };
 
+            console.log('HERE', extra)
+
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             const orderObj = {};
@@ -104,6 +114,7 @@ export const invoicesRouter = createRouter()
             return ctx.prisma.invoices.findMany({
                 where: {
                     Paid: true,
+                    Consolidated: false,
                     ...extra
                 },
                 include: {
@@ -132,8 +143,10 @@ export const invoicesRouter = createRouter()
 
             const extra = {
                 ...(search && search?.toString().length > 0 && {
-                    TotalAmount: search,
-                    ...(!search.toString().includes('.') && {Number: search})
+                    OR: [
+                        {TotalAmount: search},
+                        ...(!search.toString().includes('.') ? [{Number: search}] : [])
+                    ]
                 }),
                 ...(customer !== 0 && {CustomerID: customer}),
                 ...(deliveryLocation && {
