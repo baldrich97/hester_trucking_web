@@ -254,17 +254,53 @@ export const weekliesRouter = createRouter()
 //         })
 //     },
 // })
-// .mutation('post', {
-//     // validate input with Zod
-//     input: DailiesModel,
-//     async resolve({ctx, input}) {
-//         const {ID, ...data} = input;
-//         // use your ORM of choice
-//         return ctx.prisma.dailies.update({
-//             where: {
-//                 ID: ID
-//             }, data: data
-//         })
-//     },
-// });
+.mutation('post', {
+    // validate input with Zod
+    input: WeekliesModel,
+    async resolve({ctx, input}) {
+        const {ID, ...data} = input;
+
+        //update all associated Jobs with the fkeys
+        const jobsToUpdate = await ctx.prisma.jobs.findMany({
+            where: {
+                WeeklyID: ID,
+            },
+            select: {
+                ID: true,
+            },
+        });
+
+        const jobIds = jobsToUpdate.map(job => job.ID);
+
+        await ctx.prisma.jobs.updateMany({
+            where: {
+                ID: { in: jobIds },
+            },
+            data: {
+                CustomerID: data.CustomerID,
+                LoadTypeID: data.LoadTypeID,
+                DeliveryLocationID: data.DeliveryLocationID,
+            },
+        });
+
+        //update all loads
+        await ctx.prisma.loads.updateMany({
+            where: {
+                JobID: { in: jobIds },
+            },
+            data: {
+                CustomerID: data.CustomerID,
+                LoadTypeID: data.LoadTypeID,
+                DeliveryLocationID: data.DeliveryLocationID,
+            },
+        });
+
+        // use your ORM of choice
+        return ctx.prisma.weeklies.update({
+            where: {
+                ID: ID
+            }, data: data
+        })
+    },
+});
 

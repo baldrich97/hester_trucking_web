@@ -27,6 +27,13 @@ import {confirmAlert} from "react-confirm-alert";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import {trpc} from "../../utils/trpc";
 import NextLink from "next/link";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
+import PayStub from "./PayStub";
+import Modal from "@mui/material/Modal";
+import BasicAutocomplete from "../../elements/Autocomplete";
 
 type DeliveryLocation = z.infer<typeof DeliveryLocationsModel>;
 
@@ -50,8 +57,24 @@ const WeeklySheet = ({
                          week,
                          forceExpand,
                          initialExpand = null,
-                     }: { weekly: CustomerSheet, week: string, forceExpand: boolean, initialExpand: any }) => {
+                         forceRefresh = null,
+                     }: { weekly: CustomerSheet, week: string, forceExpand: boolean, initialExpand: any, forceRefresh: any }) => {
     const [isOpen, setIsOpen] = useState(forceExpand);
+    const [openWeeklyModal, setOpenWeeklyModal] = useState(false)
+
+    const [weeklyCustomer, setWeeklyCustomer] = useState(weekly.CustomerID)
+    const [weeklyLoadType, setWeeklyLoadType] = useState(weekly.LoadTypeID)
+    const [weeklyDeliveryLocation, setWeeklyDeliveryLocation] = useState(weekly.DeliveryLocationID)
+
+    const updateWeekly = trpc.useMutation("weeklies.post", {
+        async onSuccess(data) {
+            toast("Successfully Paid!", {autoClose: 2000, type: "success"});
+            setOpenWeeklyModal(false);
+            if (typeof(forceRefresh) === 'function') {
+                forceRefresh(true);
+            }
+        },
+    });
 
     useEffect(() => {
         setIsOpen(initialExpand || forceExpand)
@@ -100,6 +123,33 @@ const WeeklySheet = ({
                         color={"primary"}
                         style={{backgroundColor: "#ffa726"}}
                         onClick={async () => {
+                            confirmAlert({
+                                title: "Confirm Weekly Edit",
+                                message: "Editing this Weekly will apply the changes to ALL associated Loads, Jobs, and Dailies. If you need to change only SOME Loads, Jobs, or Dailies please edit the Loads individually. Are you sure you want to change ALL Loads for ALL Drivers?",
+                                buttons: [
+                                    {
+                                        label: "Yes",
+                                        onClick: async () => {
+                                            setOpenWeeklyModal(true);
+                                        },
+                                    },
+                                    {
+                                        label: "No",
+                                        //onClick: () => {}
+                                    },
+                                ],
+                            });
+                        }}
+                    >
+                        Edit Weekly
+                    </Button>
+                </Grid2>
+                <Grid2 xs={"auto"} sx={{paddingRight: 2}}>
+                    <Button
+                        variant="contained"
+                        color={"primary"}
+                        style={{backgroundColor: "#ffa726"}}
+                        onClick={async () => {
                             toast("Generating PDF...", {autoClose: 2000, type: "info"});
                             const element = document.createElement("a");
                             element.href = `/api/getPDF/weekly/${sheet.ID}|${week}`;
@@ -113,7 +163,7 @@ const WeeklySheet = ({
                         Print Week
                     </Button>
                 </Grid2>
-                {sheet.InvoiceID &&  <Grid2 xs={"auto"} sx={{paddingRight: 2}}>
+                {sheet.InvoiceID && <Grid2 xs={"auto"} sx={{paddingRight: 2}}>
                     <NextLink
                         href={`invoices/${sheet.InvoiceID}`}
                         passHref
@@ -135,6 +185,137 @@ const WeeklySheet = ({
             >
                 <Sheet weekly={sheet} key={"sheet-" + sheet.ID} week={week}/>
             </div>
+
+            <Modal
+                open={openWeeklyModal}
+                onClose={async () => {
+                    setOpenWeeklyModal(false)
+                }}
+            >
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: '75rem',
+                        bgcolor: 'background.paper',
+                        boxShadow: 24,
+                        borderRadius: 2,
+                        p: 2,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                        '&::-webkit-scrollbar': {display: 'none'},
+                        scrollbarWidth: 'none',
+                    }}
+                >
+                    {/* Modal Header */}
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            borderBottom: '1px solid #e0e0e0',
+                        }}
+                    >
+                        <Typography variant="h6" id="weekly-modal-title">
+                            Weekly Edit
+                        </Typography>
+                    </Box>
+
+                    {/* Modal Content */}
+                    <Box
+                        sx={{
+                            flex: 1,
+                            overflowX: 'hidden', // Ensure content never scrolls
+                            overflowY: 'scroll',
+                            padding: '10px'
+                        }}
+                    >
+                        <div style={{display: "flex", flexDirection: "column"}}>
+                            <div style={{width: "100%", paddingBottom: 5}}>
+                                <BasicAutocomplete
+                                    optionLabel={"Name+|+Street+,+City"}
+                                    optionValue={"ID"}
+                                    searchQuery={"customers"}
+                                    data={[weekly.Customers]}
+                                    label={"Customer"}
+                                    defaultValue={weeklyCustomer}
+                                    onSelect={(customer: any) => {
+                                        setWeeklyCustomer(customer);
+                                    }}
+                                />
+                            </div>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    flexDirection: "row",
+                                    justifyContent: "space-between",
+                                    paddingBottom: 5,
+                                }}
+                            >
+                                <div style={{width: "48%"}}>
+                                    <BasicAutocomplete
+                                        optionLabel={"Description"}
+                                        optionValue={"ID"}
+                                        searchQuery={"loadtypes"}
+                                        data={[weekly.LoadTypes]}
+                                        label={"Load Type"}
+                                        defaultValue={weeklyLoadType}
+                                        onSelect={(loadType: any) => {
+                                            setWeeklyLoadType(loadType);
+                                        }}
+                                    />
+                                </div>
+                                <div style={{width: "48%"}}>
+                                    <BasicAutocomplete
+                                        optionLabel={"Description"}
+                                        optionValue={"ID"}
+                                        searchQuery={"deliverylocations"}
+                                        data={[weekly.DeliveryLocations]}
+                                        label={"Delivery Location"}
+                                        defaultValue={weeklyDeliveryLocation}
+                                        onSelect={(deliveryLocation: any) => {
+                                            setWeeklyDeliveryLocation(deliveryLocation);
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </Box>
+
+                    <Box sx={{mt: 2, justifyContent: 'space-between', display: "flex"}}>
+                        <Button
+                            variant={"contained"}
+                            color={"success"}
+                            style={{backgroundColor: "#66bb6a"}}
+                            onClick={async () => {
+                                const changed = JSON.parse(JSON.stringify(weekly));
+                                changed.DeliveryLocationID = weeklyDeliveryLocation === 0 ? weekly.DeliveryLocationID : weeklyDeliveryLocation;
+                                changed.LoadTypeID = weeklyLoadType === 0 ? weekly.LoadTypeID : weeklyLoadType;
+                                changed.CustomerID = weeklyCustomer === 0 ? weekly.CustomerID : weeklyCustomer;
+                                await updateWeekly.mutateAsync(changed);
+                            }}
+                        >
+                            Confirm Edit
+                        </Button>
+
+                        <Button
+                            variant={"contained"}
+                            style={{backgroundColor: "#757575"}}
+                            onClick={async () => {
+                                setWeeklyDeliveryLocation(weekly.DeliveryLocationID)
+                                setWeeklyCustomer(weekly.CustomerID)
+                                setWeeklyLoadType(weekly.LoadTypeID)
+                                setOpenWeeklyModal(false)
+                            }}
+                        >
+                            Cancel
+                        </Button>
+                    </Box>
+                </Box>
+            </Modal>
         </div>
     );
 };
@@ -179,10 +360,11 @@ const Sheet = ({weekly, week}: { weekly: CustomerSheet, week: string }) => {
                     <span key={'sheet-container' + job.ID}>
 
                         <Job job={job} index={index} week={week}
-                                     key={"job-" + job.ID}/>
+                             key={"job-" + job.ID}/>
 
                         {index === sheetState.Jobs.length - 1 &&
-                            <TotalsRow weekly={sheetState} setSheetState={setSheetState} index={index} sums={sums} key={"totalrow-" + job.ID}
+                            <TotalsRow weekly={sheetState} setSheetState={setSheetState} index={index} sums={sums}
+                                       key={"totalrow-" + job.ID}
                                        week={week} job={job}/>}
 
                     </span>
@@ -198,8 +380,15 @@ const TotalsRow = ({
                        sums,
                        week,
                        job,
-    setSheetState
-                   }: { index: number, weekly: CustomerSheet, sums: any[], week: string, job: CompleteJobs, setSheetState: any }) => {
+                       setSheetState
+                   }: {
+    index: number,
+    weekly: CustomerSheet,
+    sums: any[],
+    week: string,
+    job: CompleteJobs,
+    setSheetState: any
+}) => {
     const [isInvoiced, setIsInvoiced] = useState(job.Loads[0]?.Invoiced);
     const [isPaid, setIsPaid] = useState(job.Loads[0]?.Invoices?.Paid)
     const [isClosed, setIsClosed] = useState(weekly.Revenue !== null);
@@ -281,19 +470,18 @@ const TotalsRow = ({
 
             {["MON", "TUE", "WED", "THUR", "FRI", "SAT", "SUN"].map((day, index) =>
 
-                    <Grid2
-                        sx={{textAlign: "center", borderRight: "2px solid black"}}
-                        xs={true}
-                        key={'day-totals-' + day}
-                    >
+                <Grid2
+                    sx={{textAlign: "center", borderRight: "2px solid black"}}
+                    xs={true}
+                    key={'day-totals-' + day}
+                >
 
-                        {/*                    eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
-                        {/*@ts-ignore*/}
-                        <b style={{fontSize: 17}}>{(Math.round(sums[moment(week).add(index, "days").format("MM/DD")] * 100) / 100)}</b>
+                    {/*                    eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
+                    {/*@ts-ignore*/}
+                    <b style={{fontSize: 17}}>{(Math.round(sums[moment(week).add(index, "days").format("MM/DD")] * 100) / 100)}</b>
 
-                    </Grid2>
-
-                )}
+                </Grid2>
+            )}
 
             <Grid2
                 sx={{textAlign: "center", borderRight: "2px solid black"}}
@@ -341,11 +529,11 @@ const TotalsRow = ({
 }
 
 const Job = ({
-                         job,
-                         index,
-                         week,
+                 job,
+                 index,
+                 week,
 
-                     }: { job: CompleteJobs, index: number, week: string }) => {
+             }: { job: CompleteJobs, index: number, week: string }) => {
     if (!job.Loads[0]) {
         return null;
     }
@@ -373,20 +561,20 @@ const Job = ({
             </Grid2>
 
             {["MON", "TUE", "WED", "THUR", "FRI", "SAT", "SUN"].map((day, index) =>
-                    <Grid2
-                        sx={{textAlign: "center", borderRight: "2px solid black"}}
-                        xs={true}
-                        key={'day-data-' + day}
-                    >
+                <Grid2
+                    sx={{textAlign: "center", borderRight: "2px solid black"}}
+                    xs={true}
+                    key={'day-data-' + day}
+                >
 
-                        {/*                    eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
-                        {/*@ts-ignore*/}
-                        <b style={{fontSize: 17}}>{(Math.round(job.Loads.filter((item) => moment.utc(item.StartDate, "YYYY-MM-DD").format("MM/DD") === moment(week).add(index, "days").format("MM/DD")).reduce((acc, obj) => {
-                            return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
-                        }, 0) * 100) / 100)}</b>
+                    {/*                    eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
+                    {/*@ts-ignore*/}
+                    <b style={{fontSize: 17}}>{(Math.round(job.Loads.filter((item) => moment.utc(item.StartDate, "YYYY-MM-DD").format("MM/DD") === moment(week).add(index, "days").format("MM/DD")).reduce((acc, obj) => {
+                        return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
+                    }, 0) * 100) / 100)}</b>
 
-                    </Grid2>
-                )}
+                </Grid2>
+            )}
 
             <Grid2
                 sx={{textAlign: "center", borderRight: "2px solid black"}}

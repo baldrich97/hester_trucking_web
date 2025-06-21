@@ -57,6 +57,7 @@ export default function Weeklies() {
     trpc.useQuery(["weeklies.getByWeek", {week: week}], {
         enabled: shouldRefresh,
         onSuccess(data) {
+            setData([])
             setData(data ? data.filter((sheet) => sheet.Jobs.filter((job) => job.Loads.length !== 0).length > 0).sort((a, b) => a.Customers.Name.localeCompare(b.Customers.Name)) : []);
             setLoading(false);
             setShouldRefresh(false);
@@ -67,7 +68,7 @@ export default function Weeklies() {
     return (
         <Box sx={{width: "100%"}}>
             <LoadingModal isOpen={loading}/>
-            <Paper sx={{width: "100%", mb: 2}}>
+            <Paper sx={{width: "100%", mb: 2}} key={shouldRefresh ? 'key_refresh' : 'refresh_key'}>
                 <Grid2 container columnSpacing={1} rowSpacing={1} flexDirection={'row'} sx={{height: 50}}>
                     <Grid2 xs={"auto"}>
                         <Tooltip title={forceExpand ? 'Close all sheets.' : 'Expand all sheets.'}>
@@ -213,7 +214,7 @@ export default function Weeklies() {
 
                 {data.map((weekly: CustomerSheet, index: number) => (
                     <>
-                        {weekly.Jobs.length > 0 && <WeeklySheet key={'sheet-' + index} weekly={weekly} week={week} forceExpand={forceExpand} initialExpand={initialExpand == weekly.ID}/>}
+                        {weekly.Jobs.length > 0 && <WeeklySheet key={'sheet-' + index} weekly={weekly} week={week} forceExpand={forceExpand} initialExpand={initialExpand == weekly.ID} forceRefresh={setShouldRefresh}/>}
                     </>
                 ))}
                 {/* <EnhancedTableToolbar

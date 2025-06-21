@@ -49,20 +49,33 @@ export default handler;
 const processLoads = async (input) => {
     return new Promise(async (resolve, reject) => {
         try {
-            const sheet = await prisma.dailies.findUnique({
+            const sheet = await prisma.dailies.findFirst({
                 where: {
-                    ID: parseInt(input.sheet)
+                    ID: parseInt(input.sheet),
                 },
                 include: {
                     Jobs: {
+                        where: {
+                            Loads: {
+                                some: input.type === 'partial'
+                                    ? {
+                                        Created: {
+                                            gt: input.lastDate
+                                        }
+                                    }
+                                    : {} // any job with at least one load
+                            }
+                        },
                         include: {
-                            Loads: input.type === 'partial' ? {
-                                where: {
-                                    Created: {
-                                        gt: input.lastDate
+                            Loads: input.type === 'partial'
+                                ? {
+                                    where: {
+                                        Created: {
+                                            gt: input.lastDate
+                                        }
                                     }
                                 }
-                            } : true,
+                                : true,
                             Customers: true,
                             Drivers: true,
                             DeliveryLocations: true,
@@ -72,6 +85,8 @@ const processLoads = async (input) => {
                     Drivers: true
                 }
             });
+
+
 
             if (!sheet) {
                 reject('Missing Sheet');

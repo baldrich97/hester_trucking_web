@@ -79,7 +79,7 @@ export default function Weeklies() {
             </h1>
             <b>If a weekly on here has been printed, it means there are new loads that have not been printed.</b>
             <LoadingModal isOpen={loading}/>
-            {data && data.length > 0 && <Paper sx={{width: "100%", mb: 2}}>
+            {data && data.length > 0 && <Paper sx={{width: "100%", mb: 2}} key={shouldRefresh ? 'key_refresh' : 'refresh_key'}>
                 <Grid2 container columnSpacing={1} rowSpacing={1} flexDirection={'row'} sx={{height: 50}}>
                     <Grid2 xs={"auto"}>
                         <Tooltip title={forceExpand ? 'Close all sheets.' : 'Expand all sheets.'}>
@@ -211,7 +211,7 @@ export default function Weeklies() {
 
                 {data.map((weekly: CustomerSheet, index: number) => (
                     <>
-                        {weekly.Jobs.length > 0 && <WeeklySheet key={'sheet-' + index} weekly={weekly} week={weekly.Week} forceExpand={forceExpand} initialExpand={initialExpand == weekly.ID}/>}
+                        {weekly.Jobs.length > 0 && <WeeklySheet key={'sheet-' + index} weekly={weekly} week={weekly.Week} forceExpand={forceExpand} initialExpand={initialExpand == weekly.ID} forceRefresh={setShouldRefresh}/>}
                     </>
                 ))}
 
