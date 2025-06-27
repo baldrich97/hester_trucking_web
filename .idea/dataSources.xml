@@ -1,24 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="Hester Trucking Dev" uuid="ff9b00fd-840a-4c8d-b56d-cd438232197b">
+    <data-source source="LOCAL" name="Hester Trucking Live" uuid="16bd04eb-0356-4262-93ca-1d34305a243f">
       <driver-ref>mariadb</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.mariadb.jdbc.Driver</jdbc-driver>
-      <jdbc-url>jdbc:mariadb://89.117.9.204:3306/u639440099_trucking</jdbc-url>
-      <jdbc-additional-properties>
-        <property name="database.introspection.mysql.dbe5060" value="true" />
-      </jdbc-additional-properties>
+      <jdbc-url>jdbc:mariadb://89.117.9.204:3306</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
-    <data-source source="LOCAL" name="Hester Trucking Live" uuid="ba9ae38e-a049-427c-a061-51808ed81840">
+    <data-source source="LOCAL" name="Hester Trucking Demo" uuid="cf9db2f4-808d-432a-be57-447f1ac30902">
       <driver-ref>mariadb</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.mariadb.jdbc.Driver</jdbc-driver>
-      <jdbc-url>jdbc:mariadb://89.117.9.204:3306/u639440099_hester_dev</jdbc-url>
-      <jdbc-additional-properties>
-        <property name="database.introspection.mysql.dbe5060" value="true" />
-      </jdbc-additional-properties>
+      <jdbc-url>jdbc:mariadb://89.117.9.204:3306</jdbc-url>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
+    <data-source source="LOCAL" name="Hester Trucking Dev" uuid="30d4458f-21c9-4388-a0b4-f920a64ea522">
+      <driver-ref>mariadb</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.mariadb.jdbc.Driver</jdbc-driver>
+      <jdbc-url>jdbc:mariadb://89.117.9.204:3306</jdbc-url>
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
   </component>
