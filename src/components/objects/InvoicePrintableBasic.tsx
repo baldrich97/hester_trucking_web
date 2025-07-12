@@ -21,6 +21,17 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         paddingLeft: 1,
         paddingRight: 1
+    },
+    avoidBreak: {
+        // lineHeight: 1.5,
+        // flexDirection: 'column',
+        // display: 'flex',
+        // alignItems: 'center',
+        // textAlign: 'center',
+        // paddingLeft: 1,
+        // paddingRight: 1,
+        breakInside: 'avoid',
+        marginTop: 10
     }
 });
 
@@ -56,15 +67,15 @@ const InvoicePrintableBasic = ({invoice, invoices = null}: { invoice: CompleteIn
                                      invoiceDate={new Date(invoice.InvoiceDate).toLocaleDateString('en-US', {timeZone: 'UTC'})}
                                      invoiceNumber={invoice.Number ? invoice.Number.toString() : 'N/A'}/>
                 <InvoiceParts.Table loads={invoice.Loads} total={total} invoices={invoices} weeklies={invoice.Weeklies} totalWeight={totalWeight}/>
-                {/*<View wrap={false}>*/}
-                {/*</View>*/}
-                <Html>{linebreakhtml}</Html>
-                <InvoiceParts.Disclaimer/>
-                <Html stylesheet={dividerstyle} collapse={false}>{dividerhtml}</Html>
-                <InvoiceParts.Footer customer={invoice.Customers}
-                                     invoiceDate={new Date(invoice.InvoiceDate).toLocaleDateString('en-US', {timeZone: 'UTC'})}
-                                     invoiceNumber={invoice.Number ? invoice.Number.toString() : 'N/A'} total={total}/>
+                <View wrap={false} style={styles.avoidBreak}>
+                    <InvoiceParts.Disclaimer/>
+                    <Html stylesheet={dividerstyle} collapse={false}>{dividerhtml}</Html>
+                    <InvoiceParts.Footer customer={invoice.Customers}
+                                         invoiceDate={new Date(invoice.InvoiceDate).toLocaleDateString('en-US', {timeZone: 'UTC'})}
+                                         invoiceNumber={invoice.Number ? invoice.Number.toString() : 'N/A'} total={total}/>
 
+                </View>
+                {/*<Html>{linebreakhtml}</Html>*/}
             </Page>
         </Document>
     )
