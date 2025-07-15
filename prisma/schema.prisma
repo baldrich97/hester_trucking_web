@@ -1,14 +1,14 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["interactiveTransactions", "fullTextSearch", "fullTextIndex"]
-    binaryTargets = ["native"]
+  previewFeatures = ["fullTextIndex", "fullTextSearch", "interactiveTransactions"]
+  binaryTargets   = ["native"]
 }
 
 generator zod {
   provider              = "zod-prisma"
-  prismaJsonNullability = "true"
   modelCase             = "PascalCase"
   modelSuffix           = "Model"
+  prismaJsonNullability = "true"
   relationModel         = "true"
   useDecimalJs          = "true"
 }
@@ -56,9 +56,9 @@ model Customers {
   Notes                     String?                     @db.VarChar(255)
   MainContact               String?                     @db.VarChar(255)
   Deleted                   Boolean?
-  States                    States                      @relation(fields: [State], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Customers_States")
   CustomerDeliveryLocations CustomerDeliveryLocations[]
   CustomerLoadTypes         CustomerLoadTypes[]
+  States                    States                      @relation(fields: [State], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Customers_States")
   DeliveryLocations         DeliveryLocations[]
   Invoices                  Invoices[]
   Jobs                      Jobs[]
@@ -74,8 +74,8 @@ model DeliveryLocations {
   Description               String                      @db.VarChar(255)
   Deleted                   Boolean?
   CustomerID                Int?
-  Customers                 Customers?                  @relation(fields: [CustomerID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_DeliveryLocations_Customers")
   CustomerDeliveryLocations CustomerDeliveryLocations[]
+  Customers                 Customers?                  @relation(fields: [CustomerID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_DeliveryLocations_Customers")
   Jobs                      Jobs[]
   Loads                     Loads[]
   Weeklies                  Weeklies[]
@@ -103,8 +103,10 @@ model Drivers {
   Deleted       Boolean?
   HireDate      String?        @db.VarChar(255)
   OwnerOperator Boolean
-  States        States?        @relation(fields: [State], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Drivers_States")
+  TIN           String?        @db.VarChar(255)
   Dailies       Dailies[]
+  DriverForms   DriverForms[]
+  States        States?        @relation(fields: [State], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Drivers_States")
   Jobs          Jobs[]
   Loads         Loads[]
   PayStubs      PayStubs[]
@@ -169,10 +171,14 @@ model Trucks {
   VIN          String?        @db.VarChar(255)
   Deleted      Boolean?
   Notes        String?        @db.VarChar(255)
+  Make         String?        @db.VarChar(255)
+  LicensePlate String?        @db.VarChar(255)
+  Model        String?        @db.VarChar(255)
+  TruckNumber  String?        @db.VarChar(255)
   Loads        Loads[]
   TrucksDriven TrucksDriven[]
 
-  @@fulltext([Name, VIN, Notes])
+  @@fulltext([Name, VIN, Notes, Make, LicensePlate, TruckNumber, Model])
 }
 
 model TrucksDriven {
@@ -309,11 +315,11 @@ model Weeklies {
   DeliveryLocationID Int
   LastPrinted        DateTime?         @db.DateTime(0)
   TotalWeight        Float?            @db.Float
+  Jobs               Jobs[]
   Customers          Customers         @relation(fields: [CustomerID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Customers")
   DeliveryLocations  DeliveryLocations @relation(fields: [DeliveryLocationID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_DeliveryLocations")
   Invoices           Invoices?         @relation(fields: [InvoiceID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Invoices")
   LoadTypes          LoadTypes         @relation(fields: [LoadTypeID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_LoadTypes")
-  Jobs               Jobs[]
 
   @@index([CustomerID], map: "FK_Weeklies_Customers")
   @@index([InvoiceID], map: "FK_Weeklies_Invoices")
@@ -324,7 +330,7 @@ model Weeklies {
 model PayStubs {
   ID          Int       @id @default(autoincrement())
   /// @zod.custom(z.coerce.date())
-  Created     DateTime  @default(now()) @db.DateTime(0)
+  Created     DateTime  @db.DateTime(0)
   DriverID    Int
   CheckNumber String    @db.VarChar(50)
   /// @zod.custom(z.coerce.number())
@@ -342,8 +348,50 @@ model PayStubs {
   Notes       String?   @db.VarChar(1000)
   /// @zod.custom(z.coerce.date())
   DepositDate DateTime? @db.DateTime(0)
-  Drivers     Drivers   @relation(fields: [DriverID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PayStubs_Driver")
   Jobs        Jobs[]
+  Drivers     Drivers   @relation(fields: [DriverID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PayStubs_Driver")
 
   @@index([DriverID], map: "FK_PayStubs_Driver")
+}
+
+model Companies {
+  ID   Int    @id @default(autoincrement())
+  Name String @db.VarChar(255)
+}
+
+model DriverForms {
+  ID         Int       @id @default(autoincrement())
+  Driver     Int
+  Form       Int
+  /// @zod.custom(z.coerce.date())
+  Expiration DateTime? @db.Date
+  /// @zod.custom(z.coerce.date())
+  Created    DateTime  @default(now()) @db.DateTime(0)
+  Drivers    Drivers   @relation(fields: [Driver], references: [ID], onUpdate: Restrict, map: "DriverForms_Drivers_ID_fk")
+  Forms      Forms     @relation(fields: [Form], references: [ID], onUpdate: Restrict, map: "DriverForms_Forms_ID_fk")
+
+  @@index([Driver], map: "DriverForms_Drivers_ID_fk")
+  @@index([Form], map: "DriverForms_Forms_ID_fk")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model FormOptions {
+  ID          Int     @id @default(autoincrement())
+  Form        Int
+  W2Visible   Boolean @default(true)
+  OOVisible   Boolean @default(true)
+  W2Required  Boolean @default(true)
+  OORequired  Boolean @default(true)
+  CompanyWide Boolean @default(false)
+  Forms       Forms   @relation(fields: [Form], references: [ID], onUpdate: Restrict, map: "FormOptions_Forms_ID_fk")
+
+  @@index([Form], map: "FormOptions_Forms_ID_fk")
+}
+
+model Forms {
+  ID          Int           @id @default(autoincrement())
+  Name        String        @db.VarChar(75)
+  DisplayName String        @default(dbgenerated("(`Name`)")) @db.VarChar(75)
+  DriverForms DriverForms[]
+  FormOptions FormOptions[]
 }

@@ -17,6 +17,7 @@ import {dailiesRouter} from './dailies';
 import {weekliesRouter} from './weeklies';
 import {jobsRouter} from './jobs';
 import {paystubsRouter} from "./paystubs";
+import {driverFormsRouter} from "./driverForms";
 import {protectedExampleRouter} from "./protected-example-router";
 
 export const appRouter = createRouter()
@@ -36,6 +37,7 @@ export const appRouter = createRouter()
     .merge("weeklies.", weekliesRouter)
     .merge("jobs.", jobsRouter)
     .merge("paystubs.", paystubsRouter)
+    .merge("driverForms.", driverFormsRouter)
     .merge("auth.", protectedExampleRouter);
 
 // export type definition of API

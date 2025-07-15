@@ -7,6 +7,10 @@ export const TrucksModel = z.object({
   VIN: z.string().nullish(),
   Deleted: z.boolean().nullish(),
   Notes: z.string().nullish(),
+  Make: z.string().nullish(),
+  LicensePlate: z.string().nullish(),
+  Model: z.string().nullish(),
+  TruckNumber: z.string().nullish(),
 })
 
 export interface CompleteTrucks extends z.infer<typeof TrucksModel> {

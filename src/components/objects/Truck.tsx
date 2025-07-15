@@ -15,7 +15,11 @@ import {FormFieldsType} from "../../utils/types";
 const defaultValues = {
     Name: '',
     VIN: '',
-    Notes: ''
+    Notes: '',
+    Make: '',
+    LicensePlate: '',
+    Model: '',
+    TruckNumber: ''
 };
 
 
@@ -49,8 +53,12 @@ const Truck = ({initialTruck = null}: {initialTruck?: null | TrucksType}) => {
     }
 
     const fields: FormFieldsType = [
-        {name: 'Name', size: 7, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'Truck name is required.', type: 'textfield'},
-        {name: 'VIN', size: 5, required: false, type: 'textfield'},
+        {name: 'Name', size: 6, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'Truck name is required.', type: 'textfield'},
+        {name: 'VIN', size: 6, required: false, type: 'textfield'},
+        {name: 'Make', size: 6, required: false, type: 'textfield'},
+        {name: 'LicensePlate', size: 6, required: false, type: 'textfield', label: 'License Plate'},
+        {name: 'Model', size: 6, required: false, type: 'textfield'},
+        {name: 'TruckNumber', size: 6, required: false, type: 'textfield', label: 'Truck Number'},
         {name: 'Notes', size: 12, required: false, type: 'textfield', multiline: true},
     ]
 

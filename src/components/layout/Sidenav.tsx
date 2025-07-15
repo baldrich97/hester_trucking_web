@@ -10,6 +10,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import NextLink from "next/link";
 import MapsHomeWorkIcon from "@mui/icons-material/MapsHomeWork";
+import BusinessIcon from "@mui/icons-material/Business";
 import PeopleIcon from "@mui/icons-material/People";
 import EngineeringIcon from "@mui/icons-material/Engineering";
 import CategoryIcon from "@mui/icons-material/Category";
@@ -80,9 +81,15 @@ function Sidenav(props: any) {
         selectedLink = 10;
     } else if (currentPath.includes("/paystubs")) {
         selectedLink = 11;
+    } else if (currentPath.includes("/companies")) {
+        selectedLink = 24;
     }
 
+    //TODO highest is 25
+
     const [isDailiesOpen, setDailiesOpen] = React.useState<boolean>(false);
+    const [isCompaniesOpen, setCompaniesOpen] = React.useState<boolean>(false);
+    const [isDriversOpen, setDriversOpen] = React.useState<boolean>(false);
     const [isWeekliesOpen, setWeekliesOpen] = React.useState<boolean>(false);
     const [isLoadsOpen, setLoadsOpen] = React.useState<boolean>(false);
 
@@ -118,6 +125,71 @@ function Sidenav(props: any) {
                         <ListItemText primary="Dashboard" />
                     </ListItemButton>
                 </NextLink>
+
+
+                <ListItemButton
+                    selected={[24, 25].includes(selectedIndex)}
+                >
+                    <NextLink href="/companies" passHref>
+                        <ListItemIcon>
+                            <BusinessIcon
+                                onClick={() => {
+                                    setSelectedIndex(24);
+                                }}
+                            />
+                        </ListItemIcon>
+                    </NextLink>
+                    <NextLink href="/companies" passHref>
+                        <ListItemText primary="Companies" onClick={() => {
+                            setSelectedIndex(24);
+                        }} />
+                    </NextLink>
+                    {isCompaniesOpen ? <ExpandLess onClick={() => setCompaniesOpen(!isCompaniesOpen)} /> :
+                        <ExpandMore onClick={() => setCompaniesOpen(!isCompaniesOpen)} />}
+                </ListItemButton>
+
+                <Collapse in={isCompaniesOpen} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                        <NextLink href="/drivers/options" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 25}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(25)} // Use unique index for nested items
+                            >
+                                <ListItemText primary="Company Compliance" />
+                            </ListItemButton>
+                        </NextLink>
+                        {/*<NextLink href="/drivers/w2" passHref>*/}
+                        {/*    <ListItemButton*/}
+                        {/*        selected={selectedIndex === 21}*/}
+                        {/*        sx={{ pl: 4 }}*/}
+                        {/*        onClick={() => setSelectedIndex(21)}*/}
+                        {/*    >*/}
+                        {/*        <ListItemText primary="W2 Forms" />*/}
+                        {/*    </ListItemButton>*/}
+                        {/*</NextLink>*/}
+                        {/*<NextLink href="/drivers/operator" passHref>*/}
+                        {/*    <ListItemButton*/}
+                        {/*        selected={selectedIndex === 22}*/}
+                        {/*        sx={{ pl: 4 }}*/}
+                        {/*        onClick={() => setSelectedIndex(22)}*/}
+                        {/*    >*/}
+                        {/*        <ListItemText primary="Non-W2 Forms" />*/}
+                        {/*    </ListItemButton>*/}
+                        {/*</NextLink>*/}
+                        {/*<NextLink href="/drivers/companies" passHref>*/}
+                        {/*    <ListItemButton*/}
+                        {/*        selected={selectedIndex === 23}*/}
+                        {/*        sx={{ pl: 4 }}*/}
+                        {/*        onClick={() => setSelectedIndex(23)}*/}
+                        {/*    >*/}
+                        {/*        <ListItemText primary="Company Compliance" />*/}
+                        {/*    </ListItemButton>*/}
+                        {/*</NextLink>*/}
+                    </List>
+                </Collapse>
+
+
 
                 <NextLink href="/customers" passHref>
                     <ListItemButton
@@ -205,17 +277,69 @@ function Sidenav(props: any) {
                     </ListItemButton>
                 </NextLink>
 
-                <NextLink href="/drivers" passHref>
-                    <ListItemButton
-                        selected={selectedIndex === 4}
-                        onClick={() => setSelectedIndex(4)}
-                    >
+                <ListItemButton
+                    selected={[4, 20, 21, 22, 23].includes(selectedIndex)}
+                >
+                    <NextLink href="/drivers" passHref>
                         <ListItemIcon>
-                            <EngineeringIcon />
+                            <EventAvailable
+                                onClick={() => {
+                                    setSelectedIndex(4);
+                                }}
+                            />
                         </ListItemIcon>
-                        <ListItemText primary="Drivers" />
-                    </ListItemButton>
-                </NextLink>
+                    </NextLink>
+                    <NextLink href="/drivers" passHref>
+                        <ListItemText primary="Drivers" onClick={() => {
+                            setSelectedIndex(4);
+                        }} />
+                    </NextLink>
+                    {isDriversOpen ? <ExpandLess onClick={() => setDriversOpen(!isDriversOpen)} /> :
+                        <ExpandMore onClick={() => setDriversOpen(!isDriversOpen)} />}
+                </ListItemButton>
+
+                <Collapse in={isDriversOpen} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                        <NextLink href="/drivers/options" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 20}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(20)} // Use unique index for nested items
+                            >
+                                <ListItemText primary="Form Options" />
+                            </ListItemButton>
+                        </NextLink>
+                        <NextLink href="/drivers/w2_forms" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 21}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(21)}
+                            >
+                                <ListItemText primary="W2 Forms" />
+                            </ListItemButton>
+                        </NextLink>
+                        <NextLink href="/drivers/owner_forms" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 22}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(22)}
+                            >
+                                <ListItemText primary="Non-W2 Forms" />
+                            </ListItemButton>
+                        </NextLink>
+                        {/*<NextLink href="/drivers/companies" passHref>*/}
+                        {/*    <ListItemButton*/}
+                        {/*        selected={selectedIndex === 23}*/}
+                        {/*        sx={{ pl: 4 }}*/}
+                        {/*        onClick={() => setSelectedIndex(23)}*/}
+                        {/*    >*/}
+                        {/*        <ListItemText primary="Company Compliance" />*/}
+                        {/*    </ListItemButton>*/}
+                        {/*</NextLink>*/}
+                    </List>
+                </Collapse>
+
+
 
                 <NextLink href="/invoices" passHref>
                     <ListItemButton
