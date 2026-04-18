@@ -1,5 +1,5 @@
 import * as z from "zod"
-import { CompleteStates, RelatedStatesModel, CompleteCustomerDeliveryLocations, RelatedCustomerDeliveryLocationsModel, CompleteCustomerLoadTypes, RelatedCustomerLoadTypesModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteInvoices, RelatedInvoicesModel, CompleteJobs, RelatedJobsModel, CompleteLoads, RelatedLoadsModel, CompleteWeeklies, RelatedWeekliesModel } from "./index"
+import { CompleteCustomerDeliveryLocations, RelatedCustomerDeliveryLocationsModel, CompleteCustomerLoadTypes, RelatedCustomerLoadTypesModel, CompleteStates, RelatedStatesModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteInvoices, RelatedInvoicesModel, CompleteJobs, RelatedJobsModel, CompleteLoads, RelatedLoadsModel, CompleteWeeklies, RelatedWeekliesModel } from "./index"
 
 export const CustomersModel = z.object({
   ID: z.number().int(),
@@ -16,9 +16,9 @@ export const CustomersModel = z.object({
 })
 
 export interface CompleteCustomers extends z.infer<typeof CustomersModel> {
-  States: CompleteStates
   CustomerDeliveryLocations: CompleteCustomerDeliveryLocations[]
   CustomerLoadTypes: CompleteCustomerLoadTypes[]
+  States: CompleteStates
   DeliveryLocations: CompleteDeliveryLocations[]
   Invoices: CompleteInvoices[]
   Jobs: CompleteJobs[]
@@ -32,9 +32,9 @@ export interface CompleteCustomers extends z.infer<typeof CustomersModel> {
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
 export const RelatedCustomersModel: z.ZodSchema<CompleteCustomers> = z.lazy(() => CustomersModel.extend({
-  States: RelatedStatesModel,
   CustomerDeliveryLocations: RelatedCustomerDeliveryLocationsModel.array(),
   CustomerLoadTypes: RelatedCustomerLoadTypesModel.array(),
+  States: RelatedStatesModel,
   DeliveryLocations: RelatedDeliveryLocationsModel.array(),
   Invoices: RelatedInvoicesModel.array(),
   Jobs: RelatedJobsModel.array(),

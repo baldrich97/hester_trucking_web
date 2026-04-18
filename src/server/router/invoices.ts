@@ -6,6 +6,132 @@ import {TRPCError} from "@trpc/server";
 
 
 export const invoicesRouter = createRouter()
+    .query("getAllOverdue", {
+        input: z.object({
+            customer: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
+            page: z.number().optional(),
+            search: z.number().nullish().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional()
+        }),
+        async resolve({ctx, input}) {
+            const {search, customer, order, loadType, deliveryLocation, orderBy} = input;
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - 60);
+
+            const extra = {
+                ...(search && search?.toString().length > 0 && {
+                    OR: [
+                        {TotalAmount: search},
+                        ...(!search.toString().includes('.') ? [{Number: search}] : [])
+                    ]
+                }),
+                ...(customer !== 0 && {CustomerID: customer}),
+                ...(deliveryLocation && {
+                    Loads: {
+                        some: {
+                            DeliveryLocationID: deliveryLocation
+                        }
+                    }
+                }),
+                ...(loadType && {
+                    Loads: {
+                        some: {
+                            LoadTypeID: loadType
+                        }
+                    }
+                }),
+            };
+
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            const orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            orderObj[orderBy] = order;
+
+            return ctx.prisma.invoices.findMany({
+                where: {
+                    Paid: {not: true},
+                    InvoiceDate: {lte: cutoffDate},
+                    // Multi-tenant TODO: add CompanyID filter from session/company context.
+                    // CompanyID: activeCompanyId,
+                    ...extra
+                },
+                include: {
+                    Customers: true,
+                    Loads: true
+                },
+                take: 10,
+                orderBy: orderObj,
+                skip: input.page ? 10 * input.page : 0
+            });
+        },
+    })
+    .query("getOverdueCount", {
+        async resolve({ctx}) {
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - 60);
+
+            return ctx.prisma.invoices.count({
+                where: {
+                    Paid: {not: true},
+                    InvoiceDate: {lte: cutoffDate},
+                    // Multi-tenant TODO: add CompanyID filter from session/company context.
+                    // CompanyID: activeCompanyId,
+                }
+            });
+        },
+    })
+    .query("getOverdueFilteredCount", {
+        input: z.object({
+            customer: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
+            search: z.number().nullish().optional(),
+        }),
+        async resolve({ctx, input}) {
+            const {search, customer, loadType, deliveryLocation} = input;
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - 60);
+
+            const extra = {
+                ...(search && search?.toString().length > 0 && {
+                    OR: [
+                        {TotalAmount: search},
+                        ...(!search.toString().includes('.') ? [{Number: search}] : [])
+                    ]
+                }),
+                ...(customer !== 0 && {CustomerID: customer}),
+                ...(deliveryLocation && {
+                    Loads: {
+                        some: {
+                            DeliveryLocationID: deliveryLocation
+                        }
+                    }
+                }),
+                ...(loadType && {
+                    Loads: {
+                        some: {
+                            LoadTypeID: loadType
+                        }
+                    }
+                }),
+            };
+
+            return ctx.prisma.invoices.count({
+                where: {
+                    Paid: {not: true},
+                    InvoiceDate: {lte: cutoffDate},
+                    // Multi-tenant TODO: add CompanyID filter from session/company context.
+                    // CompanyID: activeCompanyId,
+                    ...extra
+                }
+            });
+        },
+    })
     .query("getAll", {
         input: z.object({
             customer: z.number().optional(),

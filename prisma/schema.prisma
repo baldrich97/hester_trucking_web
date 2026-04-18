@@ -1,14 +1,14 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["interactiveTransactions", "fullTextSearch", "fullTextIndex"]
-    binaryTargets = ["native"]
+  previewFeatures = ["fullTextIndex", "fullTextSearch", "interactiveTransactions"]
+  binaryTargets   = ["native"]
 }
 
 generator zod {
   provider              = "zod-prisma"
-  prismaJsonNullability = "true"
   modelCase             = "PascalCase"
   modelSuffix           = "Model"
+  prismaJsonNullability = "true"
   relationModel         = "true"
   useDecimalJs          = "true"
 }
@@ -56,9 +56,9 @@ model Customers {
   Notes                     String?                     @db.VarChar(255)
   MainContact               String?                     @db.VarChar(255)
   Deleted                   Boolean?
-  States                    States                      @relation(fields: [State], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Customers_States")
   CustomerDeliveryLocations CustomerDeliveryLocations[]
   CustomerLoadTypes         CustomerLoadTypes[]
+  States                    States                      @relation(fields: [State], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Customers_States")
   DeliveryLocations         DeliveryLocations[]
   Invoices                  Invoices[]
   Jobs                      Jobs[]
@@ -74,8 +74,8 @@ model DeliveryLocations {
   Description               String                      @db.VarChar(255)
   Deleted                   Boolean?
   CustomerID                Int?
-  Customers                 Customers?                  @relation(fields: [CustomerID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_DeliveryLocations_Customers")
   CustomerDeliveryLocations CustomerDeliveryLocations[]
+  Customers                 Customers?                  @relation(fields: [CustomerID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_DeliveryLocations_Customers")
   Jobs                      Jobs[]
   Loads                     Loads[]
   Weeklies                  Weeklies[]
@@ -103,8 +103,8 @@ model Drivers {
   Deleted       Boolean?
   HireDate      String?        @db.VarChar(255)
   OwnerOperator Boolean
-  States        States?        @relation(fields: [State], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Drivers_States")
   Dailies       Dailies[]
+  States        States?        @relation(fields: [State], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Drivers_States")
   Jobs          Jobs[]
   Loads         Loads[]
   PayStubs      PayStubs[]
@@ -309,11 +309,11 @@ model Weeklies {
   DeliveryLocationID Int
   LastPrinted        DateTime?         @db.DateTime(0)
   TotalWeight        Float?            @db.Float
+  Jobs               Jobs[]
   Customers          Customers         @relation(fields: [CustomerID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Customers")
   DeliveryLocations  DeliveryLocations @relation(fields: [DeliveryLocationID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_DeliveryLocations")
   Invoices           Invoices?         @relation(fields: [InvoiceID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Invoices")
   LoadTypes          LoadTypes         @relation(fields: [LoadTypeID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_LoadTypes")
-  Jobs               Jobs[]
 
   @@index([CustomerID], map: "FK_Weeklies_Customers")
   @@index([InvoiceID], map: "FK_Weeklies_Invoices")
@@ -342,8 +342,8 @@ model PayStubs {
   Notes       String?   @db.VarChar(1000)
   /// @zod.custom(z.coerce.date())
   DepositDate DateTime? @db.DateTime(0)
-  Drivers     Drivers   @relation(fields: [DriverID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PayStubs_Driver")
   Jobs        Jobs[]
+  Drivers     Drivers   @relation(fields: [DriverID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PayStubs_Driver")
 
   @@index([DriverID], map: "FK_PayStubs_Driver")
 }
