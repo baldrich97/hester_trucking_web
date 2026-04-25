@@ -18,7 +18,8 @@ import * as React from "react";
 import Sidenav from "../components/layout/Sidenav";
 import AppBar from "../components/layout/AppBar";
 import CssBaseline from "@mui/material/CssBaseline";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
+import {createAppTheme} from "../theme/appTheme";
 import Copyright from "../components/layout/Copyright";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
@@ -28,7 +29,7 @@ import {get} from "react-hook-form";
 import {Session} from "next-auth";
 import 'react-toastify/dist/ReactToastify.css';
 
-const mdTheme = createTheme();
+const mdTheme = createAppTheme();
 
 const MyApp: AppType = ({
   Component,

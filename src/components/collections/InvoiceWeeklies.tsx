@@ -263,7 +263,7 @@ function Row(props: {
                         passHref
                     >
                         <a target={"_blank"}>
-                            <Button color={"primary"} variant={"contained"} style={{backgroundColor: '#1976d2'}}>
+                            <Button color="primary" variant="contained">
                                 To Weekly
                             </Button>
                         </a>
@@ -301,9 +301,8 @@ function Row(props: {
                                             </Typography>
                                             <TableCell align="right" padding="none" size={"small"}>
                                                 {!job.PaidOut && job.Drivers?.OwnerOperator && redBackground && <Button
-                                                    color={"primary"}
-                                                    variant={"contained"}
-                                                    style={{backgroundColor: '#1976d2'}}
+                                                    color="primary"
+                                                    variant="contained"
                                                     onClick={() => {
                                                         setInitialJob(job)
                                                         setShowPayModal(true)
@@ -319,8 +318,7 @@ function Row(props: {
                                                     passHref
                                                 >
                                                     <a target={"_blank"}>
-                                                        <Button color={"primary"} variant={"contained"}
-                                                                style={{backgroundColor: '#00dfff'}}>
+                                                        <Button color="info" variant="contained">
                                                             To Daily
                                                         </Button>
                                                     </a>

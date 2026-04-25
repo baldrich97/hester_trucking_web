@@ -6,10 +6,23 @@ export const driverFormsRouter = createRouter()
     .mutation('put', {
         input: DriverFormsModel.omit({ ID: true, Created: true }),
         async resolve({ctx, input}) {
-
-            return await ctx.prisma.driverForms.create({
-                data: input
-            })
+            const filingDate = input.Expiration ?? new Date();
+            return await ctx.prisma.driverForms.upsert({
+                where: {
+                    Driver_Form: {
+                        Driver: input.Driver,
+                        Form: input.Form,
+                    },
+                },
+                create: {
+                    ...input,
+                    Created: filingDate,
+                },
+                update: {
+                    Expiration: input.Expiration,
+                    Created: filingDate,
+                },
+            });
         },
     })
     .mutation('delete', {

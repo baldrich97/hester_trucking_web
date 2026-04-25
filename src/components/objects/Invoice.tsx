@@ -518,9 +518,8 @@ const Invoice = ({
                             </Grid2>*/}
               <Grid2 xs={6} style={{ paddingTop: 5 }}>
                 <Button
-                  variant={"contained"}
-                  color={"success"}
-                  style={{ backgroundColor: "#66bb6a" }}
+                  variant="contained"
+                  color="success"
                   onClick={async () => {
                     if (
                       !["Cash", "Check", "Credit Card"].includes(paymentType)
@@ -597,10 +596,9 @@ const Invoice = ({
         {!initialInvoice && (
           <Grid2 xs={3}>
             <Button
-              type={"submit"}
-              variant={"contained"}
-              color={"primary"}
-              style={{ backgroundColor: "#1565C0" }}
+              type="submit"
+              variant="contained"
+              color="primary"
               disabled={selected.length === 0}
             >
               Submit
@@ -612,9 +610,9 @@ const Invoice = ({
           <>
             <Grid2 xs={1}>
               <Button
-                type={"button"}
-                variant={"contained"}
-                style={{ backgroundColor: "#EF463B" }}
+                type="button"
+                variant="contained"
+                color="error"
                 onClick={() => {
                   confirmAlert({
                     title: "Confirm Deletion",
@@ -640,9 +638,8 @@ const Invoice = ({
             </Grid2>
             <Grid2 xs={1}>
               <Button
-                variant={"contained"}
-                color={"warning"}
-                style={{ backgroundColor: "#ffa726" }}
+                variant="contained"
+                color="warning"
                 onClick={async () => {
                   toast("Generating PDF...", { autoClose: 2000, type: "info" });
                   const element = document.createElement("a");
@@ -662,9 +659,8 @@ const Invoice = ({
             </Grid2>
             <Grid2 xs={1}>
               <Button
-                variant={"contained"}
-                color={"success"}
-                style={{ backgroundColor: "#66bb6a" }}
+                variant="contained"
+                color="success"
                 disabled={!!initialInvoice.Paid || paid}
                 onClick={handleOpen}
               >
@@ -673,10 +669,9 @@ const Invoice = ({
             </Grid2>
             <Grid2 xs={1}>
               <Button
-                type={"submit"}
-                variant={"contained"}
-                color={"primary"}
-                style={{ backgroundColor: "#1565C0" }}
+                type="submit"
+                variant="contained"
+                color="primary"
               >
                 Submit
               </Button>

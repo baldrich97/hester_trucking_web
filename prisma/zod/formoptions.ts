@@ -1,4 +1,5 @@
 import * as z from "zod"
+import { FormExpiryCadence } from "@prisma/client"
 import { CompleteForms, RelatedFormsModel } from "./index"
 
 export const FormOptionsModel = z.object({
@@ -8,7 +9,18 @@ export const FormOptionsModel = z.object({
   OOVisible: z.boolean(),
   W2Required: z.boolean(),
   OORequired: z.boolean(),
-  CompanyWide: z.boolean(),
+  /**
+   * When true, one valid filing for any driver under the same `Carriers` satisfies the form for all of them.
+   */
+  CarrierWide: z.boolean(),
+  ExpiryCadence: z.nativeEnum(FormExpiryCadence),
+  /**
+   * For `ROLLING_MONTHS`: number of months the filing stays valid from `Created`.
+   */
+  ValidityMonths: z.number().int().nullish(),
+  PdfOrder: z.number().int(),
+  PdfColumnLabel: z.string().nullish(),
+  IncludeInPdf: z.boolean(),
 })
 
 export interface CompleteFormOptions extends z.infer<typeof FormOptionsModel> {

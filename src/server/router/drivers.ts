@@ -1,6 +1,7 @@
 import {createRouter} from "./context";
 import {z} from "zod";
 import {DriversModel} from '../../../prisma/zod';
+import {wireDateToUtcNoon} from "../../utils/dateOnly";
 
 export const driversRouter = createRouter()
     .query("getAll", {
@@ -138,8 +139,8 @@ export const driversRouter = createRouter()
         async resolve({ctx, input}) {
             // use your ORM of choice
             return ctx.prisma.drivers.create({
-                data: input
-            })
+                data: {...input, DOB: wireDateToUtcNoon(input.DOB)},
+            });
         },
     })
     .mutation('post', {
@@ -151,8 +152,9 @@ export const driversRouter = createRouter()
             return ctx.prisma.drivers.update({
                 where: {
                     ID: ID
-                }, data: data
-            })
+                },
+                data: {...data, DOB: wireDateToUtcNoon(data.DOB)},
+            });
         },
     });
 

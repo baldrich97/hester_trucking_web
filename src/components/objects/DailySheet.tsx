@@ -15,6 +15,8 @@ import Tooltip from '@mui/material/Tooltip';
 import {confirmAlert} from "react-confirm-alert";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import {trpc} from "../../utils/trpc";
+import {calendarNavButtonSx, tableTextLinkSx} from "../../theme/muiShared";
+import Box from "@mui/material/Box";
 import NextLink from "next/link";
 
 type Loads = z.infer<typeof LoadsModel>;
@@ -58,12 +60,7 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
                         variant="text"
                         type={"button"}
                         size="small"
-                        style={{
-                            minHeight: "30px",
-                            maxHeight: "30px",
-                            minWidth: "30px",
-                            maxWidth: "30px",
-                        }}
+                        sx={calendarNavButtonSx}
                         color="inherit"
                         onClick={() => {
                             setIsOpen(!isOpen);
@@ -88,8 +85,7 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
                 <Grid2 xs={"auto"} sx={{paddingRight: 2}}>
                     <Button
                         variant="contained"
-                        color={"primary"}
-                        style={{backgroundColor: "#ffa726"}}
+                        color="warning"
                         onClick={async () => {
                             if (daily.LastPrinted) {
                                 confirmAlert({
@@ -260,8 +256,7 @@ const TotalsRow = ({
                         <a target={"_blank"}>
                             <Button
                                 variant="contained"
-                                color={"primary"}
-                                style={{backgroundColor: "#ffa726"}}
+                                color="warning"
                                 sx={{minWidth: 30, minHeight: 30, maxWidth: 30, maxHeight: 30}}
                             >
                         <ArrowForward/>
@@ -275,9 +270,28 @@ const TotalsRow = ({
                     <span>
                         <Button
                             variant="contained"
-                            color={"primary"}
-                            style={{backgroundColor: isPaidOut ? "#0aa201" : isClosed ? "#88ff83" : "#181eff"}}
-                            sx={{minWidth: 30, minHeight: 30, maxWidth: 30, maxHeight: 30}}
+                            sx={{
+                                minWidth: 30,
+                                minHeight: 30,
+                                maxWidth: 30,
+                                maxHeight: 30,
+                                bgcolor: isPaidOut
+                                    ? "success.dark"
+                                    : isClosed
+                                      ? "success.light"
+                                      : "info.main",
+                                color:
+                                    isPaidOut || !isClosed
+                                        ? "common.white"
+                                        : "text.primary",
+                                "&:hover": {
+                                    bgcolor: isPaidOut
+                                        ? "success.main"
+                                        : isClosed
+                                          ? "success.main"
+                                          : "info.dark",
+                                },
+                            }}
                             disabled={isPaidOut}
                             onClick={async () => {
                                 if (isClosed) {
@@ -545,8 +559,15 @@ const Load = ({load, index, job}: { load: Loads, index: number, job: CompleteJob
                     }}
                     xs={1}
                 >
-                    <a href={`/loads/${load.ID}`} target={'_blank'}
-                       style={{color: 'blue', fontWeight: 'bolder'}} rel="noreferrer">{load.TicketNumber ?? "N/A"}</a>
+                    <Box
+                        component="a"
+                        href={`/loads/${load.ID}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        sx={{...tableTextLinkSx, fontWeight: "bold"}}
+                    >
+                        {load.TicketNumber ?? "N/A"}
+                    </Box>
                 </Grid2>
                 <Grid2
                     sx={{

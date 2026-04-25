@@ -31,8 +31,6 @@ const DeliveryLocations = ({loadtypes, count}: {loadtypes: LoadTypesType[], coun
 
     const [trpcCount, setCount] = useState(0);
 
-    const [shouldSearch, setShouldSearch] = useState(false);
-
     const [page, setPage] = useState(0);
 
     const [order, setOrder] = React.useState<'asc'|'desc'>('desc');
@@ -44,15 +42,14 @@ const DeliveryLocations = ({loadtypes, count}: {loadtypes: LoadTypesType[], coun
         }
     }, [search])
 
-    trpc.useQuery(['loadtypes.search', {search, page, orderBy, order}], {
-        enabled: shouldSearch,
+    trpc.useQuery(['loadtypes.searchPage', {search, page, orderBy, order}], {
+        refetchOnWindowFocus: false,
         onSuccess(data) {
-            setData(data);
-            setShouldSearch(false);
+            setData(data.rows);
+            setCount(data.count);
         },
         onError(error) {
             console.warn(error.message)
-            setShouldSearch(false)
         }
     })
 
@@ -60,13 +57,19 @@ const DeliveryLocations = ({loadtypes, count}: {loadtypes: LoadTypesType[], coun
         <Grid2 container wrap={'nowrap'}>
             <Grid2 xs={8} sx={{paddingRight: 2.5}}>
                 <Grid2 xs={4}>
-                    <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Load Types'}/>
+                    <SearchBar
+                        setSearchQuery={setSearch}
+                        setShouldSearch={() => {
+                            setPage(0);
+                        }}
+                        query={search}
+                        label={'Load Types'}
+                    />
                 </Grid2>
                 <GenericTable data={trpcData.length || (order !== 'desc' || orderBy !== 'ID') ? trpcData : loadtypes} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
                     setPage(page);
                     setOrderBy(orderBy);
                     setOrder(order);
-                    setShouldSearch(true);
                 }}/>
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
@@ -83,9 +86,16 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     
 
-    const count = await prisma.loadTypes.count();
+    const count = await prisma.loadTypes.count({
+        where: {
+            OR: [{Deleted: false}, {Deleted: null}],
+        },
+    });
 
     const loadtypes = await prisma.loadTypes.findMany({
+        where: {
+            OR: [{Deleted: false}, {Deleted: null}],
+        },
         take: 10,
         orderBy: {
             ID: "desc"

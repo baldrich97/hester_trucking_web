@@ -145,45 +145,15 @@ const Loads = ({
 
   trpc.useQuery(
       [
-        "loads.getAll",
+        "loads.getAllPage",
         {page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search},
       ],
       {
         enabled: shouldRefresh,
+        refetchOnWindowFocus: false,
         onSuccess(data) {
-          setNewData(JSON.parse(JSON.stringify(data)));
-          setShouldRefresh(false);
-        },
-        onError(error) {
-          console.warn(error.message);
-          setShouldRefresh(false);
-        },
-      }
-  );
-
-  trpc.useQuery(
-      ["loads.getCount", {customer, driver, truck, loadType, deliveryLocation, search}],
-      {
-        enabled: shouldRefresh,
-        onSuccess(data) {
-          setNewCount(data);
-          setShouldRefresh(false);
-        },
-        onError(error) {
-          console.warn(error.message);
-          setShouldRefresh(false);
-        },
-      }
-  );
-
-
-
-  trpc.useQuery(
-      ["loads.getUninvCount", {customer, driver, truck, loadType, deliveryLocation, search}],
-      {
-        enabled: shouldRefresh,
-        onSuccess(data) {
-          setNewUninvCount(data);
+          setNewData(JSON.parse(JSON.stringify(data.rows)));
+          setNewCount(data.count);
           setShouldRefresh(false);
         },
         onError(error) {
@@ -195,13 +165,15 @@ const Loads = ({
 
   trpc.useQuery(
       [
-        "loads.getUninv",
+        "loads.getUninvPage",
         {page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search},
       ],
       {
         enabled: shouldRefresh,
+        refetchOnWindowFocus: false,
         onSuccess(data) {
-          setNewUninvData(JSON.parse(JSON.stringify(data)));
+          setNewUninvData(JSON.parse(JSON.stringify(data.rows)));
+          setNewUninvCount(data.count);
           setShouldRefresh(false);
         },
         onError(error) {

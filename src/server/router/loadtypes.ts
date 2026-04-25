@@ -109,6 +109,49 @@ export const loadTypesRouter = createRouter()
 
         }
     })
+    .query("searchPage", {
+        input: z.object({
+            search: z.string().optional(),
+            page: z.number().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional(),
+        }),
+        async resolve({ctx, input}) {
+            const {order, orderBy, page} = input;
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            const orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            orderObj[orderBy] = order;
+
+            const where = {
+                OR: [{Deleted: false}, {Deleted: null}],
+                ...(input.search && input.search.length > 0
+                    ? {
+                          AND: {
+                              OR: [
+                                  {Notes: {contains: input.search.replace('"', '\\"')}},
+                                  {Description: {contains: input.search.replace('"', '\\"')}},
+                              ],
+                          },
+                      }
+                    : {}),
+            };
+
+            const [rows, count] = await Promise.all([
+                ctx.prisma.loadTypes.findMany({
+                    where,
+                    take: 10,
+                    skip: page ? page * 10 : 0,
+                    orderBy: orderObj,
+                }),
+                ctx.prisma.loadTypes.count({where}),
+            ]);
+
+            return {rows, count};
+        },
+    })
     .mutation('put', {
         // validate input with Zod
         input: LoadTypesModel.omit({ID: true, Deleted: true}),

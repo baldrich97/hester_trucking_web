@@ -117,6 +117,55 @@ export const customersRouter = createRouter()
 
         }
     })
+    .query("searchPage", {
+        input: z.object({
+            search: z.string(),
+            page: z.number().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional(),
+        }),
+        async resolve({ctx, input}) {
+            const formattedSearch = input.search.replace('"', '\\"');
+            const {order, orderBy, page} = input;
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            const orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            orderObj[orderBy] = order;
+
+            const where =
+                input.search.length > 0
+                    ? {
+                          OR: [
+                              {Name: {contains: formattedSearch}},
+                              {Street: {contains: formattedSearch}},
+                              {City: {contains: formattedSearch}},
+                              {ZIP: {contains: formattedSearch}},
+                              {Email: {contains: formattedSearch}},
+                              {Phone: {contains: formattedSearch}},
+                              {MainContact: {contains: formattedSearch}},
+                              {Notes: {contains: formattedSearch}},
+                          ],
+                      }
+                    : {};
+
+            const [rows, count] = await Promise.all([
+                ctx.prisma.customers.findMany({
+                    where,
+                    orderBy: orderObj,
+                    include: {
+                        States: {select: {Abbreviation: true}},
+                    },
+                    take: 10,
+                    skip: page ? 10 * page : 0,
+                }),
+                ctx.prisma.customers.count({where}),
+            ]);
+
+            return {rows, count};
+        },
+    })
     .mutation('put', {
         // validate input with Zod
         input: CustomersModel.omit({ID: true, Deleted: true}),

@@ -18,6 +18,15 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// How a signed form’s dates are evaluated for compliance (see `driverFormCompliance` util).
+enum FormExpiryCadence {
+  NONE
+  EXPIRATION_DATE
+  CALENDAR_YEAR
+  CALENDAR_MONTH
+  ROLLING_MONTHS
+}
+
 model User {
   id           Int    @id @default(autoincrement())
   email        String
@@ -104,6 +113,8 @@ model Drivers {
   HireDate      String?        @db.VarChar(255)
   OwnerOperator Boolean
   TIN           String?        @db.VarChar(255)
+  PayMethod     String?        @db.VarChar(50)
+  CarrierID     Int?
   Dailies       Dailies[]
   DriverForms   DriverForms[]
   States        States?        @relation(fields: [State], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Drivers_States")
@@ -111,7 +122,9 @@ model Drivers {
   Loads         Loads[]
   PayStubs      PayStubs[]
   TrucksDriven  TrucksDriven[]
+  Carriers      Carriers?      @relation(fields: [CarrierID], references: [ID], onDelete: SetNull, onUpdate: Restrict, map: "FK_Drivers_Carriers")
 
+  @@index([CarrierID], map: "FK_Drivers_Carriers")
   @@index([State], map: "FK_Drivers_States")
   @@fulltext([FirstName, MiddleName, LastName, Street, City, ZIP, License, Email, Phone, Notes, HireDate])
 }
@@ -354,9 +367,11 @@ model PayStubs {
   @@index([DriverID], map: "FK_PayStubs_Driver")
 }
 
-model Companies {
-  ID   Int    @id @default(autoincrement())
-  Name String @db.VarChar(255)
+/// External motor carrier / subcontractor a driver is associated with (not the future multi-tenant “company”).
+model Carriers {
+  ID      Int       @id @default(autoincrement())
+  Name    String    @db.VarChar(255)
+  Drivers Drivers[]
 }
 
 model DriverForms {
@@ -370,20 +385,28 @@ model DriverForms {
   Drivers    Drivers   @relation(fields: [Driver], references: [ID], onUpdate: Restrict, map: "DriverForms_Drivers_ID_fk")
   Forms      Forms     @relation(fields: [Form], references: [ID], onUpdate: Restrict, map: "DriverForms_Forms_ID_fk")
 
+  @@unique([Driver, Form], map: "DriverForms_Driver_Form_key")
   @@index([Driver], map: "DriverForms_Drivers_ID_fk")
   @@index([Form], map: "DriverForms_Forms_ID_fk")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model FormOptions {
-  ID          Int     @id @default(autoincrement())
-  Form        Int
-  W2Visible   Boolean @default(true)
-  OOVisible   Boolean @default(true)
-  W2Required  Boolean @default(true)
-  OORequired  Boolean @default(true)
-  CompanyWide Boolean @default(false)
-  Forms       Forms   @relation(fields: [Form], references: [ID], onUpdate: Restrict, map: "FormOptions_Forms_ID_fk")
+  ID             Int               @id @default(autoincrement())
+  Form           Int
+  W2Visible      Boolean           @default(true)
+  OOVisible      Boolean           @default(true)
+  W2Required     Boolean           @default(true)
+  OORequired     Boolean           @default(true)
+  /// When true, one valid filing for any driver under the same `Carriers` satisfies the form for all of them.
+  CarrierWide    Boolean           @default(false) @map("CompanyWide")
+  ExpiryCadence  FormExpiryCadence @default(EXPIRATION_DATE)
+  /// For `ROLLING_MONTHS`: number of months the filing stays valid from `Created`.
+  ValidityMonths Int?
+  PdfOrder       Int               @default(0)
+  PdfColumnLabel String?           @db.VarChar(75)
+  IncludeInPdf   Boolean           @default(true)
+  Forms          Forms             @relation(fields: [Form], references: [ID], onUpdate: Restrict, map: "FormOptions_Forms_ID_fk")
 
   @@index([Form], map: "FormOptions_Forms_ID_fk")
 }

@@ -19,7 +19,7 @@ export type FormFieldsType = {
   label?: string;
   required: boolean;
   errorMessage?: string;
-  type: "textfield" | "select" | "checkbox" | "date" | "padding" | "week";
+  type: "textfield" | "select" | "selectList" | "checkbox" | "date" | "padding" | "week";
   shouldErrorOn?: string[];
   multiline?: boolean;
   maxRows?: number;
@@ -28,6 +28,8 @@ export type FormFieldsType = {
   searchQuery?: string;
   groupBy?: string | null;
   groupByNames?: string | null;
+  /** For `selectList`: menu `""` becomes `null`, other values become integers (nullable FK). */
+  coerceNumberOrNull?: boolean;
 }[];
 
 export type SelectDataType = {

@@ -51,10 +51,12 @@ const Customers = ({states, customers, count}: {states: StatesType[], customers:
         }
     }, [search])
 
-    trpc.useQuery(['customers.search', {search, page, orderBy, order}], {
+    trpc.useQuery(['customers.searchPage', {search, page, orderBy, order}], {
         enabled: shouldSearch,
+        refetchOnWindowFocus: false,
         onSuccess(data) {
-            setData(data);
+            setData(data.rows);
+            setCount(data.count);
             setShouldSearch(false);
         },
         onError(error) {
@@ -95,7 +97,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const states = await prisma.states.findMany({});
     const customers = await prisma.customers.findMany({
         include: {
-            States: true
+            States: {select: {Abbreviation: true}}
         },
         orderBy: {
             Name: 'asc'

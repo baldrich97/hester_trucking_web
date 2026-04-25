@@ -26,6 +26,8 @@ import {useRouter} from "next/router";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import Collapse from "@mui/material/Collapse";
+import Badge from "@mui/material/Badge";
+import {trpc} from "../../utils/trpc";
 
 const drawerWidth = 240;
 
@@ -81,14 +83,21 @@ function Sidenav(props: any) {
         selectedLink = 10;
     } else if (currentPath.includes("/paystubs")) {
         selectedLink = 11;
-    } else if (currentPath.includes("/companies")) {
+    } else if (currentPath.includes("/carriers")) {
         selectedLink = 24;
     }
 
     //TODO highest is 25
 
+    const {data: compliance} = trpc.useQuery(["compliance.driverFormsSummary"], {
+        refetchOnWindowFocus: true,
+    });
+    const complianceCount = compliance?.totalIssues ?? 0;
+    const w2ComplianceCount = compliance?.w2Issues ?? 0;
+    const ooComplianceCount = compliance?.ooIssues ?? 0;
+
     const [isDailiesOpen, setDailiesOpen] = React.useState<boolean>(false);
-    const [isCompaniesOpen, setCompaniesOpen] = React.useState<boolean>(false);
+    const [isCarriersOpen, setCarriersOpen] = React.useState<boolean>(false);
     const [isDriversOpen, setDriversOpen] = React.useState<boolean>(false);
     const [isWeekliesOpen, setWeekliesOpen] = React.useState<boolean>(false);
     const [isLoadsOpen, setLoadsOpen] = React.useState<boolean>(false);
@@ -130,7 +139,7 @@ function Sidenav(props: any) {
                 <ListItemButton
                     selected={[24, 25].includes(selectedIndex)}
                 >
-                    <NextLink href="/companies" passHref>
+                    <NextLink href="/carriers" passHref>
                         <ListItemIcon>
                             <BusinessIcon
                                 onClick={() => {
@@ -139,24 +148,24 @@ function Sidenav(props: any) {
                             />
                         </ListItemIcon>
                     </NextLink>
-                    <NextLink href="/companies" passHref>
-                        <ListItemText primary="Companies" onClick={() => {
+                    <NextLink href="/carriers" passHref>
+                        <ListItemText primary="Carriers" onClick={() => {
                             setSelectedIndex(24);
                         }} />
                     </NextLink>
-                    {isCompaniesOpen ? <ExpandLess onClick={() => setCompaniesOpen(!isCompaniesOpen)} /> :
-                        <ExpandMore onClick={() => setCompaniesOpen(!isCompaniesOpen)} />}
+                    {isCarriersOpen ? <ExpandLess onClick={() => setCarriersOpen(!isCarriersOpen)} /> :
+                        <ExpandMore onClick={() => setCarriersOpen(!isCarriersOpen)} />}
                 </ListItemButton>
 
-                <Collapse in={isCompaniesOpen} timeout="auto" unmountOnExit>
+                <Collapse in={isCarriersOpen} timeout="auto" unmountOnExit>
                     <List component="div" disablePadding>
-                        <NextLink href="/drivers/options" passHref>
+                        <NextLink href="/carriers/compliance" passHref>
                             <ListItemButton
                                 selected={selectedIndex === 25}
                                 sx={{ pl: 4 }}
-                                onClick={() => setSelectedIndex(25)} // Use unique index for nested items
+                                onClick={() => setSelectedIndex(25)}
                             >
-                                <ListItemText primary="Company Compliance" />
+                                <ListItemText primary="Carrier compliance" />
                             </ListItemButton>
                         </NextLink>
                         {/*<NextLink href="/drivers/w2" passHref>*/}
@@ -278,21 +287,30 @@ function Sidenav(props: any) {
                 </NextLink>
 
                 <ListItemButton
-                    selected={[4, 20, 21, 22, 23].includes(selectedIndex)}
+                    selected={[4, 20, 21, 22].includes(selectedIndex)}
                 >
                     <NextLink href="/drivers" passHref>
                         <ListItemIcon>
-                            <EventAvailable
-                                onClick={() => {
-                                    setSelectedIndex(4);
-                                }}
-                            />
+                            <Badge
+                                color="error"
+                                badgeContent={complianceCount}
+                                invisible={complianceCount === 0 || isDriversOpen}
+                            >
+                                <EventAvailable
+                                    onClick={() => {
+                                        setSelectedIndex(4);
+                                    }}
+                                />
+                            </Badge>
                         </ListItemIcon>
                     </NextLink>
                     <NextLink href="/drivers" passHref>
-                        <ListItemText primary="Drivers" onClick={() => {
-                            setSelectedIndex(4);
-                        }} />
+                        <ListItemText
+                            primary="Drivers"
+                            onClick={() => {
+                                setSelectedIndex(4);
+                            }}
+                        />
                     </NextLink>
                     {isDriversOpen ? <ExpandLess onClick={() => setDriversOpen(!isDriversOpen)} /> :
                         <ExpandMore onClick={() => setDriversOpen(!isDriversOpen)} />}
@@ -300,11 +318,11 @@ function Sidenav(props: any) {
 
                 <Collapse in={isDriversOpen} timeout="auto" unmountOnExit>
                     <List component="div" disablePadding>
-                        <NextLink href="/drivers/options" passHref>
+                        <NextLink href="/drivers/form-options" passHref>
                             <ListItemButton
                                 selected={selectedIndex === 20}
                                 sx={{ pl: 4 }}
-                                onClick={() => setSelectedIndex(20)} // Use unique index for nested items
+                                onClick={() => setSelectedIndex(20)}
                             >
                                 <ListItemText primary="Form Options" />
                             </ListItemButton>
@@ -316,6 +334,26 @@ function Sidenav(props: any) {
                                 onClick={() => setSelectedIndex(21)}
                             >
                                 <ListItemText primary="W2 Forms" />
+                                {isDriversOpen && w2ComplianceCount > 0 ? (
+                                    <span
+                                        style={{
+                                            marginLeft: "auto",
+                                            minWidth: 22,
+                                            height: 22,
+                                            borderRadius: 11,
+                                            background: "#d32f2f",
+                                            color: "#fff",
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            padding: "0 7px",
+                                        }}
+                                    >
+                                        {w2ComplianceCount}
+                                    </span>
+                                ) : null}
                             </ListItemButton>
                         </NextLink>
                         <NextLink href="/drivers/owner_forms" passHref>
@@ -325,6 +363,26 @@ function Sidenav(props: any) {
                                 onClick={() => setSelectedIndex(22)}
                             >
                                 <ListItemText primary="Non-W2 Forms" />
+                                {isDriversOpen && ooComplianceCount > 0 ? (
+                                    <span
+                                        style={{
+                                            marginLeft: "auto",
+                                            minWidth: 22,
+                                            height: 22,
+                                            borderRadius: 11,
+                                            background: "#d32f2f",
+                                            color: "#fff",
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            padding: "0 7px",
+                                        }}
+                                    >
+                                        {ooComplianceCount}
+                                    </span>
+                                ) : null}
                             </ListItemButton>
                         </NextLink>
                         {/*<NextLink href="/drivers/companies" passHref>*/}

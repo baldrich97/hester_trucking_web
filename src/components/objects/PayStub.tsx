@@ -540,10 +540,9 @@ const PayStub = ({
                 {!initialPayStub && (
                     <Grid2 xs={3}>
                         <Button
-                            type={"submit"}
-                            variant={"contained"}
-                            color={"primary"}
-                            style={{backgroundColor: "#1565C0"}}
+                            type="submit"
+                            variant="contained"
+                            color="primary"
                             disabled={selected.length === 0}
                         >
                             Submit
@@ -555,9 +554,9 @@ const PayStub = ({
                     <>
                         <Grid2 xs={1}>
                             <Button
-                                type={"button"}
-                                variant={"contained"}
-                                style={{backgroundColor: "#EF463B"}}
+                                type="button"
+                                variant="contained"
+                                color="error"
                                 onClick={() => {
                                     confirmAlert({
                                         title: "Confirm Deletion",
@@ -583,9 +582,8 @@ const PayStub = ({
                         </Grid2>
                         <Grid2 xs={1}>
                             <Button
-                                variant={"contained"}
-                                color={"warning"}
-                                style={{backgroundColor: "#ffa726"}}
+                                variant="contained"
+                                color="warning"
                                 onClick={async () => {
                                     toast("Generating PDF...", {autoClose: 2000, type: "info"});
                                     const element = document.createElement("a");
@@ -605,10 +603,9 @@ const PayStub = ({
                         </Grid2>
                         <Grid2 xs={1}>
                             <Button
-                                type={"submit"}
-                                variant={"contained"}
-                                color={"primary"}
-                                style={{backgroundColor: "#1565C0"}}
+                                type="submit"
+                                variant="contained"
+                                color="primary"
                             >
                                 Submit
                             </Button>

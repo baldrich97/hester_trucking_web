@@ -12,7 +12,7 @@ type DataType = z.infer<typeof DataModel>;
 
 const Owner_Forms = ({data, all_forms}: { data: DataType[], all_forms: CompleteFormOptions[] }) => {
     return (
-        <Driver_Forms data={data} all_forms={all_forms}/>
+        <Driver_Forms data={data} all_forms={all_forms} mode="oo"/>
     )
 }
 
@@ -25,9 +25,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const data = await prisma.drivers.findMany({
         include: {
             DriverForms: true,
+            TrucksDriven: {
+                include: { Trucks: true },
+            },
         },
         where: {
-            OwnerOperator: true
+            OwnerOperator: true,
+            OR: [{Deleted: false}, {Deleted: null}],
         },
         orderBy: {
             LastName: "asc"
@@ -40,7 +44,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         },
         include: {
             Forms: true
-        }
+        },
+        orderBy: [{ PdfOrder: 'asc' }, { ID: 'asc' }],
     });
 
     return {

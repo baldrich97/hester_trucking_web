@@ -12,7 +12,7 @@ type DataType = z.infer<typeof DataModel>;
 
 const W2_Forms = ({data, all_forms}: { data: DataType[], all_forms: CompleteFormOptions[] }) => {
     return (
-        <Driver_Forms data={data} all_forms={all_forms}/>
+        <Driver_Forms data={data} all_forms={all_forms} mode="w2"/>
     )
 }
 
@@ -29,7 +29,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         where: {
             OwnerOperator: {
                 not: true
-            }
+            },
+            OR: [{Deleted: false}, {Deleted: null}],
         },
         orderBy: {
             LastName: "asc"
@@ -42,7 +43,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         },
         include: {
             Forms: true
-        }
+        },
+        orderBy: [{ PdfOrder: 'asc' }, { ID: 'asc' }],
     });
 
     return {

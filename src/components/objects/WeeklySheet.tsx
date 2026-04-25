@@ -26,6 +26,7 @@ import Tooltip from '@mui/material/Tooltip';
 import {confirmAlert} from "react-confirm-alert";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import {trpc} from "../../utils/trpc";
+import {calendarNavButtonSx} from "../../theme/muiShared";
 import NextLink from "next/link";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -90,12 +91,7 @@ const WeeklySheet = ({
                         variant="text"
                         type={"button"}
                         size="small"
-                        style={{
-                            minHeight: "30px",
-                            maxHeight: "30px",
-                            minWidth: "30px",
-                            maxWidth: "30px",
-                        }}
+                        sx={calendarNavButtonSx}
                         color="inherit"
                         onClick={() => {
                             setIsOpen(!isOpen);
@@ -120,8 +116,7 @@ const WeeklySheet = ({
                 <Grid2 xs={"auto"} sx={{paddingRight: 2}}>
                     <Button
                         variant="contained"
-                        color={"primary"}
-                        style={{backgroundColor: "#ffa726"}}
+                        color="warning"
                         onClick={async () => {
                             confirmAlert({
                                 title: "Confirm Weekly Edit",
@@ -147,8 +142,7 @@ const WeeklySheet = ({
                 <Grid2 xs={"auto"} sx={{paddingRight: 2}}>
                     <Button
                         variant="contained"
-                        color={"primary"}
-                        style={{backgroundColor: "#ffa726"}}
+                        color="warning"
                         onClick={async () => {
                             toast("Generating PDF...", {autoClose: 2000, type: "info"});
                             const element = document.createElement("a");
@@ -169,7 +163,7 @@ const WeeklySheet = ({
                         passHref
                     >
                         <a target={"_blank"}>
-                            <Button color={"primary"} variant={"contained"} style={{backgroundColor: '#1976d2'}}>
+                            <Button color="primary" variant="contained">
                                 To Invoice
                             </Button>
                         </a>
@@ -287,9 +281,8 @@ const WeeklySheet = ({
 
                     <Box sx={{mt: 2, justifyContent: 'space-between', display: "flex"}}>
                         <Button
-                            variant={"contained"}
-                            color={"success"}
-                            style={{backgroundColor: "#66bb6a"}}
+                            variant="contained"
+                            color="success"
                             onClick={async () => {
                                 const changed = JSON.parse(JSON.stringify(weekly));
                                 changed.DeliveryLocationID = weeklyDeliveryLocation === 0 ? weekly.DeliveryLocationID : weeklyDeliveryLocation;
@@ -302,8 +295,8 @@ const WeeklySheet = ({
                         </Button>
 
                         <Button
-                            variant={"contained"}
-                            style={{backgroundColor: "#757575"}}
+                            variant="contained"
+                            color="secondary"
                             onClick={async () => {
                                 setWeeklyDeliveryLocation(weekly.DeliveryLocationID)
                                 setWeeklyCustomer(weekly.CustomerID)
@@ -420,9 +413,28 @@ const TotalsRow = ({
                     <span>
                         <Button
                             variant="contained"
-                            color={"primary"}
-                            style={{backgroundColor: weekly.InvoiceID ? "#0aa201" : isClosed ? "#88ff83" : "#181eff"}}
-                            sx={{minWidth: 30, minHeight: 30, maxWidth: 30, maxHeight: 30}}
+                            sx={{
+                                minWidth: 30,
+                                minHeight: 30,
+                                maxWidth: 30,
+                                maxHeight: 30,
+                                bgcolor: weekly.InvoiceID
+                                    ? "success.dark"
+                                    : isClosed
+                                      ? "success.light"
+                                      : "info.main",
+                                color:
+                                    weekly.InvoiceID || !isClosed
+                                        ? "common.white"
+                                        : "text.primary",
+                                "&:hover": {
+                                    bgcolor: weekly.InvoiceID
+                                        ? "success.main"
+                                        : isClosed
+                                          ? "success.main"
+                                          : "info.dark",
+                                },
+                            }}
                             disabled={isClosed}
                             onClick={async () => {
                                 confirmAlert({

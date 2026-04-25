@@ -5,6 +5,58 @@ import {TRPCError} from "@trpc/server";
 
 type loadType = z.infer<typeof LoadsModel>;
 
+const loadsListInput = z.object({
+    page: z.number().optional(),
+    customer: z.number().optional(),
+    truck: z.number().optional(),
+    driver: z.number().optional(),
+    loadType: z.number().optional(),
+    deliveryLocation: z.number().optional(),
+    orderBy: z.string().optional(),
+    order: z.string().optional(),
+    search: z.number().nullish().optional(),
+    chosenLoad: z.any().optional(),
+});
+
+function buildLoadFilters(input: z.infer<typeof loadsListInput>) {
+    const {customer, driver, truck, loadType, deliveryLocation, search, chosenLoad} = input;
+    const epsilon = 0.001;
+    return {
+        ...(customer && {CustomerID: customer}),
+        ...(driver && {DriverID: driver}),
+        ...(truck && {TruckID: truck}),
+        ...(loadType && {LoadTypeID: loadType}),
+        ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
+        ...(search && {TicketNumber: search}),
+        ...(chosenLoad?.MaterialRate && {
+            MaterialRate: {gte: chosenLoad.MaterialRate - epsilon, lte: chosenLoad.MaterialRate + epsilon},
+        }),
+        ...(chosenLoad?.TruckRate && {
+            TruckRate: {gte: chosenLoad.TruckRate - epsilon, lte: chosenLoad.TruckRate + epsilon},
+        }),
+        ...(chosenLoad?.DriverRate && {
+            DriverRate: {gte: chosenLoad.DriverRate - epsilon, lte: chosenLoad.DriverRate + epsilon},
+        }),
+        ...(chosenLoad?.TotalRate && {
+            TotalRate: {gte: chosenLoad.TotalRate - epsilon, lte: chosenLoad.TotalRate + epsilon},
+        }),
+        ...(chosenLoad?.StartDate && {StartDate: chosenLoad.StartDate}),
+        ...(chosenLoad?.Week && {Week: chosenLoad.Week}),
+    };
+}
+
+const loadListInclude = {
+    Customers: {select: {Name: true}},
+    Trucks: {select: {Name: true}},
+    Drivers: {select: {FirstName: true, LastName: true}},
+    LoadTypes: {select: {Description: true}},
+    DeliveryLocations: {select: {Description: true}},
+};
+
+const activeLoadWhere = {
+    OR: [{Deleted: false}, {Deleted: null}],
+};
+
 
 async function updateLoadAndRelations(
     input: any,
@@ -215,19 +267,52 @@ async function updateLoadAndRelations(
 }
 
 export const loadsRouter = createRouter()
+    .query("getAllPage", {
+        input: loadsListInput,
+        async resolve({ctx, input}) {
+            const {order, orderBy, page} = input;
+            const extra = buildLoadFilters(input);
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            const orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            orderObj[orderBy] = order;
+            const where = {...activeLoadWhere, ...extra};
+            const [rows, count] = await Promise.all([
+                ctx.prisma.loads.findMany({
+                    include: loadListInclude,
+                    orderBy: orderObj,
+                    where,
+                    take: 10,
+                    skip: page ? 10 * page : 0,
+                }),
+                ctx.prisma.loads.count({where}),
+            ]);
+            return {rows, count};
+        },
+    })
+    .query("getUninvPage", {
+        input: loadsListInput.omit({chosenLoad: true}),
+        async resolve({ctx, input}) {
+            const {page} = input;
+            const extra = buildLoadFilters(input);
+            const where = {...activeLoadWhere, Invoiced: null, ...extra};
+            const [rows, count] = await Promise.all([
+                ctx.prisma.loads.findMany({
+                    include: loadListInclude,
+                    orderBy: {StartDate: "asc"},
+                    where,
+                    take: 10,
+                    skip: page ? 10 * page : 0,
+                }),
+                ctx.prisma.loads.count({where}),
+            ]);
+            return {rows, count};
+        },
+    })
     .query("getAll", {
-        input: z.object({
-            page: z.number().optional(),
-            customer: z.number().optional(),
-            truck: z.number().optional(),
-            driver: z.number().optional(),
-            loadType: z.number().optional(),
-            deliveryLocation: z.number().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional(),
-            search: z.number().nullish().optional(),
-            chosenLoad: z.any().optional()
-        }),
+        input: loadsListInput,
         async resolve({ctx, input}) {
             const {
                 customer,
@@ -241,45 +326,7 @@ export const loadsRouter = createRouter()
                 page,
                 chosenLoad
             } = input;
-            const epsilon = 0.001;
-            const extra = {
-                ...(customer && {CustomerID: customer}),
-                ...(driver && {DriverID: driver}),
-                ...(truck && {TruckID: truck}),
-                ...(loadType && {LoadTypeID: loadType}),
-                ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
-                ...(search && {TicketNumber: search}),
-                ...(chosenLoad?.MaterialRate && {
-                    MaterialRate: {
-                        gte: chosenLoad.MaterialRate - epsilon,
-                        lte: chosenLoad.MaterialRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.TruckRate && {
-                    TruckRate: {
-                        gte: chosenLoad.TruckRate - epsilon,
-                        lte: chosenLoad.TruckRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.DriverRate && {
-                    DriverRate: {
-                        gte: chosenLoad.DriverRate - epsilon,
-                        lte: chosenLoad.DriverRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.TotalRate && {
-                    TotalRate: {
-                        gte: chosenLoad.TotalRate - epsilon,
-                        lte: chosenLoad.TotalRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.StartDate && {
-                    StartDate: chosenLoad.StartDate
-                }),
-                ...(chosenLoad?.Week && {
-                    Week: chosenLoad.Week
-                }),
-            };
+            const extra = buildLoadFilters(input);
 
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -292,15 +339,15 @@ export const loadsRouter = createRouter()
             //const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
             return ctx.prisma.loads.findMany({
                 include: {
-                    Customers: true,
-                    Trucks: true,
-                    Drivers: true,
-                    LoadTypes: true,
-                    DeliveryLocations: true
+                    Customers: {select: {Name: true}},
+                    Trucks: {select: {Name: true}},
+                    Drivers: {select: {FirstName: true, LastName: true}},
+                    LoadTypes: {select: {Description: true}},
+                    DeliveryLocations: {select: {Description: true}},
                 },
                 orderBy: orderObj,
                 where: {
-                    Deleted: null,
+                    ...activeLoadWhere,
                     ...extra
                 },
                 take: 10,
@@ -309,17 +356,7 @@ export const loadsRouter = createRouter()
         },
     })
     .query("getUninv", {
-        input: z.object({
-            page: z.number().optional(),
-            customer: z.number().optional(),
-            truck: z.number().optional(),
-            driver: z.number().optional(),
-            loadType: z.number().optional(),
-            deliveryLocation: z.number().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional(),
-            search: z.number().nullish().optional()
-        }),
+        input: loadsListInput.omit({chosenLoad: true}),
         async resolve({ctx, input}) {
             const {
                 customer,
@@ -332,31 +369,23 @@ export const loadsRouter = createRouter()
                 orderBy,
                 page
             } = input;
-            const epsilon = 0.001;
-            const extra = {
-                ...(customer && {CustomerID: customer}),
-                ...(driver && {DriverID: driver}),
-                ...(truck && {TruckID: truck}),
-                ...(loadType && {LoadTypeID: loadType}),
-                ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
-                ...(search && {TicketNumber: search}),
-            };
+            const extra = buildLoadFilters(input);
 
 
             //const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
             return ctx.prisma.loads.findMany({
                 include: {
-                    Customers: true,
-                    Trucks: true,
-                    Drivers: true,
-                    LoadTypes: true,
-                    DeliveryLocations: true
+                    Customers: {select: {Name: true}},
+                    Trucks: {select: {Name: true}},
+                    Drivers: {select: {FirstName: true, LastName: true}},
+                    LoadTypes: {select: {Description: true}},
+                    DeliveryLocations: {select: {Description: true}},
                 },
                 orderBy: {
                     StartDate: 'asc'
                 },
                 where: {
-                    Deleted: null,
+                    ...activeLoadWhere,
                     Invoiced: null,
                     ...extra
                 },
@@ -522,7 +551,7 @@ export const loadsRouter = createRouter()
 
             return ctx.prisma.loads.count({
                 where: {
-                    Deleted: null,
+                    ...activeLoadWhere,
                     ...extra
                 }
             });
@@ -553,7 +582,7 @@ export const loadsRouter = createRouter()
 
             return ctx.prisma.loads.count({
                 where: {
-                    Deleted: null,
+                    ...activeLoadWhere,
                     Invoiced: null,
                     ...extra
                 }

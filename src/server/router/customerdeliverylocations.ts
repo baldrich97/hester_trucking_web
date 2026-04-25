@@ -1,9 +1,6 @@
-import { DeliveryLocations } from '@prisma/client';
 import {createRouter} from "./context";
 import {z} from "zod";
 import { CustomerDeliveryLocationsModel } from '../../../prisma/zod';
-
-type CustomerDeliveryLocationsType = z.infer<typeof CustomerDeliveryLocationsModel>;
 
 export const customerDeliveryLocationsRouter = createRouter()
     .query("getAll", {
@@ -12,23 +9,17 @@ export const customerDeliveryLocationsRouter = createRouter()
             page: z.number().optional()
         }),
         async resolve({ctx, input}) {
-            const data = ctx.prisma.customerDeliveryLocations.findMany({
+            return ctx.prisma.customerDeliveryLocations.findMany({
                 where: {
                     CustomerID: input.CustomerID
                 },
                 include: {
-                    DeliveryLocations: true
+                    DeliveryLocations: {select: {Description: true}}
                 },
+                distinct: ["CustomerID", "DeliveryLocationID"],
                 take: 10,
                 skip: input.page ? input.page * 10 : 0
             });
-            const returnable: CustomerDeliveryLocationsType[] = [];
-            (await data).forEach((item) => {
-                if (returnable.filter((_item) => _item.CustomerID === item.CustomerID && _item.DeliveryLocationID === item.DeliveryLocationID).length === 0) {
-                    returnable.push(item);
-                }
-            })
-            return returnable;
         },
     })
     .mutation('put', {

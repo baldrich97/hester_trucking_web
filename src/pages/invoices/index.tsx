@@ -231,11 +231,13 @@ const Invoices = ({
     const [key, setNewKey] = React.useState(Math.random());
 
     trpc.useQuery(
-        ["invoices.getAllUnpaid", {customer, search, page, orderBy, order, deliveryLocation, loadType}],
+        ["invoices.getAllUnpaidPage", {customer, search, page, orderBy, order, deliveryLocation, loadType}],
         {
             enabled: shouldRefresh && tabValue === 0,
+            refetchOnWindowFocus: false,
             onSuccess(data) {
-                setUnpaidData(JSON.parse(JSON.stringify(data)));
+                setUnpaidData(JSON.parse(JSON.stringify(data.rows)));
+                setNewCount(data.count);
                 setNewKey(Math.random());
                 setShouldRefresh(false);
             },
@@ -247,11 +249,13 @@ const Invoices = ({
     );
 
     trpc.useQuery(
-        ["invoices.getAllConsolidated", {customer, search, page, orderBy, order}],
+        ["invoices.getAllConsolidatedPage", {customer, search, page, orderBy, order}],
         {
             enabled: shouldRefresh && tabValue === 3,
+            refetchOnWindowFocus: false,
             onSuccess(data) {
-                setConsolidatedData(JSON.parse(JSON.stringify(data)));
+                setConsolidatedData(JSON.parse(JSON.stringify(data.rows)));
+                setNewCount(data.count);
                 setNewKey(Math.random());
                 setShouldRefresh(false);
             },
@@ -274,6 +278,7 @@ const Invoices = ({
         ],
         {
             enabled: consolidatedShouldRefresh,
+            refetchOnWindowFocus: false,
             onSuccess(data) {
                 setConsolidateableInvoices(JSON.parse(JSON.stringify(data)));
                 setNewKey(Math.random());
@@ -287,11 +292,13 @@ const Invoices = ({
     );
 
     trpc.useQuery(
-        ["invoices.getAllPaid", {customer, search, page, orderBy, order, deliveryLocation, loadType}],
+        ["invoices.getAllPaidPage", {customer, search, page, orderBy, order, deliveryLocation, loadType}],
         {
             enabled: shouldRefresh && tabValue === 1,
+            refetchOnWindowFocus: false,
             onSuccess(data) {
-                setPaidData(JSON.parse(JSON.stringify(data)));
+                setPaidData(JSON.parse(JSON.stringify(data.rows)));
+                setNewCount(data.count);
                 setNewKey(Math.random());
                 setShouldRefresh(false);
             },
@@ -303,11 +310,13 @@ const Invoices = ({
     );
 
     trpc.useQuery(
-        ["invoices.getAll", {customer, search, page, orderBy, order, deliveryLocation, loadType}],
+        ["invoices.getAllPage", {customer, search, page, orderBy, order, deliveryLocation, loadType}],
         {
             enabled: shouldRefresh && tabValue === 2,
+            refetchOnWindowFocus: false,
             onSuccess(data) {
-                setData(JSON.parse(JSON.stringify(data)));
+                setData(JSON.parse(JSON.stringify(data.rows)));
+                setNewCount(data.count);
                 setNewKey(Math.random());
                 setShouldRefresh(false);
             },
@@ -317,19 +326,6 @@ const Invoices = ({
             },
         }
     );
-
-    trpc.useQuery(["invoices.getCount", {customer, search, tabValue, deliveryLocation, loadType}], {
-        enabled: shouldRefresh,
-        onSuccess(data) {
-            setNewCount(data);
-            setNewKey(Math.random());
-            setShouldRefresh(false);
-        },
-        onError(error) {
-            console.warn(error.message);
-            setShouldRefresh(false);
-        },
-    });
 
     const filterBody = (
         <div style={{display: "flex", flexDirection: "column"}}>
@@ -441,13 +437,10 @@ const Invoices = ({
             <Tab label="Consolidated" />
           </Tabs>
           <Button
-            type={"button"}
-            variant={"contained"}
-            style={{
-              backgroundColor: "#FFA726",
-              alignSelf: "flex-end",
-              height: 32,
-            }}
+            type="button"
+            variant="contained"
+            color="warning"
+            sx={{alignSelf: "flex-end", height: 32}}
             onClick={() => {
               toggleModal(true);
             }}
@@ -718,9 +711,8 @@ const Invoices = ({
                         }}
                     >
                         <Button
-                            variant={"contained"}
-                            color={"primary"}
-                            style={{backgroundColor: "#1565C0"}}
+                            variant="contained"
+                            color="primary"
                             disabled={consolidateableInvoices.length === 0}
                             onClick={async () => {
                                 await createConsolidated.mutateAsync({
@@ -743,9 +735,8 @@ const Invoices = ({
                             Create
                         </Button>
                         <Button
-                            variant={"contained"}
-                            color={"primary"}
-                            style={{backgroundColor: "#757575"}}
+                            variant="contained"
+                            color="secondary"
                             onClick={() => {
                                 toggleModal(false);
                                 setCustomer(0);

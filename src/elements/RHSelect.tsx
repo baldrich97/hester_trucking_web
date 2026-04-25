@@ -10,7 +10,7 @@ const RHSelect = ({
   name,
   control,
   required = false,
-  defaultValue = "",
+  defaultValue,
   shouldError = false,
   errorMessage = "",
   label = name,
@@ -18,11 +18,12 @@ const RHSelect = ({
   optionLabel,
   optionValue,
   disabled = false,
+  coerceNumberOrNull = false,
 }: {
   name: string;
   control: Control<any>;
   required?: boolean;
-  defaultValue?: string | number;
+  defaultValue?: string | number | null;
   shouldError?: boolean;
   errorMessage?: string;
   label?: string;
@@ -30,6 +31,8 @@ const RHSelect = ({
   optionLabel: string;
   optionValue: string;
   disabled?: boolean;
+  /** Empty option value (`""`) maps to `null`; other values to `number`. */
+  coerceNumberOrNull?: boolean;
 }) => {
   const formatOptionLabel = (optionLabel: string, item: any): string => {
     let returnable = "";
@@ -61,24 +64,51 @@ const RHSelect = ({
       name={name}
       control={control}
       rules={{ required: required }}
-      defaultValue={defaultValue}
+      {...(defaultValue !== undefined ? {defaultValue} : {})}
       render={({ field }) => (
         <FormControl fullWidth={true} error={shouldError} size={"small"}>
           <InputLabel id={label + "-label"}>{label}</InputLabel>
-          <Select {...field} label={label} disabled={disabled}>
-            {data.map((item, key) => {
-              return (
-                <MenuItem
-                  key={
-                    name + "SelectOption-" + (key + Math.random()).toString()
-                  }
-                  value={item[optionValue]}
-                >
-                  {formatOptionLabel(optionLabel, item)}
-                </MenuItem>
-              );
-            })}
-          </Select>{" "}
+          {coerceNumberOrNull ? (
+            <Select
+              name={field.name}
+              inputRef={field.ref}
+              onBlur={field.onBlur}
+              label={label}
+              disabled={disabled}
+              value={field.value == null ? "" : String(field.value)}
+              onChange={(e) => {
+                const v = e.target.value as string;
+                field.onChange(v === "" ? null : parseInt(v, 10));
+              }}
+            >
+              {data.map((item, key) => {
+                const rawVal = item[optionValue];
+                return (
+                  <MenuItem
+                    key={name + "-opt-" + key + "-" + String(rawVal)}
+                    value={rawVal === "" ? "" : String(rawVal)}
+                  >
+                    {formatOptionLabel(optionLabel, item)}
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          ) : (
+            <Select {...field} label={label} disabled={disabled}>
+              {data.map((item, key) => {
+                return (
+                  <MenuItem
+                    key={
+                      name + "SelectOption-" + (key + Math.random()).toString()
+                    }
+                    value={item[optionValue]}
+                  >
+                    {formatOptionLabel(optionLabel, item)}
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          )}{" "}
           {shouldError && <FormHelperText>{errorMessage}</FormHelperText>}
         </FormControl>
       )}

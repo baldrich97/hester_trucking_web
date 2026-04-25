@@ -92,6 +92,41 @@ const GenericForm = ({
                             </Grid2>
                         );
                     }
+                    case "selectList": {
+                        const foundData = selectData.filter(
+                            (item) => item.key === field.name
+                        )[0];
+                        if (!foundData) {
+                            return null;
+                        }
+
+                        const {data, optionValue, optionLabel, defaultValue} = foundData;
+
+                        return (
+                            <Grid2
+                                xs={field.size}
+                                key={"form-" + index.toString() + "-" + field.name + "-grid"}
+                            >
+                                <RHSelect
+                                    name={field.name}
+                                    control={control}
+                                    data={data}
+                                    optionLabel={optionLabel}
+                                    optionValue={optionValue}
+                                    defaultValue={defaultValue}
+                                    key={"form-" + index.toString() + "-" + field.name + "-field"}
+                                    label={field.label ?? field.name}
+                                    shouldError={field.shouldErrorOn?.includes(
+                                        errors[field.name]?.type
+                                    )}
+                                    errorMessage={field.errorMessage ?? ""}
+                                    required={field.required}
+                                    disabled={!!field.disabled}
+                                    coerceNumberOrNull={!!field.coerceNumberOrNull}
+                                />
+                            </Grid2>
+                        );
+                    }
                     case "date": {
                         return (
                             <Grid2
@@ -163,22 +198,18 @@ const GenericForm = ({
             })}
 
             <Grid2 xs={3}>
-                <Button
-                    type={"submit"}
-                    variant={"contained"}
-                    color={"primary"}
-                    style={{backgroundColor: "#1565C0"}}
-                >
+                <Button type="submit" variant="contained" color="primary">
                     Submit
                 </Button>
             </Grid2>
             {(onDelete || onReset) && <Grid2 xs={6}></Grid2>}
             {onDelete && (
-                <Grid2 xs={3} style={{display: "grid"}}>
+                <Grid2 xs={3} sx={{display: "grid"}}>
                     <Button
-                        type={"button"}
-                        variant={"contained"}
-                        style={{backgroundColor: "#EF463B", justifySelf: "flex-end"}}
+                        type="button"
+                        variant="contained"
+                        color="error"
+                        sx={{justifySelf: "flex-end"}}
                         onClick={onDelete}
                     >
                         Delete
