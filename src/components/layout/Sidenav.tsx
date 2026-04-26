@@ -101,6 +101,15 @@ function Sidenav(props: any) {
     const [isDriversOpen, setDriversOpen] = React.useState<boolean>(false);
     const [isWeekliesOpen, setWeekliesOpen] = React.useState<boolean>(false);
     const [isLoadsOpen, setLoadsOpen] = React.useState<boolean>(false);
+    const [isInvoicesOpen, setInvoicesOpen] = React.useState<boolean>(false);
+
+    const {data: overdueCount = 0} = trpc.useQuery(["invoices.getOverdueCount"]);
+
+    React.useEffect(() => {
+        if (currentPath.includes("/invoices")) {
+            setInvoicesOpen(true);
+        }
+    }, [currentPath]);
 
     const [selectedIndex, setSelectedIndex] = React.useState(selectedLink);
     return (
@@ -399,17 +408,73 @@ function Sidenav(props: any) {
 
 
 
-                <NextLink href="/invoices" passHref>
-                    <ListItemButton
-                        selected={selectedIndex === 5}
-                        onClick={() => setSelectedIndex(5)}
-                    >
+                <ListItemButton
+                    selected={[5, 20, 21].includes(selectedIndex)}
+                >
+                    <NextLink href="/invoices" passHref>
                         <ListItemIcon>
-                            <AttachMoneyIcon />
+                            <AttachMoneyIcon
+                                onClick={() => {
+                                    setSelectedIndex(5);
+                                }}
+                            />
                         </ListItemIcon>
-                        <ListItemText primary="Invoices" />
-                    </ListItemButton>
-                </NextLink>
+                    </NextLink>
+                    <NextLink href="/invoices" passHref>
+                        <ListItemText
+                            primary="Invoices"
+                            onClick={() => {
+                                setSelectedIndex(5);
+                            }}
+                        />
+                    </NextLink>
+                    {!isInvoicesOpen && overdueCount > 0 && (
+                        <Badge
+                            color="error"
+                            badgeContent={overdueCount}
+                            sx={{marginRight: 1}}
+                        >
+                            <span />
+                        </Badge>
+                    )}
+                    {isInvoicesOpen ? (
+                        <ExpandLess onClick={() => setInvoicesOpen(!isInvoicesOpen)} />
+                    ) : (
+                        <ExpandMore onClick={() => setInvoicesOpen(!isInvoicesOpen)} />
+                    )}
+                </ListItemButton>
+
+                <Collapse in={isInvoicesOpen} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                        <NextLink href="/invoices" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 20}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(20)}
+                            >
+                                <ListItemText primary="By Date" />
+                            </ListItemButton>
+                        </NextLink>
+                        <NextLink href="/invoices/overdue" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 21}
+                                sx={{ pl: 4, display: "flex", justifyContent: "space-between" }}
+                                onClick={() => setSelectedIndex(21)}
+                            >
+                                <ListItemText primary="Overdue" />
+                                {isInvoicesOpen && overdueCount > 0 && (
+                                    <Badge
+                                        color="error"
+                                        badgeContent={overdueCount}
+                                        sx={{marginRight: 2}}
+                                    >
+                                        <span />
+                                    </Badge>
+                                )}
+                            </ListItemButton>
+                        </NextLink>
+                    </List>
+                </Collapse>
 
                 <ListItemButton
                     selected={[6, 15, 16].includes(selectedIndex)}
