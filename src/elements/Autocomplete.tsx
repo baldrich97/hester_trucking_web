@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import TextField, { TextFieldProps } from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -57,19 +57,13 @@ const BasicAutocomplete = ({
   );
 
   const [shouldSearch, setShouldSearch] = useState(false);
-
-  const [searchInterval, setSearchInterval] = useState<NodeJS.Timer | null>(
-    null
-  );
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   trpc.useQuery([searchQuery + ".search", { search }], {
-    enabled: shouldSearch,
+    enabled: shouldSearch && search.trim().length > 0,
     onSuccess(data) {
-      if (searchInterval) {
-        clearInterval(searchInterval);
-      }
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       setOptions(data);
@@ -93,19 +87,25 @@ const BasicAutocomplete = ({
   // }, [open, search]);
 
   React.useEffect(() => {
-    if (searchInterval) {
-      clearInterval(searchInterval);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
     }
     if (search.toString().replaceAll(" ", "").length === 0 || !searchQuery) {
       setOptions(data ?? []);
+      setShouldSearch(false);
       return;
     }
-    setSearchInterval(
-      setInterval(() => {
-        setShouldSearch(true);
-      }, 100)
-    );
-  }, [search]);
+    debounceRef.current = setTimeout(() => {
+      setShouldSearch(true);
+    }, 250);
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, [search, searchQuery]);
 
   return (
     <Autocomplete
@@ -134,8 +134,13 @@ const BasicAutocomplete = ({
         onSelect(data?.ID ?? 0);
       }}
       value={value}
-      onInputChange={() => {
-        //donothing
+      onInputChange={(_, inputValue, reason) => {
+        if (reason === "input") {
+          setSearch(inputValue);
+        } else if (reason === "clear") {
+          setSearch("");
+          setOptions(data ?? []);
+        }
       }}
       size={"small"}
       loadingText={"Please start typing..."}
@@ -143,9 +148,6 @@ const BasicAutocomplete = ({
         <TextField
           {...params}
           label={label}
-          onChange={(e) => {
-            setSearch(e.currentTarget.value.toString());
-          }}
           InputProps={{
             ...params.InputProps,
             endAdornment: (

@@ -30,6 +30,7 @@ export const reportsRouter = createRouter()
     .query("sourceAudit", {
         input: sourceAuditInput,
         async resolve({ctx, input}) {
+            const prismaAny = ctx.prisma as any;
             const startDate = new Date(input.startDate);
             const endDate = new Date(input.endDate);
 
@@ -40,7 +41,7 @@ export const reportsRouter = createRouter()
                 });
             }
 
-            const source = await ctx.prisma.sources.findUnique({
+            const source = await prismaAny.sources.findUnique({
                 where: {ID: input.sourceId},
                 select: {ID: true, Name: true},
             });

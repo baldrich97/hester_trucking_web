@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Control, Controller } from "react-hook-form";
 import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
@@ -76,8 +76,7 @@ const RHAutocomplete = ({
   );
 
   const [shouldSearch, setShouldSearch] = useState(false);
-
-  const [searchInterval, setSearchInterval] = useState<number | null>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (JSON.stringify(data) !== JSON.stringify(options) && !search) {
@@ -90,16 +89,12 @@ const RHAutocomplete = ({
     // @ts-ignore
     [searchQuery + ".search", { search, CustomerID: selectedCustomer }],
     {
-      enabled: shouldSearch,
+      enabled: shouldSearch && search.trim().length > 0,
       onSuccess(data) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         setOptions(data);
         setShouldSearch(false);
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        clearTimeout(searchInterval);
-        setSearchInterval(null);
       },
       onError(error) {
         console.warn(error.message);
@@ -120,22 +115,25 @@ const RHAutocomplete = ({
   // }, [open, search]);
 
   React.useEffect(() => {
-    if (searchInterval) {
-      clearInterval(searchInterval);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
     }
     if (search.toString().replaceAll(" ", "").length === 0 || !searchQuery) {
       setOptions(data ?? []);
+      setShouldSearch(false);
       return;
     }
-    const interval = setTimeout(() => {
+    debounceRef.current = setTimeout(() => {
       setShouldSearch(true);
-    }, 100);
-    setSearchInterval(
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      interval
-    );
-  }, [search]);
+    }, 250);
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        debounceRef.current = null;
+      }
+    };
+  }, [search, searchQuery]);
 
   function groupByFunction(option: { [x: string]: any }) {
     if (groupBy && groupByNames) {
@@ -189,17 +187,19 @@ const RHAutocomplete = ({
               field.onChange(data ? data[optionValue] : null);
             }}
             value={value}
-            onInputChange={() => {
-              //donothing
+            onInputChange={(_, inputValue, reason) => {
+              if (reason === "input") {
+                setSearch(inputValue);
+              } else if (reason === "clear") {
+                setSearch("");
+                setOptions(data ?? []);
+              }
             }}
             size={"small"}
             renderInput={(params) => (
               <TextField
                 {...params}
                 label={label}
-                onChange={(e) => {
-                  setSearch(e.currentTarget.value.toString());
-                }}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (

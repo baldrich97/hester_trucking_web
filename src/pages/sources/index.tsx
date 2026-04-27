@@ -81,8 +81,9 @@ const Sources = ({sources, count}: {sources: SourcesType[]; count: number}) => {
 export default Sources;
 
 export const getServerSideProps: GetServerSideProps = async () => {
-    const count = await prisma.sources.count();
-    const sources = await prisma.sources.findMany({
+    const prismaAny = prisma as any;
+    const count = await prismaAny.sources.count();
+    const sources = await prismaAny.sources.findMany({
         take: 10,
         orderBy: {
             Name: "asc",

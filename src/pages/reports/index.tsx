@@ -85,6 +85,14 @@ function getYearRange(date: Date) {
     return {start, end};
 }
 
+function formatCurrency(value: number): string {
+    return `$${(Math.round((value + Number.EPSILON) * 100) / 100).toFixed(2)}`;
+}
+
+function formatNumber(value: number): string {
+    return (Math.round((value + Number.EPSILON) * 100) / 100).toFixed(2);
+}
+
 export default function ReportsPage() {
     const now = useMemo(() => new Date(), []);
     const defaultRange = getMonthRange(now);
@@ -141,6 +149,32 @@ export default function ReportsPage() {
         setStartDate(formatDateInput(range.start));
         setEndDate(formatDateInput(range.end));
     };
+
+    const printReport = async () => {
+        if (!report) {
+            toast("Run a report first.", {autoClose: 2000, type: "warning"});
+            return;
+        }
+        toast("Generating PDF...", {autoClose: 2000, type: "info"});
+        const element = document.createElement("a");
+        element.href = `/api/getPDF/report/${sourceId}|${encodeURIComponent(startDate)}|${encodeURIComponent(endDate)}`;
+        element.download = `source-report-${(report.source?.Name ?? "unknown")
+            .replace(/[^a-z0-9]+/gi, "-")
+            .toLowerCase()}-${startDate}-to-${endDate}.pdf`;
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    };
+
+    const displayRows = useMemo(
+        () =>
+            (report?.rows ?? []).map((row) => ({
+                ...row,
+                TotalRate: formatCurrency(row.TotalRate),
+                TotalAmount: formatCurrency(row.TotalAmount),
+            })),
+        [report],
+    );
 
     return (
         <Box>
@@ -199,6 +233,9 @@ export default function ReportsPage() {
                     <Button variant="contained" onClick={runReport}>
                         Run Report
                     </Button>
+                    <Button variant="outlined" onClick={printReport} disabled={!report}>
+                        Download PDF
+                    </Button>
                 </Grid2>
             </Grid2>
 
@@ -226,7 +263,7 @@ export default function ReportsPage() {
                             <Box sx={{p: 2, border: "1px solid #ddd", borderRadius: 1}}>
                                 <Typography variant="subtitle2">Total Amount</Typography>
                                 <Typography variant="h6">
-                                    {Math.round((report.summary.totalAmount + Number.EPSILON) * 100) / 100}
+                                    {formatCurrency(report.summary.totalAmount)}
                                 </Typography>
                             </Box>
                         </Grid2>
@@ -260,7 +297,7 @@ export default function ReportsPage() {
                                             {Math.round((row.totalTonnage + Number.EPSILON) * 100) / 100}
                                         </TableCell>
                                         <TableCell align="right">
-                                            {Math.round((row.totalAmount + Number.EPSILON) * 100) / 100}
+                                            {formatCurrency(row.totalAmount)}
                                         </TableCell>
                                     </TableRow>
                                 ))
@@ -272,10 +309,10 @@ export default function ReportsPage() {
                         Detailed Rows
                     </Typography>
                     <GenericTable
-                        data={report.rows}
+                        data={displayRows}
                         columns={reportColumns}
                         overrides={reportOverrides}
-                        count={report.rows.length}
+                        count={displayRows.length}
                     />
                 </>
             ) : (
