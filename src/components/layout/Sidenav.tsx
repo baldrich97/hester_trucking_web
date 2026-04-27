@@ -19,6 +19,8 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import EventAvailable from "@mui/icons-material/EventAvailable";
 import CalendarMonth from "@mui/icons-material/CalendarMonth";
 import LayersIcon from "@mui/icons-material/Layers";
+import HubIcon from "@mui/icons-material/Hub";
+import AssessmentIcon from "@mui/icons-material/Assessment";
 import * as React from "react";
 import {styled} from "@mui/material/styles";
 import MuiDrawer from "@mui/material/Drawer";
@@ -85,6 +87,10 @@ function Sidenav(props: any) {
         selectedLink = 11;
     } else if (currentPath.includes("/carriers")) {
         selectedLink = 24;
+    } else if (currentPath.includes("/sources")) {
+        selectedLink = 26;
+    } else if (currentPath.includes("/reports")) {
+        selectedLink = 27;
     }
 
     //TODO highest is 25
@@ -544,6 +550,29 @@ function Sidenav(props: any) {
                     </ListItemButton>
                 </NextLink>
 
+                <NextLink href="/reports" passHref>
+                    <ListItemButton
+                        selected={selectedIndex === 27}
+                        onClick={() => setSelectedIndex(27)}
+                    >
+                        <ListItemIcon>
+                            <AssessmentIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="Reports" />
+                    </ListItemButton>
+                </NextLink>
+
+                <NextLink href="/sources" passHref>
+                    <ListItemButton
+                        selected={selectedIndex === 26}
+                        onClick={() => setSelectedIndex(26)}
+                    >
+                        <ListItemIcon>
+                            <HubIcon />
+                        </ListItemIcon>
+                        <ListItemText primary="Sources" />
+                    </ListItemButton>
+                </NextLink>
 
                 <NextLink href="/trucks" passHref>
                     <ListItemButton

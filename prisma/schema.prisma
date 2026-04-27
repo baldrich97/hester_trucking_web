@@ -164,9 +164,17 @@ model LoadTypes {
   CustomerLoadTypes CustomerLoadTypes[]
   Jobs              Jobs[]
   Loads             Loads[]
+  Sources           Sources?            @relation(fields: [SourceID], references: [ID], onDelete: SetNull, onUpdate: Restrict, map: "FK_LoadTypes_Sources")
   Weeklies          Weeklies[]
 
+  @@index([SourceID], map: "FK_LoadTypes_Sources")
   @@fulltext([Description, Notes])
+}
+
+model Sources {
+  ID        Int         @id @default(autoincrement())
+  Name      String      @db.VarChar(255)
+  LoadTypes LoadTypes[]
 }
 
 model States {

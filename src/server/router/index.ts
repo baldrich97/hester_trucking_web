@@ -22,6 +22,8 @@ import {carriersRouter} from "./carriers";
 import {formsCatalogRouter} from "./formsCatalog";
 import {formOptionsRouter} from "./formOptions";
 import {complianceRouter} from "./compliance";
+import {sourcesRouter} from "./sources";
+import {reportsRouter} from "./reports";
 import {protectedExampleRouter} from "./protected-example-router";
 
 export const appRouter = createRouter()
@@ -46,6 +48,8 @@ export const appRouter = createRouter()
     .merge("formsCatalog.", formsCatalogRouter)
     .merge("formOptions.", formOptionsRouter)
     .merge("compliance.", complianceRouter)
+    .merge("sources.", sourcesRouter)
+    .merge("reports.", reportsRouter)
     .merge("auth.", protectedExampleRouter);
 
 // export type definition of API
