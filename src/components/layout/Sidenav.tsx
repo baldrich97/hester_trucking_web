@@ -65,7 +65,11 @@ function Sidenav(props: any) {
     const router = useRouter();
     const currentPath = router.asPath;
 
-    if (currentPath.includes("/customers")) {
+    if (currentPath.includes("/reports/customers")) {
+        selectedLink = 28;
+    } else if (currentPath.includes("/reports")) {
+        selectedLink = 27;
+    } else if (currentPath.includes("/customers")) {
         selectedLink = 2;
     } else if (currentPath.includes("/deliverylocations")) {
         selectedLink = 3;
@@ -89,8 +93,6 @@ function Sidenav(props: any) {
         selectedLink = 24;
     } else if (currentPath.includes("/sources")) {
         selectedLink = 26;
-    } else if (currentPath.includes("/reports")) {
-        selectedLink = 27;
     }
 
     //TODO highest is 25
@@ -108,14 +110,21 @@ function Sidenav(props: any) {
     const [isWeekliesOpen, setWeekliesOpen] = React.useState<boolean>(false);
     const [isLoadsOpen, setLoadsOpen] = React.useState<boolean>(false);
     const [isInvoicesOpen, setInvoicesOpen] = React.useState<boolean>(false);
+    const [isReportsOpen, setReportsOpen] = React.useState<boolean>(false);
 
     const {data: overdueCount = 0} = trpc.useQuery(["invoices.getOverdueCount"]);
 
     React.useEffect(() => {
-        if (currentPath.includes("/invoices")) {
+        if (currentPath.includes("/invoices") && overdueCount) {
             setInvoicesOpen(true);
         }
-    }, [currentPath]);
+    }, [currentPath, overdueCount]);
+
+    React.useEffect(() => {
+        if (currentPath.includes("/drivers") && complianceCount) {
+            setDriversOpen(true);
+        }
+    }, [currentPath, complianceCount]);
 
     const [selectedIndex, setSelectedIndex] = React.useState(selectedLink);
     return (
@@ -419,11 +428,17 @@ function Sidenav(props: any) {
                 >
                     <NextLink href="/invoices" passHref>
                         <ListItemIcon>
-                            <AttachMoneyIcon
-                                onClick={() => {
-                                    setSelectedIndex(5);
-                                }}
-                            />
+                            <Badge
+                                color="error"
+                                badgeContent={overdueCount}
+                                invisible={overdueCount === 0 || isInvoicesOpen}
+                            >
+                                <AttachMoneyIcon
+                                    onClick={() => {
+                                        setSelectedIndex(5);
+                                    }}
+                                />
+                            </Badge>
                         </ListItemIcon>
                     </NextLink>
                     <NextLink href="/invoices" passHref>
@@ -434,15 +449,6 @@ function Sidenav(props: any) {
                             }}
                         />
                     </NextLink>
-                    {!isInvoicesOpen && overdueCount > 0 && (
-                        <Badge
-                            color="error"
-                            badgeContent={overdueCount}
-                            sx={{marginRight: 1}}
-                        >
-                            <span />
-                        </Badge>
-                    )}
                     {isInvoicesOpen ? (
                         <ExpandLess onClick={() => setInvoicesOpen(!isInvoicesOpen)} />
                     ) : (
@@ -550,17 +556,49 @@ function Sidenav(props: any) {
                     </ListItemButton>
                 </NextLink>
 
-                <NextLink href="/reports" passHref>
-                    <ListItemButton
-                        selected={selectedIndex === 27}
-                        onClick={() => setSelectedIndex(27)}
-                    >
+                <ListItemButton
+                    selected={[27, 28].includes(selectedIndex)}
+                >
+                    <NextLink href="/reports" passHref>
                         <ListItemIcon>
-                            <AssessmentIcon />
+                            <AssessmentIcon
+                                onClick={() => {
+                                    setSelectedIndex(27);
+                                }}
+                            />
                         </ListItemIcon>
-                        <ListItemText primary="Reports" />
-                    </ListItemButton>
-                </NextLink>
+                    </NextLink>
+                    <NextLink href="/reports" passHref>
+                        <ListItemText primary="Reports" onClick={() => {
+                            setSelectedIndex(27);
+                        }} />
+                    </NextLink>
+                    {isReportsOpen ? <ExpandLess onClick={() => setReportsOpen(!isReportsOpen)} /> :
+                        <ExpandMore onClick={() => setReportsOpen(!isReportsOpen)} />}
+                </ListItemButton>
+
+                <Collapse in={isReportsOpen} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                        <NextLink href="/reports" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 27}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(27)}
+                            >
+                                <ListItemText primary="By Source" />
+                            </ListItemButton>
+                        </NextLink>
+                        <NextLink href="/reports/customers" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 28}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(28)}
+                            >
+                                <ListItemText primary="By Customer" />
+                            </ListItemButton>
+                        </NextLink>
+                    </List>
+                </Collapse>
 
                 <NextLink href="/sources" passHref>
                     <ListItemButton

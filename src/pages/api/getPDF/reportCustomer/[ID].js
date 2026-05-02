@@ -19,49 +19,42 @@ const handler = async (req, res) => {
         return;
     }
 
-    const sourceId = parseInt(parts[0], 10);
+    const customerId = parseInt(parts[0], 10);
     const startDateRaw = decodeURIComponent(parts[1]);
     const endDateRaw = decodeURIComponent(parts[2]);
 
-    if (!sourceId || !startDateRaw || !endDateRaw) {
+    if (!customerId || !startDateRaw || !endDateRaw) {
         res.status(400).json({error: "Missing required parameters."});
         return;
     }
 
     const startDate = new Date(startDateRaw);
     const endDate = new Date(endDateRaw);
-
     if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
         res.status(400).json({error: "Invalid date parameters."});
         return;
     }
-
     if (startDate > endDate) {
         res.status(400).json({error: "Start date cannot be after end date."});
         return;
     }
 
-    const source = await prisma.sources.findUnique({
-        where: {ID: sourceId},
+    const customer = await prisma.customers.findUnique({
+        where: {ID: customerId},
         select: {ID: true, Name: true},
     });
-
-    if (!source) {
-        res.status(404).json({error: "Source not found."});
+    if (!customer) {
+        res.status(404).json({error: "Customer not found."});
         return;
     }
 
     const loads = await prisma.loads.findMany({
         where: {
             OR: [{Deleted: false}, {Deleted: null}],
+            CustomerID: customerId,
             StartDate: {
                 gte: startDate,
                 lte: endDate,
-            },
-            LoadTypes: {
-                is: {
-                    SourceID: sourceId,
-                },
             },
         },
         include: {
@@ -108,9 +101,9 @@ const handler = async (req, res) => {
 
     const pdfStream = await renderToStream(
         <SourceReportPrintable
-            reportTitle="Source Audit Report"
-            entityLabel="Source"
-            sourceName={source.Name}
+            reportTitle="Customer Audit Report"
+            entityLabel="Customer"
+            sourceName={customer.Name}
             startDate={startDateRaw}
             endDate={endDateRaw}
             rows={rows}
@@ -119,8 +112,8 @@ const handler = async (req, res) => {
     );
 
     res.setHeader("Content-Type", "application/pdf");
-    const safeSource = source.Name.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
-    const filename = `SourceReport-${safeSource}-${startDateRaw}-to-${endDateRaw}.pdf`;
+    const safeCustomer = customer.Name.replace(/[^a-z0-9]+/gi, "-").toLowerCase();
+    const filename = `CustomerReport-${safeCustomer}-${startDateRaw}-to-${endDateRaw}.pdf`;
     res.setHeader("Content-Disposition", `attachment; filename=${filename}`);
     await pipeline(pdfStream, res);
 };

@@ -25,6 +25,8 @@ type SourceReportPrintableProps = {
     startDate: string;
     endDate: string;
     rows: ReportRow[];
+    reportTitle?: string;
+    entityLabel?: string;
     summary: {
         totalLoads: number;
         totalTonnage: number;
@@ -120,12 +122,20 @@ function number(value: number): string {
     return (Math.round((value + Number.EPSILON) * 100) / 100).toFixed(2);
 }
 
-const SourceReportPrintable = ({sourceName, startDate, endDate, rows, summary}: SourceReportPrintableProps) => {
+const SourceReportPrintable = ({
+    sourceName,
+    startDate,
+    endDate,
+    rows,
+    summary,
+    reportTitle = "Source Audit Report",
+    entityLabel = "Source",
+}: SourceReportPrintableProps) => {
     return (
         <Document>
             <Page size="LETTER" orientation="landscape" style={styles.page}>
-                <Text style={styles.title}>Source Audit Report</Text>
-                <Text style={styles.subtitle}>Source: {sourceName}</Text>
+                <Text style={styles.title}>{reportTitle}</Text>
+                <Text style={styles.subtitle}>{entityLabel}: {sourceName}</Text>
                 <Text style={styles.subtitle}>Date Range: {startDate} to {endDate}</Text>
 
                 <View style={styles.summaryRow}>
