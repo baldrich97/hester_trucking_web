@@ -46,14 +46,13 @@ const defaultValues = {
 };
 
 const Invoice = ({
-  customers,
   loads = [],
   initialInvoice = null,
   lastInvoice = 0,
   invoices = [],
     weeklies = []
 }: {
-  customers: CustomersType[];
+  customers?: CustomersType[];
   loads?: LoadsType[];
   initialInvoice?: null | InvoicesType;
   refreshData?: any;
@@ -112,13 +111,19 @@ const Invoice = ({
     defaultValues: initialInvoice ?? defaultValues,
   });
 
-  if (initialInvoice) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    setValue("selected", selected);
-  } else {
-    setValue("Number", lastInvoice);
-  }
+  React.useEffect(() => {
+    if (initialInvoice) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      setValue("selected", selected);
+    }
+  }, [initialInvoice, selected, setValue]);
+
+  React.useEffect(() => {
+    if (!initialInvoice) {
+      setValue("Number", lastInvoice);
+    }
+  }, [initialInvoice, lastInvoice, setValue]);
 
   const key = initialInvoice ? "invoices.post" : "invoices.put";
 
@@ -320,7 +325,7 @@ const Invoice = ({
   const selectData: SelectDataType = [
     {
       key: "CustomerID",
-      data: customers,
+      data: [],
       optionValue: "ID",
       optionLabel: "Name+|+Street+,+City",
       defaultValue: initialInvoice ? initialInvoice.CustomerID : null,

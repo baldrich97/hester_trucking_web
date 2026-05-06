@@ -3,32 +3,19 @@ import Grid2 from "@mui/material/Unstable_Grid2";
 import PartialLoad from "../../components/objects/PartialLoad";
 import { GetServerSideProps } from "next";
 import { prisma } from "server/db/client";
-import {
-    CustomersModel,
-    DeliveryLocationsModel,
-    DriversModel,
-    LoadsModel,
-    LoadTypesModel,
-    TrucksModel,
-} from "../../../prisma/zod";
+import {LoadsModel} from "../../../prisma/zod";
 import { z } from "zod";
 import GenericTable from "../../elements/GenericTable";
 import SearchBar from "../../elements/SearchBar";
 import Divider from "@mui/material/Divider";
 import { TableColumnsType, TableColumnOverridesType } from "../../utils/types";
 import { trpc } from "../../utils/trpc";
-import deliverylocations from "../deliverylocations";
 import BasicAutocomplete from "elements/Autocomplete";
 import TextField from "@mui/material/TextField";
 import ArrowRight from "@mui/icons-material/ArrowRight";
 import CloseIcon from "@mui/icons-material/Close";
 
 type LoadsType = z.infer<typeof LoadsModel>;
-type CustomersType = z.infer<typeof CustomersModel>;
-type LoadTypesType = z.infer<typeof LoadTypesModel>;
-type DeliveryLocationsType = z.infer<typeof DeliveryLocationsModel>;
-type TrucksType = z.infer<typeof TrucksModel>;
-type DriversType = z.infer<typeof DriversModel>;
 
 const columns: TableColumnsType = [
     { name: "Customers.Name", as: "Customer", navigateTo: "customers/[ID]", column: 'CustomerID' },
@@ -45,19 +32,9 @@ const columns: TableColumnsType = [
 const Loads = ({
                    loads,
                    count,
-                   _customers,
-                   _loadTypes,
-                   _deliveryLocations,
-                   _trucks,
-                   _drivers,
                }: {
     loads: LoadsType[];
-    _loadTypes: LoadTypesType[];
-    _deliveryLocations: DeliveryLocationsType[];
-    _trucks: TrucksType[];
-    _drivers: DriversType[];
     count: number;
-    _customers: CustomersType[];
 }) => {
     const [search, setSearch] = useState<number|null>(null);
 
@@ -89,11 +66,6 @@ const Loads = ({
 
     const [chosenLoad, setChosenLoad] = useState<LoadsType|null>(null)
 
-    const [customers, setCustomers] = useState(_customers)
-    const [loadTypes, setLTypes] = useState(_loadTypes)
-    const [deliveryLocations, setDLocations] = useState(_deliveryLocations)
-    const [trucks, setTrucks] = useState(_trucks)
-    const [drivers, setDrivers] = useState(_drivers)
 
     const handleLoad = (load: any) => {
         if (searchSet) {
@@ -111,32 +83,6 @@ const Loads = ({
                 setChosenLoad(null)
             }
             return;
-        }
-
-        if (_customers.filter((customer) => customer.ID === load.CustomerID).length === 0) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            setCustomers([..._customers, load.Customers])
-        }
-        if (_drivers.filter((driver) => driver.ID === load.DriverID).length === 0) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            setDrivers([..._drivers, load.Drivers])
-        }
-        if (_loadTypes.filter((loadtype) => loadtype.ID === load.LoadTypeID).length === 0) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            setLTypes([..._loadTypes, load.LoadTypes])
-        }
-        if (_deliveryLocations.filter((deliverylocation) => deliverylocation.ID === load.DeliveryLocationID).length === 0) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            setDLocations([..._deliveryLocations, load.DeliveryLocations])
-        }
-        if (_trucks.filter((truck) => truck.ID === load.TruckID).length === 0) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            setTrucks([..._trucks, load.Trucks])
         }
 
         setCustomer(load.Customers.ID);
@@ -211,6 +157,22 @@ const Loads = ({
         }
     );
 
+    const sortsApplied = order !== "desc" || orderBy !== "ID";
+    const ticketFilterActive =
+        search !== null &&
+        search !== undefined &&
+        Number.isFinite(search);
+    const filtersActive =
+        customer !== 0 ||
+        driver !== 0 ||
+        truck !== 0 ||
+        loadType !== 0 ||
+        deliveryLocation !== 0 ||
+        ticketFilterActive ||
+        searchSet;
+    const useFetched =
+        newData.length >= 1 || sortsApplied || filtersActive;
+
     return (
         <Grid2 container wrap={'nowrap'}>
             <Grid2 xs={8} sx={{ paddingRight: 2.5 }}>
@@ -218,11 +180,11 @@ const Loads = ({
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Loads'}/>
                 </Grid2>*/}
                 <GenericTable
-                    key={'key-' + shouldRefresh ? '1' : '2'}
-                    data={newData.length >= 1 || (order !== 'desc' || orderBy !== 'ID')  ? newData : loads}
+                    key={`key-${shouldRefresh ? "1" : "2"}`}
+                    data={useFetched ? newData : loads}
                     columns={columns}
                     overrides={overrides}
-                    count={newCount > 0 ? newCount : count}
+                    count={useFetched ? newCount : count}
                     refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
                         setPage(page);
                         setOrderBy(orderBy);
@@ -354,11 +316,6 @@ const Loads = ({
                     // @ts-ignore
                     key={chosenLoad ? chosenLoad?.ID.toString(): 'noload'}
                     initialLoad={chosenLoad}
-                    customers={customers}
-                    loadTypes={loadTypes}
-                    deliveryLocations={deliveryLocations}
-                    trucks={trucks}
-                    drivers={drivers}
                     refreshData={() => {
                         setPage(0);
                         setCustomer(0);
@@ -380,7 +337,7 @@ const Loads = ({
 
 export default Loads;
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps = async () => {
     const count = await prisma.loads.count();
 
     const loads = await prisma.loads.findMany({
@@ -397,45 +354,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         },
     });
 
-    const customers = await prisma.customers.findMany({ take: 10 });
-
-    const loadTypes = await prisma.loadTypes.findMany({
-        orderBy: {
-            Description: "asc",
-        },
-        take: 10,
-    });
-
-    const trucks = await prisma.trucks.findMany({
-        orderBy: {
-            Name: "asc",
-        },
-        take: 10,
-    });
-
-    const drivers = await prisma.drivers.findMany({
-        orderBy: {
-            LastName: "asc",
-        },
-        take: 10,
-    });
-
-    const deliveryLocations = await prisma.deliveryLocations.findMany({
-        orderBy: {
-            Description: "asc",
-        },
-        take: 10,
-    });
-
     return {
         props: {
             loads: JSON.parse(JSON.stringify(loads)),
             count,
-            _customers: JSON.parse(JSON.stringify(customers)),
-            _trucks: JSON.parse(JSON.stringify(trucks)),
-            _drivers: JSON.parse(JSON.stringify(drivers)),
-            _deliveryLocations: JSON.parse(JSON.stringify(deliveryLocations)),
-            _loadTypes: JSON.parse(JSON.stringify(loadTypes)),
         },
     };
 };

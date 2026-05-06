@@ -94,7 +94,9 @@ export const loadTypesRouter = createRouter()
             // Make sure all customer-linked + source-linked load types are present even if they
             // fell outside the page window above.
             const baseIDs = new Set(baseRows.map((row) => row.ID));
-            const missingIDs = [...customerLinkedIDs, ...sourceLinkedIDs].filter((id) => !baseIDs.has(id));
+            const missingIDs = Array.from(customerLinkedIDs)
+                .concat(Array.from(sourceLinkedIDs))
+                .filter((id) => !baseIDs.has(id));
             if (missingIDs.length > 0) {
                 const extras = await ctx.prisma.loadTypes.findMany({
                     where: {ID: {in: missingIDs}},

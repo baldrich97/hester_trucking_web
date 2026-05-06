@@ -56,7 +56,7 @@ const MyApp: AppType = ({
   return (
     <SessionProvider session={session}>
       <ThemeProvider theme={mdTheme}>
-        <Box sx={{ display: "flex" }}>
+        <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
           <CssBaseline />
           <ToastContainer
           />
@@ -71,7 +71,9 @@ const MyApp: AppType = ({
                   : theme.palette.grey[900],
               flexGrow: 1,
               height: "100vh",
-              overflow: "auto",
+              minHeight: 0,
+              overflowY: "auto",
+              overflowX: "hidden",
             }}
           >
             <Toolbar />
@@ -103,6 +105,18 @@ export default withTRPC<AppRouter>({
       return {
         transformer: superjson, // optional - adds superjson serialization
         url: "/api/trpc",
+        // Batch multiple in-flight queries into one HTTP request (big win on navigation).
+        links: [httpBatchLink({ url: "/api/trpc" })],
+        queryClientConfig: {
+          defaultOptions: {
+            queries: {
+              // Avoid refetch storms on every mount / tab focus (defaults are very aggressive).
+              staleTime: 30 * 1000,
+              refetchOnWindowFocus: false,
+              retry: 1,
+            },
+          },
+        },
       };
     }
 

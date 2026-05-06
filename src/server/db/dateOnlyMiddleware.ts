@@ -40,7 +40,7 @@ function normalizeDateOnlyData(model: string | undefined, data: unknown): unknow
     }
 
     const row = {...(data as Record<string, unknown>)};
-    for (const field of fields) {
+    for (const field of Array.from(fields)) {
         if (!(field in row)) continue;
         const value = row[field];
         if (

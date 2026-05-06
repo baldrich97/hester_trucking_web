@@ -3,7 +3,7 @@ import Grid2 from "@mui/material/Unstable_Grid2";
 import Invoice from "../../components/objects/Invoice";
 import {GetServerSideProps} from "next";
 import {prisma} from "server/db/client";
-import {CustomersModel, InvoicesModel, LoadsModel} from "../../../prisma/zod";
+import {InvoicesModel, LoadsModel} from "../../../prisma/zod";
 import {z} from "zod";
 import GenericTable from "../../elements/GenericTable";
 import SearchBar from "../../elements/SearchBar";
@@ -23,8 +23,6 @@ import {toast} from "react-toastify";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
-type CustomersType = z.infer<typeof CustomersModel>;
-
 const columnsUnpaid: TableColumnsType = [
     {
         name: "Customers.Name",
@@ -149,7 +147,6 @@ const Invoices = ({
                       invoicesPaid,
                       invoicesAll,
                       invoicesConsolidated,
-                      customers,
                       lastInvoice,
                       countUnpaid,
                       countPaid,
@@ -160,7 +157,6 @@ const Invoices = ({
     invoicesPaid: InvoicesType[];
     invoicesAll: InvoicesType[];
     invoicesConsolidated: InvoicesType[];
-    customers: CustomersType[];
     lastInvoice: number;
     countUnpaid: number;
     countPaid: number;
@@ -623,7 +619,6 @@ const Invoices = ({
             />
             <Grid2 xs={4}>
                 <Invoice
-                    customers={customers}
                     refreshData={() => {
                         setShouldRefresh(true);
                     }}
@@ -760,83 +755,78 @@ const Invoices = ({
 export default Invoices;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    const countAll = await prisma.invoices.count();
-    const countUnpaid = await prisma.invoices.count({
-        where: {
-            OR: [{Paid: false}, {Paid: null}],
-            AND: {Consolidated: false},
-        },
-    });
-    const countPaid = await prisma.invoices.count({where: {Paid: true}});
-    const countConsolidated = await prisma.invoices.count({
-        where: {
-            OR: [{Paid: false}, {Paid: null}],
-            AND: {Consolidated: true},
-        },
-    });
+    const invoiceInclude = {Customers: true, Loads: true} as const;
 
-    const lastInvoice = await prisma.invoices.aggregate({
-        _max: {
-            Number: true,
-        },
-    });
-
-    const invoicesAll = await prisma.invoices.findMany({
-        include: {
-            Customers: true,
-            Loads: true,
-        },
-        take: 10,
-        orderBy: {
-            ID: "desc",
-        },
-    });
-
-    const invoicesUnpaid = await prisma.invoices.findMany({
-        where: {
-            OR: [{Paid: false}, {Paid: null}],
-            AND: {Consolidated: false},
-        },
-        include: {
-            Customers: true,
-            Loads: true,
-        },
-        take: 10,
-        orderBy: {
-            ID: "desc",
-        },
-    });
-
-    const invoicesConsolidated = await prisma.invoices.findMany({
-        where: {
-            OR: [{Paid: false}, {Paid: null}],
-            AND: {Consolidated: true},
-        },
-        include: {
-            Customers: true,
-            Loads: true,
-        },
-        take: 10,
-        orderBy: {
-            ID: "desc",
-        },
-    });
-
-    const invoicesPaid = await prisma.invoices.findMany({
-        where: {
-            Paid: true,
-        },
-        include: {
-            Customers: true,
-            Loads: true,
-        },
-        take: 10,
-        orderBy: {
-            ID: "desc",
-        },
-    });
-
-    const customers = await prisma.customers.findMany({take: 10});
+    const [
+        countAll,
+        countUnpaid,
+        countPaid,
+        countConsolidated,
+        lastInvoice,
+        invoicesAll,
+        invoicesUnpaid,
+        invoicesConsolidated,
+        invoicesPaid,
+    ] = await Promise.all([
+        prisma.invoices.count(),
+        prisma.invoices.count({
+            where: {
+                OR: [{Paid: false}, {Paid: null}],
+                AND: {Consolidated: false},
+            },
+        }),
+        prisma.invoices.count({where: {Paid: true}}),
+        prisma.invoices.count({
+            where: {
+                OR: [{Paid: false}, {Paid: null}],
+                AND: {Consolidated: true},
+            },
+        }),
+        prisma.invoices.aggregate({
+            _max: {
+                Number: true,
+            },
+        }),
+        prisma.invoices.findMany({
+            include: invoiceInclude,
+            take: 10,
+            orderBy: {
+                ID: "desc",
+            },
+        }),
+        prisma.invoices.findMany({
+            where: {
+                OR: [{Paid: false}, {Paid: null}],
+                AND: {Consolidated: false},
+            },
+            include: invoiceInclude,
+            take: 10,
+            orderBy: {
+                ID: "desc",
+            },
+        }),
+        prisma.invoices.findMany({
+            where: {
+                OR: [{Paid: false}, {Paid: null}],
+                AND: {Consolidated: true},
+            },
+            include: invoiceInclude,
+            take: 10,
+            orderBy: {
+                ID: "desc",
+            },
+        }),
+        prisma.invoices.findMany({
+            where: {
+                Paid: true,
+            },
+            include: invoiceInclude,
+            take: 10,
+            orderBy: {
+                ID: "desc",
+            },
+        }),
+    ]);
 
     return {
         props: {
@@ -848,7 +838,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             countUnpaid,
             countPaid,
             countConsolidated,
-            customers,
             lastInvoice: (lastInvoice?._max.Number ?? 0) + 1,
         },
     };

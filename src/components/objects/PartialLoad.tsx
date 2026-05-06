@@ -62,21 +62,11 @@ const defaultValues = {
 };
 
 function PartialLoad({
-                         customers,
-                         loadTypes,
-                         deliveryLocations,
-                         trucks,
-                         drivers,
                          initialLoad = null,
                          refreshData,
                          resetButton = false,
                          selectedLoads = []
                      }: {
-    customers: CustomersType[];
-    loadTypes: LoadTypesType[];
-    deliveryLocations: DeliveryLocationsType[];
-    trucks: TrucksType[];
-    drivers: DriversType[];
     initialLoad?: null | LoadsType;
     refreshData?: any;
     resetButton?: any;
@@ -428,21 +418,21 @@ function PartialLoad({
     const selectData: SelectDataType = [
         {
             key: "CustomerID",
-            data: customers,
+            data: [],
             optionValue: "ID",
             optionLabel: "Name+|+Street+,+City",
             defaultValue: initialLoad ? initialLoad.CustomerID : null,
         },
         {
             key: "LoadTypeID",
-            data: lttrpcData.length > 0 ? lttrpcData : loadTypes,
+            data: lttrpcData.length > 0 ? lttrpcData : [],
             optionValue: "ID",
             optionLabel: "Description",
             defaultValue: initialLoad ? initialLoad.LoadTypeID : null,
         },
         {
             key: "DeliveryLocationID",
-            data: dltrpcData.length > 0 ? dltrpcData : deliveryLocations,
+            data: dltrpcData.length > 0 ? dltrpcData : [],
             optionValue: "ID",
             optionLabel: "Description",
             defaultValue: initialLoad ? initialLoad.DeliveryLocationID : null,
@@ -457,7 +447,7 @@ function PartialLoad({
                         .filter((value, index, self) => {
                             return index === self.findIndex((t) => t.ID === value.ID);
                         })
-                    : trucks,
+                    : [],
             optionValue: "ID",
             optionLabel: "Name+|+Notes",
             defaultValue: initialLoad ? initialLoad.TruckID : null,
@@ -472,7 +462,7 @@ function PartialLoad({
                         .filter((value, index, self) => {
                             return index === self.findIndex((t) => t.ID === value.ID);
                         })
-                    : drivers,
+                    : [],
             optionValue: "ID",
             optionLabel: "FirstName+LastName",
             defaultValue: initialLoad ? initialLoad.DriverID : null,

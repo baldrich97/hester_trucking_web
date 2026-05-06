@@ -65,21 +65,15 @@ const defaultValues = {
 };
 
 function Load({
-                  customers,
-                  loadTypes,
-                  deliveryLocations,
-                  trucks,
-                  drivers,
-                  sources = [],
                   initialLoad = null,
                   refreshData,
                   resetButton = false,
               }: {
-    customers: CustomersType[];
-    loadTypes: LoadTypesType[];
-    deliveryLocations: DeliveryLocationsType[];
-    trucks: TrucksType[];
-    drivers: DriversType[];
+    customers?: CustomersType[];
+    loadTypes?: LoadTypesType[];
+    deliveryLocations?: DeliveryLocationsType[];
+    trucks?: TrucksType[];
+    drivers?: DriversType[];
     sources?: SourcesType[];
     initialLoad?: null | LoadsType;
     refreshData?: any;
@@ -632,28 +626,28 @@ function Load({
     const selectData: SelectDataType = [
         {
             key: "CustomerID",
-            data: customers,
+            data: [],
             optionValue: "ID",
             optionLabel: "Name+|+Street+,+City",
             defaultValue: initialLoad ? initialLoad.CustomerID : null,
         },
         {
             key: "SourceID",
-            data: srctrpcData.length > 0 ? srctrpcData : sources,
+            data: srctrpcData.length > 0 ? srctrpcData : [],
             optionValue: "ID",
             optionLabel: "Name",
             defaultValue: null,
         },
         {
             key: "LoadTypeID",
-            data: lttrpcData.length > 0 ? lttrpcData : loadTypes,
+            data: lttrpcData.length > 0 ? lttrpcData : [],
             optionValue: "ID",
             optionLabel: lttrpcData.length > 0 ? "DisplayName" : "Description",
             defaultValue: initialLoad ? initialLoad.LoadTypeID : null,
         },
         {
             key: "DeliveryLocationID",
-            data: dltrpcData.length > 0 ? dltrpcData : deliveryLocations,
+            data: dltrpcData.length > 0 ? dltrpcData : [],
             optionValue: "ID",
             optionLabel: "Description",
             defaultValue: initialLoad ? initialLoad.DeliveryLocationID : null,
@@ -668,7 +662,7 @@ function Load({
                         .filter((value, index, self) => {
                             return index === self.findIndex((t) => t.ID === value.ID);
                         })
-                    : trucks,
+                    : [],
             optionValue: "ID",
             optionLabel: "Name+|+Notes",
             defaultValue: initialLoad ? initialLoad.TruckID : null,
@@ -683,7 +677,7 @@ function Load({
                         .filter((value, index, self) => {
                             return index === self.findIndex((t) => t.ID === value.ID);
                         })
-                    : drivers,
+                    : [],
             optionValue: "ID",
             optionLabel: "FirstName+LastName",
             defaultValue: initialLoad ? initialLoad.DriverID : null,

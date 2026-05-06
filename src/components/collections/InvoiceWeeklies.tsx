@@ -575,7 +575,7 @@ export default function InvoiceWeeklies({
                                 padding: '10px'
                             }}
                         >
-                            <PayStub initialJob={initialJob} drivers={[initialJob?.Drivers ?? []]} closeModal={handlePayModalClose}/>
+                            <PayStub initialJob={initialJob} closeModal={handlePayModalClose}/>
                         </Box>
 
                         {/* Modal Footer (Empty for now) */}

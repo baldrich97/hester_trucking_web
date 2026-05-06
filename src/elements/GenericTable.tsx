@@ -13,6 +13,7 @@ import Checkbox from "@mui/material/Checkbox";
 import NextLink from "next/link";
 import { styled, useTheme } from "@mui/material/styles";
 import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import FirstPageIcon from "@mui/icons-material/FirstPage";
@@ -172,7 +173,8 @@ export default function GenericTable({
   filterBody = null,
   doSearch = null,
   clearFilter = null,
-    searchSet = false,
+  searchSet = false,
+  emptyMessage = "No matching records. Try different filters or clear the search.",
 }: {
   data: any[];
   columns: TableColumnsType;
@@ -185,6 +187,7 @@ export default function GenericTable({
   doSearch?: any;
   clearFilter?: any;
   searchSet?: boolean;
+  emptyMessage?: string;
 }) {
   //console.log(data, columns, overrides);
 
@@ -232,7 +235,7 @@ export default function GenericTable({
                         aria-label="clear customer filter"
                         onClick={() => {
                           setPage(0);
-                          clearFilter();
+                          if (typeof clearFilter === "function") clearFilter();
                           setOpened(false);
                         }}
                         sx={{
@@ -317,7 +320,20 @@ export default function GenericTable({
           </TableRow>
         </TableHead>
         <TableBody>
-          {data.map((row, rowindex) => {
+          {data.length === 0 ? (
+            <StyledTableRow>
+              <StyledTableCell
+                colSpan={columns.length}
+                align="center"
+                sx={{ py: 5, borderBottom: "none" }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  {emptyMessage}
+                </Typography>
+              </StyledTableCell>
+            </StyledTableRow>
+          ) : (
+          data.map((row, rowindex) => {
             return (
               <StyledTableRow key={"row-" + rowindex.toString()}>
                 {columns.map((column) => {
@@ -508,7 +524,8 @@ export default function GenericTable({
                 })}
               </StyledTableRow>
             );
-          })}
+          })
+          )}
         </TableBody>
         <TableFooter>
           <TableRow>
@@ -518,21 +535,17 @@ export default function GenericTable({
               rowsPerPage={10}
               page={page}
               onPageChange={handleChangePage}
-              ActionsComponent={
-                count
-                  ? (subProps) => (
-                      <TablePaginationActions
-                        {...subProps}
-                        onRefresh={
-                          typeof refreshData === "function"
-                            ? () => triggerRefresh(page, orderBy, order)
-                            : undefined
-                        }
-                        lastRefreshedAt={lastRefreshedAt}
-                      />
-                    )
-                  : undefined
-              }
+              ActionsComponent={(subProps) => (
+                <TablePaginationActions
+                  {...subProps}
+                  onRefresh={
+                    typeof refreshData === "function"
+                      ? () => triggerRefresh(page, orderBy, order)
+                      : undefined
+                  }
+                  lastRefreshedAt={lastRefreshedAt}
+                />
+              )}
             />
           </TableRow>
         </TableFooter>
@@ -541,7 +554,7 @@ export default function GenericTable({
         open={showCustomerModal}
         onClose={() => {
           setPage(0);
-          clearFilter();
+          if (typeof clearFilter === "function") clearFilter();
           setShowCustomerModal(false);
           setOpened(false);
         }}
@@ -560,7 +573,7 @@ export default function GenericTable({
               color="primary"
               onClick={() => {
                 setShowCustomerModal(false);
-                doSearch();
+                if (typeof doSearch === "function") doSearch();
               }}
             >
               Search
@@ -571,7 +584,7 @@ export default function GenericTable({
               onClick={() => {
                 setShowCustomerModal(false);
                 setPage(0);
-                clearFilter();
+                if (typeof clearFilter === "function") clearFilter();
                 setOpened(false);
               }}
             >

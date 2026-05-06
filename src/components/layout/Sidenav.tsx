@@ -24,6 +24,7 @@ import AssessmentIcon from "@mui/icons-material/Assessment";
 import * as React from "react";
 import {styled} from "@mui/material/styles";
 import MuiDrawer from "@mui/material/Drawer";
+import Box from "@mui/material/Box";
 import {useRouter} from "next/router";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
@@ -40,6 +41,10 @@ const Drawer = styled(MuiDrawer, {
         position: "relative",
         whiteSpace: "nowrap",
         width: drawerWidth,
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
         transition: theme.transitions.create("width", {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
@@ -98,7 +103,8 @@ function Sidenav(props: any) {
     //TODO highest is 25
 
     const {data: compliance} = trpc.useQuery(["compliance.driverFormsSummary"], {
-        refetchOnWindowFocus: true,
+        staleTime: 60 * 1000,
+        refetchOnWindowFocus: false,
     });
     const complianceCount = compliance?.totalIssues ?? 0;
     const w2ComplianceCount = compliance?.w2Issues ?? 0;
@@ -112,7 +118,10 @@ function Sidenav(props: any) {
     const [isInvoicesOpen, setInvoicesOpen] = React.useState<boolean>(false);
     const [isReportsOpen, setReportsOpen] = React.useState<boolean>(false);
 
-    const {data: overdueCount = 0} = trpc.useQuery(["invoices.getOverdueCount"]);
+    const {data: overdueCount = 0} = trpc.useQuery(["invoices.getOverdueCount"], {
+        staleTime: 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
 
     React.useEffect(() => {
         if (currentPath.includes("/invoices") && overdueCount) {
@@ -146,6 +155,14 @@ function Sidenav(props: any) {
                 </IconButton>
             </Toolbar>
             <Divider />
+            <Box
+                sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                }}
+            >
             <List component="nav">
                 <NextLink href="/" passHref>
                     <ListItemButton
@@ -671,6 +688,7 @@ function Sidenav(props: any) {
                 </Collapse>
 
             </List>
+            </Box>
         </Drawer>
 
     );

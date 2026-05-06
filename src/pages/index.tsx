@@ -2,15 +2,6 @@
 import React from "react";
 import {GetServerSideProps} from "next";
 import {prisma} from "server/db/client";
-import {
-    CustomersModel,
-    DeliveryLocationsModel,
-    DriversModel,
-    LoadTypesModel,
-    SourcesModel,
-    TrucksModel,
-} from "../../prisma/zod";
-import {z} from "zod";
 import Grid2 from "@mui/material/Unstable_Grid2";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
@@ -19,30 +10,7 @@ import Divider from "@mui/material/Divider";
 import Load from "components/objects/Load";
 import Invoice from "components/objects/Invoice";
 
-type CustomersType = z.infer<typeof CustomersModel>;
-type LoadTypesType = z.infer<typeof LoadTypesModel>;
-type DeliveryLocationsType = z.infer<typeof DeliveryLocationsModel>;
-type TrucksType = z.infer<typeof TrucksModel>;
-type DriversType = z.infer<typeof DriversModel>;
-type SourcesType = z.infer<typeof SourcesModel>;
-
-const Home = ({
-                  customers,
-                  lastInvoice,
-                  loadTypes,
-                  deliveryLocations,
-                  trucks,
-                  drivers,
-                  sources,
-              }: {
-    customers: CustomersType[];
-    lastInvoice: number;
-    loadTypes: LoadTypesType[];
-    deliveryLocations: DeliveryLocationsType[];
-    trucks: TrucksType[];
-    drivers: DriversType[];
-    sources: SourcesType[];
-}) => {
+const Home = ({lastInvoice}: {lastInvoice: number}) => {
     const [tabValue, setTabValue] = React.useState(0);
 
     const handleChange = (event: React.SyntheticEvent, newValue: number) => {
@@ -65,15 +33,7 @@ const Home = ({
 
                         <>
                             <Grid2 xs={6}>
-                                <Load
-                                    customers={customers}
-                                    loadTypes={loadTypes}
-                                    deliveryLocations={deliveryLocations}
-                                    trucks={trucks}
-                                    drivers={drivers}
-                                    sources={sources}
-                                    resetButton={true}
-                                />
+                                <Load resetButton={true} />
                             </Grid2>
                             <Divider
                                 flexItem={true}
@@ -82,7 +42,7 @@ const Home = ({
                                 variant={"fullWidth"}
                             />
                             <Grid2 xs={5}>
-                                <Invoice customers={customers} lastInvoice={lastInvoice}/>
+                                <Invoice lastInvoice={lastInvoice}/>
                             </Grid2>
                         </>
 
@@ -96,57 +56,15 @@ const Home = ({
 
 export default Home;
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-    const customers = await prisma.customers.findMany({take: 10});
-
-    const loadTypes = await prisma.loadTypes.findMany({
-        orderBy: {
-            Description: "asc",
-        },
-        take: 10,
-    });
-
-    const trucks = await prisma.trucks.findMany({
-        orderBy: {
-            Name: "asc",
-        },
-        take: 10,
-    });
-
-    const drivers = await prisma.drivers.findMany({
-        orderBy: {
-            LastName: "asc",
-        },
-        take: 10,
-    });
-
-    const deliveryLocations = await prisma.deliveryLocations.findMany({
-        orderBy: {
-            Description: "asc",
-        },
-        take: 10,
-    });
-
+export const getServerSideProps: GetServerSideProps = async () => {
     const lastInvoice = await prisma.invoices.aggregate({
         _max: {
             Number: true,
         },
     });
 
-    const sources = await prisma.sources.findMany({
-        orderBy: {
-            Name: "asc",
-        },
-    });
-
     return {
         props: {
-            customers,
-            trucks,
-            drivers: JSON.parse(JSON.stringify(drivers)),
-            deliveryLocations,
-            loadTypes,
-            sources: JSON.parse(JSON.stringify(sources)),
             lastInvoice: (lastInvoice?._max.Number ?? 0) + 1,
         },
     };

@@ -233,7 +233,6 @@ const WeeklySheet = ({
                                     optionLabel={"Name+|+Street+,+City"}
                                     optionValue={"ID"}
                                     searchQuery={"customers"}
-                                    data={[weekly.Customers]}
                                     label={"Customer"}
                                     defaultValue={weeklyCustomer}
                                     onSelect={(customer: any) => {
@@ -254,7 +253,6 @@ const WeeklySheet = ({
                                         optionLabel={"Description"}
                                         optionValue={"ID"}
                                         searchQuery={"loadtypes"}
-                                        data={[weekly.LoadTypes]}
                                         label={"Load Type"}
                                         defaultValue={weeklyLoadType}
                                         onSelect={(loadType: any) => {
@@ -267,7 +265,6 @@ const WeeklySheet = ({
                                         optionLabel={"Description"}
                                         optionValue={"ID"}
                                         searchQuery={"deliverylocations"}
-                                        data={[weekly.DeliveryLocations]}
                                         label={"Delivery Location"}
                                         defaultValue={weeklyDeliveryLocation}
                                         onSelect={(deliveryLocation: any) => {

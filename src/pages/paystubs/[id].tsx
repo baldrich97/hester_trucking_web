@@ -24,17 +24,12 @@ interface PayStubData extends PayStubsType {
 
 const PayStub = ({
                      initialPaystub,
-                     drivers,
-                     jobs
                  }: {
     initialPaystub: PayStubData;
-    drivers: DriversType[];
-    jobs: JobsType[];
 }) => {
     return (
         <PayStubObject
             initialPayStub={initialPaystub}
-            drivers={drivers}
         />
     );
 };
@@ -93,14 +88,9 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         };
     }
 
-    console.log('ASD;LFKJASDF;LKASDJFA', initialPaystub)
-
-    const drivers = await prisma.drivers.findMany({});
-
     return {
         props: {
             initialPaystub: JSON.parse(JSON.stringify(initialPaystub)),
-            drivers: JSON.parse(JSON.stringify(drivers)),
         },
     };
 };

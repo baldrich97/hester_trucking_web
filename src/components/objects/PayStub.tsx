@@ -48,12 +48,11 @@ const defaultValues = {
 };
 
 const PayStub = ({
-                     drivers,
                      initialPayStub = null,
                      initialJob = null,
                      closeModal = null
                  }: {
-    drivers: DriversType[];
+    drivers?: DriversType[];
     initialPayStub?: null | PayStubData;
     initialJob?: null | JobsType;
     refreshData?: any;
@@ -102,11 +101,13 @@ const PayStub = ({
     //     defaultValues.Gross = grossValue;
     // }, [grossValue])
 
-    if (initialPayStub) {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        setValue("selected", selected);
-    }
+    React.useEffect(() => {
+        if (initialPayStub) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            setValue("selected", selected);
+        }
+    }, [initialPayStub, selected, setValue]);
 
     const key = initialPayStub ? "paystubs.post" : "paystubs.put";
 
@@ -355,7 +356,7 @@ const PayStub = ({
     const selectData: SelectDataType = [
         {
             key: "DriverID",
-            data: drivers,
+            data: [],
             optionValue: "ID",
             optionLabel: "FirstName+LastName",
             defaultValue: initialJob ? initialJob.DriverID : initialPayStub ? initialPayStub.DriverID : null,
