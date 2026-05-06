@@ -573,49 +573,49 @@ function Sidenav(props: any) {
                     </ListItemButton>
                 </NextLink>
 
-                <ListItemButton
-                    selected={[27, 28].includes(selectedIndex)}
-                >
-                    <NextLink href="/reports" passHref>
-                        <ListItemIcon>
-                            <AssessmentIcon
-                                onClick={() => {
-                                    setSelectedIndex(27);
-                                }}
-                            />
-                        </ListItemIcon>
-                    </NextLink>
-                    <NextLink href="/reports" passHref>
-                        <ListItemText primary="Reports" onClick={() => {
-                            setSelectedIndex(27);
-                        }} />
-                    </NextLink>
-                    {isReportsOpen ? <ExpandLess onClick={() => setReportsOpen(!isReportsOpen)} /> :
-                        <ExpandMore onClick={() => setReportsOpen(!isReportsOpen)} />}
-                </ListItemButton>
+                {/*<ListItemButton*/}
+                {/*    selected={[27, 28].includes(selectedIndex)}*/}
+                {/*>*/}
+                {/*    <NextLink href="/reports" passHref>*/}
+                {/*        <ListItemIcon>*/}
+                {/*            <AssessmentIcon*/}
+                {/*                onClick={() => {*/}
+                {/*                    setSelectedIndex(27);*/}
+                {/*                }}*/}
+                {/*            />*/}
+                {/*        </ListItemIcon>*/}
+                {/*    </NextLink>*/}
+                {/*    <NextLink href="/reports" passHref>*/}
+                {/*        <ListItemText primary="Reports" onClick={() => {*/}
+                {/*            setSelectedIndex(27);*/}
+                {/*        }} />*/}
+                {/*    </NextLink>*/}
+                {/*    {isReportsOpen ? <ExpandLess onClick={() => setReportsOpen(!isReportsOpen)} /> :*/}
+                {/*        <ExpandMore onClick={() => setReportsOpen(!isReportsOpen)} />}*/}
+                {/*</ListItemButton>*/}
 
-                <Collapse in={isReportsOpen} timeout="auto" unmountOnExit>
-                    <List component="div" disablePadding>
-                        <NextLink href="/reports" passHref>
-                            <ListItemButton
-                                selected={selectedIndex === 27}
-                                sx={{ pl: 4 }}
-                                onClick={() => setSelectedIndex(27)}
-                            >
-                                <ListItemText primary="By Source" />
-                            </ListItemButton>
-                        </NextLink>
-                        <NextLink href="/reports/customers" passHref>
-                            <ListItemButton
-                                selected={selectedIndex === 28}
-                                sx={{ pl: 4 }}
-                                onClick={() => setSelectedIndex(28)}
-                            >
-                                <ListItemText primary="By Customer" />
-                            </ListItemButton>
-                        </NextLink>
-                    </List>
-                </Collapse>
+                {/*<Collapse in={isReportsOpen} timeout="auto" unmountOnExit>*/}
+                {/*    <List component="div" disablePadding>*/}
+                {/*        <NextLink href="/reports" passHref>*/}
+                {/*            <ListItemButton*/}
+                {/*                selected={selectedIndex === 27}*/}
+                {/*                sx={{ pl: 4 }}*/}
+                {/*                onClick={() => setSelectedIndex(27)}*/}
+                {/*            >*/}
+                {/*                <ListItemText primary="By Source" />*/}
+                {/*            </ListItemButton>*/}
+                {/*        </NextLink>*/}
+                {/*        <NextLink href="/reports/customers" passHref>*/}
+                {/*            <ListItemButton*/}
+                {/*                selected={selectedIndex === 28}*/}
+                {/*                sx={{ pl: 4 }}*/}
+                {/*                onClick={() => setSelectedIndex(28)}*/}
+                {/*            >*/}
+                {/*                <ListItemText primary="By Customer" />*/}
+                {/*            </ListItemButton>*/}
+                {/*        </NextLink>*/}
+                {/*    </List>*/}
+                {/*</Collapse>*/}
 
                 <NextLink href="/sources" passHref>
                     <ListItemButton
