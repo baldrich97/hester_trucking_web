@@ -16,6 +16,8 @@ const GenericForm = ({
                          fields = [],
                          selectData = [],
                          selectedCustomer = 0,
+                         selectedSource = 0,
+                         selectedLoadType = 0,
                          onDelete = null,
                          onReset = null,
                      }: {
@@ -24,6 +26,8 @@ const GenericForm = ({
     fields: FormFieldsType;
     selectData?: SelectDataType;
     selectedCustomer?: number | null;
+    selectedSource?: number | null;
+    selectedLoadType?: number | null;
     onDelete?: any;
     onReset?: any;
 }) => {
@@ -88,6 +92,8 @@ const GenericForm = ({
                                     groupBy={field.groupBy}
                                     groupByNames={field.groupByNames}
                                     selectedCustomer={selectedCustomer}
+                                    selectedSource={selectedSource}
+                                    selectedLoadType={selectedLoadType}
                                 />
                             </Grid2>
                         );

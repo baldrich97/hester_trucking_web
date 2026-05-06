@@ -9,8 +9,7 @@ const activeLoadTypeWhere = {
 export const sourcesRouter = createRouter()
     .query("getAll", {
         async resolve({ctx}) {
-            const prismaAny = ctx.prisma as any;
-            return prismaAny.sources.findMany({
+            return ctx.prisma.sources.findMany({
                 orderBy: {Name: "asc"},
             });
         },
@@ -18,17 +17,32 @@ export const sourcesRouter = createRouter()
     .query("get", {
         input: z.object({ID: z.number()}),
         async resolve({ctx, input}) {
-            const prismaAny = ctx.prisma as any;
-            return prismaAny.sources.findUnique({
+            const source = await ctx.prisma.sources.findUnique({
                 where: {ID: input.ID},
                 include: {
-                    LoadTypes: {
-                        where: activeLoadTypeWhere,
-                        orderBy: {Description: "asc"},
-                        select: {ID: true, Description: true, Notes: true, SourceID: true},
+                    SourceLoadTypes: {
+                        where: {LoadTypes: activeLoadTypeWhere},
+                        include: {
+                            LoadTypes: {
+                                select: {ID: true, Description: true, Notes: true},
+                            },
+                        },
+                        orderBy: {LoadTypes: {Description: "asc"}},
                     },
                 },
             });
+
+            if (!source) {
+                return null;
+            }
+
+            const {SourceLoadTypes, ...rest} = source;
+            return {
+                ...rest,
+                LoadTypes: SourceLoadTypes
+                    .map((row) => row.LoadTypes)
+                    .filter((row): row is {ID: number; Description: string; Notes: string | null} => row != null),
+            };
         },
     })
     .query("search", {
@@ -37,36 +51,77 @@ export const sourcesRouter = createRouter()
             page: z.number().optional(),
             orderBy: z.string().optional(),
             order: z.string().optional(),
+            LoadTypeID: z.number().optional(),
         }),
         async resolve({ctx, input}) {
-            const {search, page} = input;
+            const {search, page, LoadTypeID} = input;
             const order = input.order ?? "asc";
             const orderBy = input.orderBy ?? "Name";
-            const prismaAny = ctx.prisma as any;
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
+            const orderObj: Record<string, string> = {};
             orderObj[orderBy] = order;
 
-            if (search && search.trim().length > 0) {
-                return prismaAny.sources.findMany({
+            const where = search && search.trim().length > 0
+                ? {Name: {contains: search.trim()}}
+                : {};
+
+            // When a LoadTypeID is provided, surface linked sources first, sorted by UseCount desc.
+            if (LoadTypeID) {
+                const linked = await ctx.prisma.sourceLoadTypes.findMany({
+                    where: {LoadTypeID},
+                    include: {Sources: true},
+                    orderBy: {UseCount: "desc"},
+                });
+
+                const linkedSources = linked
+                    .map((row) => ({
+                        ...row.Sources,
+                        Recommend: "Linked" as const,
+                        UseCount: row.UseCount,
+                    }))
+                    .filter((src) => {
+                        if (!search || search.trim().length === 0) {
+                            return true;
+                        }
+                        const needle = search.trim().toLowerCase();
+                        return src.Name.toLowerCase().includes(needle);
+                    });
+
+                const linkedIDs = linkedSources.map((s) => s.ID);
+                const remaining = await ctx.prisma.sources.findMany({
                     where: {
-                        Name: {
-                            contains: search.trim(),
-                        },
+                        ...where,
+                        NOT: {ID: {in: linkedIDs}},
                     },
                     take: 50,
                     orderBy: orderObj,
                 });
+
+                const remainingAnnotated = remaining.map((src) => ({
+                    ...src,
+                    Recommend: null,
+                    UseCount: 0,
+                }));
+
+                return [...linkedSources, ...remainingAnnotated];
             }
 
-            return prismaAny.sources.findMany({
+            if (search && search.trim().length > 0) {
+                const data = await ctx.prisma.sources.findMany({
+                    where,
+                    take: 50,
+                    orderBy: orderObj,
+                });
+                return data.map((src) => ({...src, Recommend: null, UseCount: 0}));
+            }
+
+            const data = await ctx.prisma.sources.findMany({
                 take: 50,
                 skip: page ? page * 10 : 0,
                 orderBy: orderObj,
             });
+            return data.map((src) => ({...src, Recommend: null, UseCount: 0}));
         },
     })
     .query("searchPage", {
@@ -80,12 +135,9 @@ export const sourcesRouter = createRouter()
             const order = input.order ?? "asc";
             const orderBy = input.orderBy ?? "Name";
             const page = input.page ?? 0;
-            const prismaAny = ctx.prisma as any;
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
+            const orderObj: Record<string, string> = {};
             orderObj[orderBy] = order;
 
             const where = input.search && input.search.trim().length > 0
@@ -97,13 +149,13 @@ export const sourcesRouter = createRouter()
                 : {};
 
             const [rows, count] = await Promise.all([
-                prismaAny.sources.findMany({
+                ctx.prisma.sources.findMany({
                     where,
                     take: 10,
                     skip: page * 10,
                     orderBy: orderObj,
                 }),
-                prismaAny.sources.count({where}),
+                ctx.prisma.sources.count({where}),
             ]);
 
             return {rows, count};
@@ -119,10 +171,11 @@ export const sourcesRouter = createRouter()
             return ctx.prisma.loadTypes.findMany({
                 where: {
                     ...activeLoadTypeWhere,
-                    OR: [
-                        {SourceID: null},
-                        {SourceID: {not: input.SourceID}},
-                    ],
+                    NOT: {
+                        SourceLoadTypes: {
+                            some: {SourceID: input.SourceID},
+                        },
+                    },
                     ...(search
                         ? {
                             Description: {
@@ -137,7 +190,6 @@ export const sourcesRouter = createRouter()
                     ID: true,
                     Description: true,
                     Notes: true,
-                    SourceID: true,
                 },
             });
         },
@@ -145,8 +197,7 @@ export const sourcesRouter = createRouter()
     .mutation("put", {
         input: SourcesModel.omit({ID: true}),
         async resolve({ctx, input}) {
-            const prismaAny = ctx.prisma as any;
-            return prismaAny.sources.create({
+            return ctx.prisma.sources.create({
                 data: input,
             });
         },
@@ -155,8 +206,7 @@ export const sourcesRouter = createRouter()
         input: SourcesModel,
         async resolve({ctx, input}) {
             const {ID, ...data} = input;
-            const prismaAny = ctx.prisma as any;
-            return prismaAny.sources.update({
+            return ctx.prisma.sources.update({
                 where: {ID},
                 data,
             });
@@ -165,12 +215,9 @@ export const sourcesRouter = createRouter()
     .mutation("delete", {
         input: z.object({ID: z.number()}),
         async resolve({ctx, input}) {
-            const prismaAny = ctx.prisma as any;
-            await ctx.prisma.loadTypes.updateMany({
-                where: {SourceID: input.ID},
-                data: {SourceID: null},
-            });
-            return prismaAny.sources.delete({
+            // SourceLoadTypes rows cascade-delete when the Source is removed
+            // (see schema.prisma onDelete: Cascade). No manual cleanup required.
+            return ctx.prisma.sources.delete({
                 where: {ID: input.ID},
             });
         },
@@ -181,15 +228,16 @@ export const sourcesRouter = createRouter()
             LoadTypeIDs: z.array(z.number()).min(1),
         }),
         async resolve({ctx, input}) {
-            const updateResult = await ctx.prisma.loadTypes.updateMany({
-                where: {
-                    ID: {in: input.LoadTypeIDs},
-                },
-                data: {SourceID: input.SourceID},
+            const result = await ctx.prisma.sourceLoadTypes.createMany({
+                data: input.LoadTypeIDs.map((LoadTypeID) => ({
+                    SourceID: input.SourceID,
+                    LoadTypeID,
+                })),
+                skipDuplicates: true,
             });
 
             return {
-                updatedCount: updateResult.count,
+                updatedCount: result.count,
             };
         },
     })
@@ -199,12 +247,11 @@ export const sourcesRouter = createRouter()
             LoadTypeID: z.number(),
         }),
         async resolve({ctx, input}) {
-            return ctx.prisma.loadTypes.updateMany({
+            return ctx.prisma.sourceLoadTypes.deleteMany({
                 where: {
-                    ID: input.LoadTypeID,
                     SourceID: input.SourceID,
+                    LoadTypeID: input.LoadTypeID,
                 },
-                data: {SourceID: null},
             });
         },
     });

@@ -9,6 +9,7 @@ import {
   DriversModel,
   LoadsModel,
   LoadTypesModel,
+  SourcesModel,
   TrucksModel,
 } from "../../../prisma/zod";
 import { z } from "zod";
@@ -31,6 +32,7 @@ type LoadTypesType = z.infer<typeof LoadTypesModel>;
 type DeliveryLocationsType = z.infer<typeof DeliveryLocationsModel>;
 type TrucksType = z.infer<typeof TrucksModel>;
 type DriversType = z.infer<typeof DriversModel>;
+type SourcesType = z.infer<typeof SourcesModel>;
 
 const columns: TableColumnsType = [
   { name: "Customers.Name", as: "Customer", navigateTo: "customers/[ID]", column: 'CustomerID' },
@@ -75,6 +77,7 @@ const Loads = ({
   deliveryLocations,
   trucks,
   drivers,
+  sources,
     uninvCount
 }: {
   loads: LoadsType[];
@@ -83,6 +86,7 @@ const Loads = ({
   deliveryLocations: DeliveryLocationsType[];
   trucks: TrucksType[];
   drivers: DriversType[];
+  sources: SourcesType[];
   count: number;
   uninvCount: number;
   customers: CustomersType[];
@@ -365,6 +369,7 @@ const Loads = ({
               deliveryLocations={deliveryLocations}
               trucks={trucks}
               drivers={drivers}
+              sources={sources}
               refreshData={() => {
                 setShouldRefresh(true);
               }}
@@ -450,6 +455,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     take: 10,
   });
 
+  const sources = await prisma.sources.findMany({
+    orderBy: {
+      Name: "asc",
+    },
+  });
+
   return {
     props: {
       loads: JSON.parse(JSON.stringify(loads)),
@@ -461,6 +472,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       drivers: JSON.parse(JSON.stringify(drivers)),
       deliveryLocations,
       loadTypes,
+      sources: JSON.parse(JSON.stringify(sources)),
     },
   };
 };

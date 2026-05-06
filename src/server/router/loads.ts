@@ -58,13 +58,22 @@ const activeLoadWhere = {
 };
 
 
+async function upsertSourceLoadType(ctx: any, SourceID: number, LoadTypeID: number) {
+    await ctx.prisma.sourceLoadTypes.upsert({
+        where: {SourceID_LoadTypeID: {SourceID, LoadTypeID}},
+        create: {SourceID, LoadTypeID, UseCount: 1},
+        update: {UseCount: {increment: 1}},
+    });
+}
+
 async function updateLoadAndRelations(
     input: any,
     ctx: any,
     mass_edit_ids: any = null
 ): Promise<void> {
 
-    const {ID, ...data} = input;
+    const {ID, SourceID, ...rest} = input;
+    const data = rest;
 
     const {
         DriverID,
@@ -237,12 +246,15 @@ async function updateLoadAndRelations(
         data.JobID = newJob.ID;
     }
     if (!mass_edit_ids) {
-        // use your ORM of choice
-        return ctx.prisma.loads.update({
+        const result = await ctx.prisma.loads.update({
             where: {
                 ID: ID
             }, data: data
-        })
+        });
+        if (SourceID && LoadTypeID) {
+            await upsertSourceLoadType(ctx, SourceID, LoadTypeID);
+        }
+        return result;
     } else {
         await ctx.prisma.loads.updateMany({
             where: {
@@ -263,6 +275,9 @@ async function updateLoadAndRelations(
                 JobID: data.JobID
             },
         });
+        if (SourceID && LoadTypeID) {
+            await upsertSourceLoadType(ctx, SourceID, LoadTypeID);
+        }
     }
 }
 
@@ -591,7 +606,7 @@ export const loadsRouter = createRouter()
         }
     })
     .mutation('put_duplicate_checker', {
-        input: LoadsModel.omit({ID: true, Deleted: true}),
+        input: LoadsModel.omit({ID: true, Deleted: true}).extend({SourceID: z.number().int().nullish()}),
         async resolve({ctx, input}) {
             const {TicketNumber} = input;
             const existing = await ctx.prisma.loads.findFirst({where: {TicketNumber: TicketNumber}});
@@ -605,7 +620,7 @@ export const loadsRouter = createRouter()
     .mutation('post_mass_edit', {
         input: z.object({
             selectedLoads: z.array(z.number()).optional(),
-            data: LoadsModel.omit({ID: true, Deleted: true}).optional()
+            data: LoadsModel.omit({ID: true, Deleted: true}).extend({SourceID: z.number().int().nullish()}).optional()
         }),
         async resolve({ctx, input}) {
             if (!input.data) {
@@ -637,7 +652,7 @@ export const loadsRouter = createRouter()
         }
     })
     .mutation('post_duplicate_checker', {
-        input: LoadsModel,
+        input: LoadsModel.extend({SourceID: z.number().int().nullish()}),
         async resolve({ctx, input}) {
             const {TicketNumber, ID} = input;
             const existing = await ctx.prisma.loads.findFirst({where: {TicketNumber: TicketNumber}});
@@ -649,12 +664,12 @@ export const loadsRouter = createRouter()
         }
     })
     .mutation('put', {
-        input: LoadsModel.omit({ID: true, Deleted: true}),
+        input: LoadsModel.omit({ID: true, Deleted: true}).extend({SourceID: z.number().int().nullish()}),
         async resolve({ctx, input}) {
             const {
                 DriverID, TruckID, StartDate, CustomerID, LoadTypeID,
                 DeliveryLocationID, TruckRate, MaterialRate, Week,
-                TotalRate, DriverRate, Weight, Hours
+                TotalRate, DriverRate, Weight, Hours, SourceID
             } = input;
 
             // 🛡️ **Validation Checks**
@@ -816,13 +831,20 @@ export const loadsRouter = createRouter()
             );
 
             // 📦 **Create Load**
-            const data = await ctx.prisma.loads.create({data: input});
+            // Strip SourceID before persisting (it isn't a column on Loads).
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const {SourceID: _SourceID, ...loadData} = input;
+            const data = await ctx.prisma.loads.create({data: loadData});
+
+            if (SourceID && LoadTypeID) {
+                await upsertSourceLoadType(ctx, SourceID, LoadTypeID);
+            }
 
             return {data, warnings: ctx.warnings};
         },
     }).mutation('post', {
         // validate input with Zod
-        input: LoadsModel,
+        input: LoadsModel.extend({SourceID: z.number().int().nullish()}),
         async resolve({ctx, input}) {
             const {
                 DriverID,

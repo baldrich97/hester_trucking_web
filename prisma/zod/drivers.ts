@@ -1,5 +1,5 @@
 import * as z from "zod"
-import { CompleteDailies, RelatedDailiesModel, CompleteDriverForms, RelatedDriverFormsModel, CompleteStates, RelatedStatesModel, CompleteJobs, RelatedJobsModel, CompleteLoads, RelatedLoadsModel, CompletePayStubs, RelatedPayStubsModel, CompleteTrucksDriven, RelatedTrucksDrivenModel, CompleteCarriers, RelatedCarriersModel } from "./index"
+import { CompleteDailies, RelatedDailiesModel, CompleteDriverForms, RelatedDriverFormsModel, CompleteCarriers, RelatedCarriersModel, CompleteStates, RelatedStatesModel, CompleteJobs, RelatedJobsModel, CompleteLoads, RelatedLoadsModel, CompletePayStubs, RelatedPayStubsModel, CompleteTrucksDriven, RelatedTrucksDrivenModel } from "./index"
 
 export const DriversModel = z.object({
   ID: z.number().int(),
@@ -19,19 +19,19 @@ export const DriversModel = z.object({
   HireDate: z.string().nullish(),
   OwnerOperator: z.boolean(),
   TIN: z.string().nullish(),
-  PayMethod: z.string().nullish(),
   CarrierID: z.number().int().nullish(),
+  PayMethod: z.string().nullish(),
 })
 
 export interface CompleteDrivers extends z.infer<typeof DriversModel> {
   Dailies: CompleteDailies[]
   DriverForms: CompleteDriverForms[]
+  Carriers?: CompleteCarriers | null
   States?: CompleteStates | null
   Jobs: CompleteJobs[]
   Loads: CompleteLoads[]
   PayStubs: CompletePayStubs[]
   TrucksDriven: CompleteTrucksDriven[]
-  Carriers?: CompleteCarriers | null
 }
 
 /**
@@ -42,10 +42,10 @@ export interface CompleteDrivers extends z.infer<typeof DriversModel> {
 export const RelatedDriversModel: z.ZodSchema<CompleteDrivers> = z.lazy(() => DriversModel.extend({
   Dailies: RelatedDailiesModel.array(),
   DriverForms: RelatedDriverFormsModel.array(),
+  Carriers: RelatedCarriersModel.nullish(),
   States: RelatedStatesModel.nullish(),
   Jobs: RelatedJobsModel.array(),
   Loads: RelatedLoadsModel.array(),
   PayStubs: RelatedPayStubsModel.array(),
   TrucksDriven: RelatedTrucksDrivenModel.array(),
-  Carriers: RelatedCarriersModel.nullish(),
 }))

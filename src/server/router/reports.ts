@@ -73,7 +73,9 @@ export const reportsRouter = createRouter()
                     },
                     LoadTypes: {
                         is: {
-                            SourceID: input.sourceId,
+                            SourceLoadTypes: {
+                                some: {SourceID: input.sourceId},
+                            },
                         },
                     },
                 },

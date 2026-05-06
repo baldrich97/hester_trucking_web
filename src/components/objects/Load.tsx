@@ -11,6 +11,7 @@ import {
     LoadTypesModel,
     DeliveryLocationsModel,
     DriversModel,
+    SourcesModel,
     CompleteTrucksDriven,
 } from "../../../prisma/zod";
 import {trpc} from "../../utils/trpc";
@@ -27,6 +28,7 @@ type LoadTypesType = z.infer<typeof LoadTypesModel>;
 type DeliveryLocationsType = z.infer<typeof DeliveryLocationsModel>;
 type TrucksType = z.infer<typeof TrucksModel>;
 type DriversType = z.infer<typeof DriversModel>;
+type SourcesType = z.infer<typeof SourcesModel>;
 import {FormFieldsType, SelectDataType} from "../../utils/types";
 import {
     CustomerDeliveryLocations,
@@ -50,6 +52,7 @@ const defaultValues = {
     DeliveryDescriptionID: null,
     DriverID: null,
     TruckID: null,
+    SourceID: null,
     Hours: undefined,
     TotalAmount: undefined,
     TotalRate: undefined,
@@ -67,6 +70,7 @@ function Load({
                   deliveryLocations,
                   trucks,
                   drivers,
+                  sources = [],
                   initialLoad = null,
                   refreshData,
                   resetButton = false,
@@ -76,6 +80,7 @@ function Load({
     deliveryLocations: DeliveryLocationsType[];
     trucks: TrucksType[];
     drivers: DriversType[];
+    sources?: SourcesType[];
     initialLoad?: null | LoadsType;
     refreshData?: any;
     resetButton?: any;
@@ -89,9 +94,10 @@ function Load({
 
     const router = useRouter();
 
-    const validationSchema = initialLoad
+    const validationSchema = (initialLoad
         ? LoadsModel
-        : LoadsModel.omit({ID: true});
+        : LoadsModel.omit({ID: true})
+    ).extend({SourceID: z.number().int().nullish()});
 
     type ValidationSchema = z.infer<typeof validationSchema>;
 
@@ -256,15 +262,25 @@ function Load({
         initialLoad ? (initialLoad.TruckID ? initialLoad.TruckID : 0) : 0
     );
 
-    const [lttrpcData, ltsetData] = useState<CustomerLoadTypes[]>([]);
+    const [source, setSource] = useState(0);
+
+    const [loadTypeSelected, setLoadTypeSelected] = useState(
+        initialLoad ? (initialLoad.LoadTypeID ? initialLoad.LoadTypeID : 0) : 0
+    );
+
+    const [lttrpcData, ltsetData] = useState<any[]>([]);
 
     const [dltrpcData, dlsetData] = useState<CustomerDeliveryLocations[]>([]);
+
+    const [srctrpcData, srcsetData] = useState<any[]>([]);
 
     const [tdtrpcData, tdsetData] = useState<CompleteTrucksDriven[]>([]);
 
     const [ltshouldRefresh, ltsetShouldRefresh] = useState(false);
 
     const [dlshouldRefresh, dlsetShouldRefresh] = useState(false);
+
+    const [srcshouldRefresh, srcsetShouldRefresh] = useState(false);
 
     const [tdshouldRefresh, tdsetShouldRefresh] = useState(false);
 
@@ -281,18 +297,46 @@ function Load({
         await router.replace("/loads");
     };
 
-    trpc.useQuery(["loadtypes.search", {CustomerID: customer}], {
-        enabled: ltshouldRefresh,
-        onSuccess(data) {
-            ltsetData(JSON.parse(JSON.stringify(data)));
-            ltsetShouldRefresh(false);
-            //forceUpdate;
+    trpc.useQuery(
+        [
+            "loadtypes.search",
+            {
+                CustomerID: customer || undefined,
+                SourceID: source || undefined,
+            },
+        ],
+        {
+            enabled: ltshouldRefresh,
+            onSuccess(data) {
+                ltsetData(JSON.parse(JSON.stringify(data)));
+                ltsetShouldRefresh(false);
+            },
+            onError(error) {
+                console.warn(error.message);
+                ltsetShouldRefresh(false);
+            },
         },
-        onError(error) {
-            console.warn(error.message);
-            ltsetShouldRefresh(false);
+    );
+
+    trpc.useQuery(
+        [
+            "sources.search",
+            {
+                LoadTypeID: loadTypeSelected || undefined,
+            },
+        ],
+        {
+            enabled: srcshouldRefresh,
+            onSuccess(data) {
+                srcsetData(JSON.parse(JSON.stringify(data)));
+                srcsetShouldRefresh(false);
+            },
+            onError(error) {
+                console.warn(error.message);
+                srcsetShouldRefresh(false);
+            },
         },
-    });
+    );
 
     trpc.useQuery(["deliverylocations.search", {CustomerID: customer}], {
         enabled: dlshouldRefresh,
@@ -372,6 +416,16 @@ function Load({
                 dlsetShouldRefresh(true);
                 ltsetShouldRefresh(true);
             }
+            if (name === "SourceID" && type === "change") {
+                setSource(value.SourceID ?? 0);
+                ltsetShouldRefresh(true);
+            }
+            if (name === "LoadTypeID" && type === "change") {
+                setLoadTypeSelected(value.LoadTypeID ?? 0);
+                if (!value.SourceID) {
+                    srcsetShouldRefresh(true);
+                }
+            }
             if ((name === "TruckID" || name === "DriverID") && type === "change") {
                 if (name === "TruckID") {
                     //setValue("DriverID", 0)
@@ -443,6 +497,16 @@ function Load({
             groupByNames: "Driven Before|New for Driver",
         },
         {
+            name: "SourceID",
+            size: 6,
+            required: false,
+            type: "select",
+            label: "Source (optional)",
+            searchQuery: "sources",
+            groupBy: "Recommend",
+            groupByNames: "Linked=Linked to Load Type|Other",
+        },
+        {
             name: "LoadTypeID",
             size: 6,
             required: true,
@@ -452,7 +516,7 @@ function Load({
             label: "Load Type",
             searchQuery: "loadtypes",
             groupBy: "Recommend",
-            groupByNames: "Used by Customer|New for Customer",
+            groupByNames: "Customer=Used by Customer|Source=Linked to Source|Other",
         },
         {
             name: "DeliveryLocationID",
@@ -466,14 +530,14 @@ function Load({
         },
         {
             name: "StartDate",
-            size: 4,
+            size: 6,
             required: false,
             type: "date",
             label: "Delivered On",
         },
         {
             name: "Week",
-            size: 4,
+            size: 6,
             required: false,
             type: "week",
             label: "Daily Week",
@@ -484,7 +548,7 @@ function Load({
             type: "textfield",
             shouldErrorOn: ['invalid_type'],
             errorMessage: 'Ticket number is required.',
-            size: 4,
+            size: 6,
             number: true,
             label: "Ticket Number",
         },
@@ -574,10 +638,17 @@ function Load({
             defaultValue: initialLoad ? initialLoad.CustomerID : null,
         },
         {
+            key: "SourceID",
+            data: srctrpcData.length > 0 ? srctrpcData : sources,
+            optionValue: "ID",
+            optionLabel: "Name",
+            defaultValue: null,
+        },
+        {
             key: "LoadTypeID",
             data: lttrpcData.length > 0 ? lttrpcData : loadTypes,
             optionValue: "ID",
-            optionLabel: "Description",
+            optionLabel: lttrpcData.length > 0 ? "DisplayName" : "Description",
             defaultValue: initialLoad ? initialLoad.LoadTypeID : null,
         },
         {
@@ -637,6 +708,8 @@ function Load({
                     fields={fields}
                     selectData={selectData}
                     selectedCustomer={customer}
+                    selectedSource={source}
+                    selectedLoadType={loadTypeSelected}
                     onReset={
                         resetButton
                             ? () => {

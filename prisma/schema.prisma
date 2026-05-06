@@ -18,15 +18,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// How a signed form’s dates are evaluated for compliance (see `driverFormCompliance` util).
-enum FormExpiryCadence {
-  NONE
-  EXPIRATION_DATE
-  CALENDAR_YEAR
-  CALENDAR_MONTH
-  ROLLING_MONTHS
-}
-
 model User {
   id           Int    @id @default(autoincrement())
   email        String
@@ -113,16 +104,16 @@ model Drivers {
   HireDate      String?        @db.VarChar(255)
   OwnerOperator Boolean
   TIN           String?        @db.VarChar(255)
-  PayMethod     String?        @db.VarChar(50)
   CarrierID     Int?
+  PayMethod     String?        @db.VarChar(50)
   Dailies       Dailies[]
   DriverForms   DriverForms[]
+  Carriers      Carriers?      @relation(fields: [CarrierID], references: [ID], onUpdate: Restrict, map: "FK_Drivers_Carriers")
   States        States?        @relation(fields: [State], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Drivers_States")
   Jobs          Jobs[]
   Loads         Loads[]
   PayStubs      PayStubs[]
   TrucksDriven  TrucksDriven[]
-  Carriers      Carriers?      @relation(fields: [CarrierID], references: [ID], onDelete: SetNull, onUpdate: Restrict, map: "FK_Drivers_Carriers")
 
   @@index([CarrierID], map: "FK_Drivers_Carriers")
   @@index([State], map: "FK_Drivers_States")
@@ -159,22 +150,21 @@ model LoadTypes {
   /// @zod.min(1)
   Description       String              @db.VarChar(255)
   Deleted           Boolean?
-  SourceID          Int?
   Notes             String?             @db.VarChar(255)
   CustomerLoadTypes CustomerLoadTypes[]
   Jobs              Jobs[]
   Loads             Loads[]
-  Sources           Sources?            @relation(fields: [SourceID], references: [ID], onDelete: SetNull, onUpdate: Restrict, map: "FK_LoadTypes_Sources")
+  SourceLoadTypes   SourceLoadTypes[]
   Weeklies          Weeklies[]
 
-  @@index([SourceID], map: "FK_LoadTypes_Sources")
   @@fulltext([Description, Notes])
 }
 
 model Sources {
-  ID        Int         @id @default(autoincrement())
-  Name      String      @db.VarChar(255)
-  LoadTypes LoadTypes[]
+  ID              Int               @id @default(autoincrement())
+  Name            String            @db.VarChar(255)
+  ShortName       String?           @db.VarChar(255)
+  SourceLoadTypes SourceLoadTypes[]
 }
 
 model States {
@@ -393,7 +383,7 @@ model DriverForms {
   Drivers    Drivers   @relation(fields: [Driver], references: [ID], onUpdate: Restrict, map: "DriverForms_Drivers_ID_fk")
   Forms      Forms     @relation(fields: [Form], references: [ID], onUpdate: Restrict, map: "DriverForms_Forms_ID_fk")
 
-  @@unique([Driver, Form], map: "DriverForms_Driver_Form_key")
+  @@unique([Driver, Form])
   @@index([Driver], map: "DriverForms_Drivers_ID_fk")
   @@index([Form], map: "DriverForms_Forms_ID_fk")
 }
@@ -409,11 +399,11 @@ model FormOptions {
   /// When true, one valid filing for any driver under the same `Carriers` satisfies the form for all of them.
   CarrierWide    Boolean           @default(false) @map("CompanyWide")
   ExpiryCadence  FormExpiryCadence @default(EXPIRATION_DATE)
+  IncludeInPdf   Boolean           @default(true)
+  PdfColumnLabel String?           @db.VarChar(75)
+  PdfOrder       Int               @default(0)
   /// For `ROLLING_MONTHS`: number of months the filing stays valid from `Created`.
   ValidityMonths Int?
-  PdfOrder       Int               @default(0)
-  PdfColumnLabel String?           @db.VarChar(75)
-  IncludeInPdf   Boolean           @default(true)
   Forms          Forms             @relation(fields: [Form], references: [ID], onUpdate: Restrict, map: "FormOptions_Forms_ID_fk")
 
   @@index([Form], map: "FormOptions_Forms_ID_fk")
@@ -425,4 +415,27 @@ model Forms {
   DisplayName String        @default(dbgenerated("(`Name`)")) @db.VarChar(75)
   DriverForms DriverForms[]
   FormOptions FormOptions[]
+}
+
+model SourceLoadTypes {
+  ID         Int       @id @default(autoincrement())
+  SourceID   Int
+  LoadTypeID Int
+  UseCount   Int       @default(1)
+  Created    DateTime  @default(now()) @db.DateTime(0)
+  LoadTypes  LoadTypes @relation(fields: [LoadTypeID], references: [ID], onDelete: Cascade, onUpdate: Restrict, map: "FK_SourceLoadTypes_LoadTypes")
+  Sources    Sources   @relation(fields: [SourceID], references: [ID], onDelete: Cascade, onUpdate: Restrict, map: "FK_SourceLoadTypes_Sources")
+
+  @@unique([SourceID, LoadTypeID], map: "UQ_SourceLoadTypes_Source_LoadType")
+  @@index([LoadTypeID], map: "FK_SourceLoadTypes_LoadTypes")
+  @@index([SourceID], map: "FK_SourceLoadTypes_Sources")
+}
+
+/// How a signed form’s dates are evaluated for compliance (see `driverFormCompliance` util).
+enum FormExpiryCadence {
+  NONE
+  EXPIRATION_DATE
+  CALENDAR_YEAR
+  CALENDAR_MONTH
+  ROLLING_MONTHS
 }

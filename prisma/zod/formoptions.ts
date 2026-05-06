@@ -14,13 +14,13 @@ export const FormOptionsModel = z.object({
    */
   CarrierWide: z.boolean(),
   ExpiryCadence: z.nativeEnum(FormExpiryCadence),
+  IncludeInPdf: z.boolean(),
+  PdfColumnLabel: z.string().nullish(),
+  PdfOrder: z.number().int(),
   /**
    * For `ROLLING_MONTHS`: number of months the filing stays valid from `Created`.
    */
   ValidityMonths: z.number().int().nullish(),
-  PdfOrder: z.number().int(),
-  PdfColumnLabel: z.string().nullish(),
-  IncludeInPdf: z.boolean(),
 })
 
 export interface CompleteFormOptions extends z.infer<typeof FormOptionsModel> {

@@ -60,7 +60,9 @@ const handler = async (req, res) => {
             },
             LoadTypes: {
                 is: {
-                    SourceID: sourceId,
+                    SourceLoadTypes: {
+                        some: {SourceID: sourceId},
+                    },
                 },
             },
         },

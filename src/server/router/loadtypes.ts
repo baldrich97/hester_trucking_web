@@ -1,7 +1,7 @@
 import {createRouter} from "./context";
 import {z} from "zod";
 import { LoadTypesModel } from '../../../prisma/zod';
-import { LoadTypes, Prisma } from "@prisma/client";
+import { LoadTypes } from "@prisma/client";
 
 export const loadTypesRouter = createRouter()
     .query("getAll", {
@@ -38,75 +38,149 @@ export const loadTypesRouter = createRouter()
             search: z.string().optional(),
             page: z.number().optional(),
             CustomerID: z.number().optional(),
+            SourceID: z.number().optional(),
             orderBy: z.string().optional(),
             order: z.string().optional()
         }),
         async resolve({ctx, input}) {
-            const extra: LoadTypes[] = [];
+            const customerLinkedIDs = new Set<number>();
             if (input.CustomerID) {
-                const associated = await ctx.prisma.customerLoadTypes.findMany({where: {CustomerID: input.CustomerID}, include: {LoadTypes: true}})
-                associated.forEach((item) => {
-                    if (extra.filter((_item) => _item.ID === item.LoadTypeID).length === 0) {
-                        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                        // @ts-ignore
-                        item.LoadTypes.Recommend = true;
-                        extra.push(item.LoadTypes)
-                    }
-                })
+                const associated = await ctx.prisma.customerLoadTypes.findMany({
+                    where: {CustomerID: input.CustomerID},
+                    select: {LoadTypeID: true},
+                });
+                associated.forEach((item) => customerLinkedIDs.add(item.LoadTypeID));
             }
-            const extraCondition = extra.length > 0 ? {
-                NOT: {
-                    ID: {
-                        in: extra.map((item) => item.ID)
-                    }
-                }
-            } : {}
-            let data = [];
+
+            const sourceLinkedIDs = new Set<number>();
+            if (input.SourceID) {
+                const associated = await ctx.prisma.sourceLoadTypes.findMany({
+                    where: {SourceID: input.SourceID},
+                    select: {LoadTypeID: true},
+                });
+                associated.forEach((item) => sourceLinkedIDs.add(item.LoadTypeID));
+            }
 
             const {order, orderBy} = input;
-
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
-            const orderObj = {};
+            const orderObj: Record<string, string> = {};
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             orderObj[orderBy] = order;
 
+            // Pull all matching load types (including grouped ones; we'll re-sort below).
+            let baseRows: LoadTypes[];
             if (input.search && input.search.length > 0) {
                 const formattedSearch = input.search.replace('"', '\"');
-
-                data = await ctx.prisma.loadTypes.findMany({
+                baseRows = await ctx.prisma.loadTypes.findMany({
                     where: {
                         OR: [
-                            {
-                                Notes: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                Description: {
-                                    contains: formattedSearch
-                                }
-                            }
+                            {Notes: {contains: formattedSearch}},
+                            {Description: {contains: formattedSearch}},
                         ],
-                        ...extraCondition
                     },
-                    take: 50,
+                    take: 100,
                     orderBy: orderObj,
-                })
+                });
             } else {
-                data = await ctx.prisma.loadTypes.findMany({
-                    take: 50,
+                baseRows = await ctx.prisma.loadTypes.findMany({
+                    take: 100,
                     orderBy: orderObj,
-                    where: {
-                        ...extraCondition
-                    },
-                    skip: input.page ? input.page*10 : 0
-                })
+                    skip: input.page ? input.page * 10 : 0,
+                });
             }
 
-            return [...extra, ...data];
+            // Make sure all customer-linked + source-linked load types are present even if they
+            // fell outside the page window above.
+            const baseIDs = new Set(baseRows.map((row) => row.ID));
+            const missingIDs = [...customerLinkedIDs, ...sourceLinkedIDs].filter((id) => !baseIDs.has(id));
+            if (missingIDs.length > 0) {
+                const extras = await ctx.prisma.loadTypes.findMany({
+                    where: {ID: {in: missingIDs}},
+                });
+                baseRows = [...baseRows, ...extras];
+            }
 
+            // Pull source-link metadata for every returned row to compute UseCount + DisplayName.
+            const allIDs = baseRows.map((row) => row.ID);
+            const sourceLinks = allIDs.length > 0
+                ? await ctx.prisma.sourceLoadTypes.findMany({
+                    where: {LoadTypeID: {in: allIDs}},
+                    include: {Sources: true},
+                })
+                : [];
+
+            const linksByLoadType = new Map<number, typeof sourceLinks>();
+            for (const link of sourceLinks) {
+                const list = linksByLoadType.get(link.LoadTypeID) ?? [];
+                list.push(link);
+                linksByLoadType.set(link.LoadTypeID, list);
+            }
+
+            type Annotated = LoadTypes & {
+                Recommend: "Customer" | "Source" | null;
+                UseCount: number;
+                DisplayName: string;
+            };
+
+            const annotated: Annotated[] = baseRows.map((row) => {
+                const links = linksByLoadType.get(row.ID) ?? [];
+
+                // Pick the annotation source: explicit SourceID first, otherwise the highest-UseCount link.
+                let annotationSource: (typeof links)[number]["Sources"] | null = null;
+                let useCount = 0;
+                if (input.SourceID) {
+                    const match = links.find((l) => l.SourceID === input.SourceID);
+                    if (match) {
+                        annotationSource = match.Sources;
+                        useCount = match.UseCount;
+                    }
+                }
+                if (!annotationSource && links.length > 0) {
+                    const sorted = [...links].sort((a, b) => {
+                        if (b.UseCount !== a.UseCount) return b.UseCount - a.UseCount;
+                        return a.SourceID - b.SourceID;
+                    });
+                    annotationSource = sorted[0]?.Sources ?? null;
+                    if (!useCount) useCount = sorted[0]?.UseCount ?? 0;
+                }
+
+                const shortName = annotationSource
+                    ? (annotationSource.ShortName && annotationSource.ShortName.length > 0
+                        ? annotationSource.ShortName
+                        : annotationSource.Name)
+                    : null;
+                const displayName = shortName ? `${row.Description} (${shortName})` : row.Description;
+
+                let recommend: Annotated["Recommend"] = null;
+                if (customerLinkedIDs.has(row.ID)) {
+                    recommend = "Customer";
+                } else if (sourceLinkedIDs.has(row.ID)) {
+                    recommend = "Source";
+                }
+
+                return {
+                    ...row,
+                    Recommend: recommend,
+                    UseCount: useCount,
+                    DisplayName: displayName,
+                };
+            });
+
+            // Sort: Customer-grouped first, then Source-grouped (by UseCount desc), then everything else (by Description asc).
+            annotated.sort((a, b) => {
+                const rank = (r: Annotated["Recommend"]) => (r === "Customer" ? 0 : r === "Source" ? 1 : 2);
+                const ar = rank(a.Recommend);
+                const br = rank(b.Recommend);
+                if (ar !== br) return ar - br;
+                if (a.Recommend === "Source" && b.Recommend === "Source") {
+                    if (b.UseCount !== a.UseCount) return b.UseCount - a.UseCount;
+                }
+                return a.Description.localeCompare(b.Description);
+            });
+
+            return annotated.slice(0, 100);
         }
     })
     .query("searchPage", {

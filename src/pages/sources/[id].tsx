@@ -27,7 +27,6 @@ type LoadTypeRow = {
     ID: number;
     Description: string;
     Notes?: string | null;
-    SourceID?: number | null;
 };
 
 const SourceDetail = ({initialSource}: {initialSource: SourcesType}) => {

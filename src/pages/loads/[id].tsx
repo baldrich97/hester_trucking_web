@@ -8,6 +8,7 @@ import {
     DriversModel,
     LoadsModel,
     LoadTypesModel,
+    SourcesModel,
     TrucksModel
 } from '../../../prisma/zod';
 import {z} from "zod";
@@ -18,11 +19,12 @@ type LoadTypesType = z.infer<typeof LoadTypesModel>;
 type DeliveryLocationsType = z.infer<typeof DeliveryLocationsModel>;
 type TrucksType = z.infer<typeof TrucksModel>;
 type DriversType = z.infer<typeof DriversModel>;
+type SourcesType = z.infer<typeof SourcesModel>;
 
-const Load = ({initialLoad, customers, loadTypes, deliveryLocations, trucks, drivers}: {initialLoad: LoadsType, loads: LoadsType[], customers: CustomersType[], loadTypes: LoadTypesType[], deliveryLocations: DeliveryLocationsType[], trucks: TrucksType[], drivers: DriversType[]}) => {
+const Load = ({initialLoad, customers, loadTypes, deliveryLocations, trucks, drivers, sources}: {initialLoad: LoadsType, loads: LoadsType[], customers: CustomersType[], loadTypes: LoadTypesType[], deliveryLocations: DeliveryLocationsType[], trucks: TrucksType[], drivers: DriversType[], sources: SourcesType[]}) => {
 
     return (
-        <LoadObject initialLoad={initialLoad} customers={customers} loadTypes={loadTypes} deliveryLocations={deliveryLocations} trucks={trucks} drivers={drivers}/>
+        <LoadObject initialLoad={initialLoad} customers={customers} loadTypes={loadTypes} deliveryLocations={deliveryLocations} trucks={trucks} drivers={drivers} sources={sources}/>
     );
 };
 
@@ -92,6 +94,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       },
     take: 10});
 
+    const sources = await prisma.sources.findMany({orderBy: {
+        Name: "asc",
+      }});
+
     const {DriverID, LoadTypeID, DeliveryLocationID, TruckID, CustomerID} = initialLoad;
 
     if (customers.filter((cust) => cust.ID === CustomerID).length === 0) {
@@ -137,7 +143,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             drivers: JSON.parse(JSON.stringify(drivers)),
             deliveryLocations,
             //loadTypes: [...foundLoadTypes, ...loadTypes]
-            loadTypes: loadTypes
+            loadTypes: loadTypes,
+            sources: JSON.parse(JSON.stringify(sources)),
         }
     }
 }

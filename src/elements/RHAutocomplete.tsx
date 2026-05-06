@@ -23,6 +23,8 @@ const RHAutocomplete = ({
   groupBy = null,
   groupByNames = null,
   selectedCustomer = 0,
+  selectedSource = 0,
+  selectedLoadType = 0,
 }: {
   name: string;
   control: Control<any>;
@@ -39,6 +41,8 @@ const RHAutocomplete = ({
   groupBy?: string | null;
   groupByNames?: string | null;
   selectedCustomer?: number | null;
+  selectedSource?: number | null;
+  selectedLoadType?: number | null;
 }) => {
   const formatOptionLabel = (optionLabel: string, item: any): string => {
     let returnable = "";
@@ -87,7 +91,15 @@ const RHAutocomplete = ({
   trpc.useQuery(
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    [searchQuery + ".search", { search, CustomerID: selectedCustomer }],
+    [
+      searchQuery + ".search",
+      {
+        search,
+        CustomerID: selectedCustomer,
+        SourceID: selectedSource || undefined,
+        LoadTypeID: selectedLoadType || undefined,
+      },
+    ],
     {
       enabled: shouldSearch && search.trim().length > 0,
       onSuccess(data) {
@@ -136,12 +148,34 @@ const RHAutocomplete = ({
   }, [search, searchQuery]);
 
   function groupByFunction(option: { [x: string]: any }) {
-    if (groupBy && groupByNames) {
-      return option[groupBy]
-        ? groupByNames.split("|")[0] ?? ""
-        : groupByNames.split("|")[1] ?? "";
+    if (!groupBy || !groupByNames) {
+      return "";
     }
-    return "";
+    const raw = option[groupBy];
+    const tokens = groupByNames.split("|");
+
+    // String-keyed multi-group mode: groupByNames is "Key1=Label1|Key2=Label2|...|FallbackLabel".
+    // Tokens that contain "=" are treated as key=label entries; a single trailing token without "="
+    // is the fallback label used when no key matches.
+    const mapEntries = tokens
+      .map((t) => {
+        const eq = t.indexOf("=");
+        if (eq < 0) return null;
+        return [t.slice(0, eq), t.slice(eq + 1)] as const;
+      })
+      .filter((entry): entry is readonly [string, string] => entry !== null);
+
+    if (mapEntries.length > 0) {
+      const map = Object.fromEntries(mapEntries);
+      if (typeof raw === "string" && raw.length > 0 && map[raw]) {
+        return map[raw];
+      }
+      const fallback = tokens.find((t) => !t.includes("="));
+      return fallback ?? "";
+    }
+
+    // Legacy 2-way boolean mode: first token when truthy, second when falsy.
+    return raw ? tokens[0] ?? "" : tokens[1] ?? "";
   }
 
   const checkKeyDown = (e: { key: string; preventDefault: () => void }) => {

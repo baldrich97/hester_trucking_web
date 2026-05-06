@@ -7,6 +7,7 @@ import {
     DeliveryLocationsModel,
     DriversModel,
     LoadTypesModel,
+    SourcesModel,
     TrucksModel,
 } from "../../prisma/zod";
 import {z} from "zod";
@@ -23,6 +24,7 @@ type LoadTypesType = z.infer<typeof LoadTypesModel>;
 type DeliveryLocationsType = z.infer<typeof DeliveryLocationsModel>;
 type TrucksType = z.infer<typeof TrucksModel>;
 type DriversType = z.infer<typeof DriversModel>;
+type SourcesType = z.infer<typeof SourcesModel>;
 
 const Home = ({
                   customers,
@@ -31,6 +33,7 @@ const Home = ({
                   deliveryLocations,
                   trucks,
                   drivers,
+                  sources,
               }: {
     customers: CustomersType[];
     lastInvoice: number;
@@ -38,6 +41,7 @@ const Home = ({
     deliveryLocations: DeliveryLocationsType[];
     trucks: TrucksType[];
     drivers: DriversType[];
+    sources: SourcesType[];
 }) => {
     const [tabValue, setTabValue] = React.useState(0);
 
@@ -67,6 +71,7 @@ const Home = ({
                                     deliveryLocations={deliveryLocations}
                                     trucks={trucks}
                                     drivers={drivers}
+                                    sources={sources}
                                     resetButton={true}
                                 />
                             </Grid2>
@@ -128,6 +133,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         },
     });
 
+    const sources = await prisma.sources.findMany({
+        orderBy: {
+            Name: "asc",
+        },
+    });
+
     return {
         props: {
             customers,
@@ -135,6 +146,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             drivers: JSON.parse(JSON.stringify(drivers)),
             deliveryLocations,
             loadTypes,
+            sources: JSON.parse(JSON.stringify(sources)),
             lastInvoice: (lastInvoice?._max.Number ?? 0) + 1,
         },
     };
