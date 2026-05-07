@@ -17,7 +17,17 @@ const defaultValues = {
     Name: "",
 };
 
-const Source = ({initialSource = null}: {initialSource?: null | SourcesType}) => {
+const Source = ({
+    initialSource = null,
+    onCreated,
+    submitLabel = "Submit",
+    skipRouteRefresh = false,
+}: {
+    initialSource?: null | SourcesType;
+    onCreated?: (source: SourcesType) => void;
+    submitLabel?: string;
+    skipRouteRefresh?: boolean;
+}) => {
     const router = useRouter();
     const validationSchema = initialSource ? SourcesModel : SourcesModel.omit({ID: true});
     type ValidationSchema = z.infer<typeof validationSchema>;
@@ -31,6 +41,9 @@ const Source = ({initialSource = null}: {initialSource?: null | SourcesType}) =>
     const addOrUpdateSource = trpc.useMutation(key, {
         async onSuccess(data) {
             toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
+            if (!initialSource) {
+                onCreated?.(data as SourcesType);
+            }
             reset(initialSource ? data : defaultValues);
         },
     });
@@ -45,7 +58,7 @@ const Source = ({initialSource = null}: {initialSource?: null | SourcesType}) =>
     const onSubmit = async (data: ValidationSchema) => {
         toast("Submitting...", {autoClose: 2000, type: "info"});
         await addOrUpdateSource.mutateAsync(data);
-        if (key === "sources.put") {
+        if (initialSource && !skipRouteRefresh) {
             await router.replace(router.asPath);
         }
     };
@@ -66,7 +79,11 @@ const Source = ({initialSource = null}: {initialSource?: null | SourcesType}) =>
             component="form"
             autoComplete="off"
             noValidate
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void handleSubmit(onSubmit)(e);
+            }}
             sx={{paddingLeft: 2.5}}
         >
             <GenericForm
@@ -74,6 +91,7 @@ const Source = ({initialSource = null}: {initialSource?: null | SourcesType}) =>
                 control={control}
                 fields={fields}
                 submitDisabled={addOrUpdateSource.isLoading}
+                submitLabel={submitLabel}
                 deleteDisabled={deleteSource.isLoading}
                 onDelete={
                     initialSource

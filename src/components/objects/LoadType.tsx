@@ -18,7 +18,17 @@ const defaultValues = {
 };
 
 
-const LoadType = ({initialLoadType = null}: {initialLoadType?: null | LoadTypesType}) => {
+const LoadType = ({
+    initialLoadType = null,
+    onCreated,
+    submitLabel = "Submit",
+    skipRouteRefresh = false,
+}: {
+    initialLoadType?: null | LoadTypesType;
+    onCreated?: (loadType: LoadTypesType) => void;
+    submitLabel?: string;
+    skipRouteRefresh?: boolean;
+}) => {
 
     const router = useRouter();
 
@@ -35,6 +45,9 @@ const LoadType = ({initialLoadType = null}: {initialLoadType?: null | LoadTypesT
     const addOrUpdateLoadType = trpc.useMutation(key, {
         async onSuccess(data) {
             toast('Successfully Submitted!', {autoClose: 2000, type: 'success'})
+            if (!initialLoadType) {
+                onCreated?.(data as LoadTypesType);
+            }
             reset(initialLoadType ? data : defaultValues)
         }
     })
@@ -42,7 +55,7 @@ const LoadType = ({initialLoadType = null}: {initialLoadType?: null | LoadTypesT
    const onSubmit = async (data: ValidationSchema) => {
         toast('Submitting...', {autoClose: 2000, type: 'info'})
         await addOrUpdateLoadType.mutateAsync(data)
-        if (key === 'loadtypes.put') {
+        if (initialLoadType && !skipRouteRefresh) {
             await router.replace(router.asPath);
         }
     }
@@ -57,7 +70,11 @@ const LoadType = ({initialLoadType = null}: {initialLoadType?: null | LoadTypesT
             component='form'
             autoComplete='off'
             noValidate
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void handleSubmit(onSubmit)(e);
+            }}
             sx={{
                 paddingLeft: 2.5
             }}
@@ -67,6 +84,7 @@ const LoadType = ({initialLoadType = null}: {initialLoadType?: null | LoadTypesT
                 control={control}
                 fields={fields}
                 submitDisabled={addOrUpdateLoadType.isLoading}
+                submitLabel={submitLabel}
             />
         </Box>
     )

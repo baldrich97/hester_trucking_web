@@ -191,6 +191,10 @@ function PartialLoad({
         initialLoad ? (initialLoad.TruckID ? initialLoad.TruckID : 0) : 0
     );
 
+    const [loadTypeSelected, setLoadTypeSelected] = useState(
+        initialLoad ? (initialLoad.LoadTypeID ? initialLoad.LoadTypeID : 0) : 0
+    );
+
     const [lttrpcData, ltsetData] = useState<CustomerLoadTypes[]>([]);
 
     const [dltrpcData, dlsetData] = useState<CustomerDeliveryLocations[]>([]);
@@ -276,6 +280,9 @@ function PartialLoad({
                 dlsetShouldRefresh(true);
                 ltsetShouldRefresh(true);
             }
+            if (name === "LoadTypeID" && type === "change") {
+                setLoadTypeSelected(value.LoadTypeID ?? 0);
+            }
             if ((name === "TruckID" || name === "DriverID") && type === "change") {
                 if (name === "TruckID") {
                     //setValue("DriverID", 0)
@@ -335,6 +342,7 @@ function PartialLoad({
             searchQuery: "drivers",
             groupBy: "Recommend",
             groupByNames: "Has Driven Truck|New for Driver",
+            enableOptionGroups: truck > 0,
         },
         {
             name: "TruckID",
@@ -345,6 +353,7 @@ function PartialLoad({
             searchQuery: "trucks",
             groupBy: "Recommend",
             groupByNames: "Driven Before|New for Driver",
+            enableOptionGroups: driver > 0,
         },
         {
             name: "LoadTypeID",
@@ -356,7 +365,8 @@ function PartialLoad({
             label: "Load Type",
             searchQuery: "loadtypes",
             groupBy: "Recommend",
-            groupByNames: "Used by Customer|New for Customer",
+            groupByNames: "Customer=Used by Customer|Source=Linked to Source|Other",
+            enableOptionGroups: customer > 0,
         },
         {
             name: "DeliveryLocationID",
@@ -367,6 +377,7 @@ function PartialLoad({
             searchQuery: "deliverylocations",
             groupBy: "Recommend",
             groupByNames: "Used by Customer|New for Customer",
+            enableOptionGroups: customer > 0,
         },
         {
             name: "StartDate",
@@ -488,6 +499,9 @@ function PartialLoad({
                     fields={fields}
                     selectData={selectData}
                     selectedCustomer={customer}
+                    selectedLoadType={loadTypeSelected}
+                    selectedTruck={truck}
+                    selectedDriver={driver}
                     submitDisabled={doMassEdit.isLoading}
                     onReset={
                         resetButton

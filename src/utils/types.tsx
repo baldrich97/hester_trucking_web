@@ -28,6 +28,10 @@ export type FormFieldsType = {
   searchQuery?: string;
   groupBy?: string | null;
   groupByNames?: string | null;
+  /** When false, autocomplete options are flat (no group headers). Default true. */
+  enableOptionGroups?: boolean;
+  newOptionLabel?: string;
+  onNewOptionClick?: () => void;
   /** For `selectList`: menu `""` becomes `null`, other values become integers (nullable FK). */
   coerceNumberOrNull?: boolean;
 }[];

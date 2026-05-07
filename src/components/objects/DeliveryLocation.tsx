@@ -17,7 +17,17 @@ const defaultValues = {
 };
 
 
-const DeliveryLocation = ({initialDeliveryLocation = null}: {initialDeliveryLocation?: null | DeliveryLocationsType}) => {
+const DeliveryLocation = ({
+    initialDeliveryLocation = null,
+    onCreated,
+    submitLabel = "Submit",
+    skipRouteRefresh = false,
+}: {
+    initialDeliveryLocation?: null | DeliveryLocationsType;
+    onCreated?: (deliveryLocation: DeliveryLocationsType) => void;
+    submitLabel?: string;
+    skipRouteRefresh?: boolean;
+}) => {
 
     const router = useRouter();
 
@@ -34,6 +44,9 @@ const DeliveryLocation = ({initialDeliveryLocation = null}: {initialDeliveryLoca
     const addOrUpdateDeliveryLocation = trpc.useMutation(key, {
         async onSuccess(data) {
             toast('Successfully Submitted!', {autoClose: 2000, type: 'success'})
+            if (!initialDeliveryLocation) {
+                onCreated?.(data as DeliveryLocationsType);
+            }
             reset(initialDeliveryLocation ? data : defaultValues)
         }
     })
@@ -41,7 +54,7 @@ const DeliveryLocation = ({initialDeliveryLocation = null}: {initialDeliveryLoca
    const onSubmit = async (data: ValidationSchema) => {
         toast('Submitting...', {autoClose: 2000, type: 'info'})
         await addOrUpdateDeliveryLocation.mutateAsync(data)
-        if (key === 'deliverylocations.put') {
+        if (initialDeliveryLocation && !skipRouteRefresh) {
             await router.replace(router.asPath);
         }
     }
@@ -55,7 +68,11 @@ const DeliveryLocation = ({initialDeliveryLocation = null}: {initialDeliveryLoca
             component='form'
             autoComplete='off'
             noValidate
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void handleSubmit(onSubmit)(e);
+            }}
             sx={{
                 paddingLeft: 2.5
             }}
@@ -65,6 +82,7 @@ const DeliveryLocation = ({initialDeliveryLocation = null}: {initialDeliveryLoca
                 control={control}
                 fields={fields}
                 submitDisabled={addOrUpdateDeliveryLocation.isLoading}
+                submitLabel={submitLabel}
             />
         </Box>
     )

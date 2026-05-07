@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useState} from "react";
-import {Control, Controller} from "react-hook-form";
+import {Control, Controller, useWatch} from "react-hook-form";
 import TextField from "@mui/material/TextField";
 import Autocomplete from "@mui/material/Autocomplete";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -35,6 +35,12 @@ const RHAutocomplete = ({
     selectedCustomer = 0,
     selectedSource = 0,
     selectedLoadType = 0,
+    /** Load form: paired FK for driver/truck search grouping (`drivers.search` / `trucks.search`). */
+    selectedTruck = 0,
+    selectedDriver = 0,
+    enableOptionGroups = true,
+    newOptionLabel = "",
+    onNewOptionClick,
 }: {
     name: string;
     control: Control<any>;
@@ -53,11 +59,22 @@ const RHAutocomplete = ({
     selectedCustomer?: number | null;
     selectedSource?: number | null;
     selectedLoadType?: number | null;
+    selectedTruck?: number | null;
+    selectedDriver?: number | null;
+    enableOptionGroups?: boolean;
+    newOptionLabel?: string;
+    onNewOptionClick?: () => void;
 }) => {
+    const NEW_OPTION_VALUE = "__create_new_option__";
+
+    /** Live RHF value; parent `defaultValue` does not update on each pick (e.g. Load `inlineDefaultIds`). */
+    const watchedValue = useWatch({control, name});
+    const idSource = watchedValue !== undefined ? watchedValue : defaultValue;
+
     const formatOptionLabel = (lbl: string, item: any): string => {
         let returnable = "";
         if (lbl.split("+").length > 1) {
-            if (defaultValue === 0) {
+            if (idSource === 0) {
                 return item[lbl.split("+")[0] ?? ""];
             }
             lbl.split("+").forEach((labelPart, index) => {
@@ -103,18 +120,29 @@ const RHAutocomplete = ({
     }, [search]);
 
     const parsedId = useMemo(() => {
-        if (
-            defaultValue === null ||
-            defaultValue === undefined ||
-            defaultValue === ""
-        ) {
+        if (idSource === null || idSource === undefined || idSource === "") {
             return null;
         }
-        const n = Number(defaultValue);
+        const n = Number(idSource);
         return Number.isFinite(n) && n > 0 ? n : null;
-    }, [defaultValue]);
+    }, [idSource]);
 
     const clientProvidedOptions = Array.isArray(data) && data.length > 0;
+    const shouldShowNewOption = Boolean(newOptionLabel && onNewOptionClick);
+    const useOptionGrouping = Boolean(groupBy && groupByNames && enableOptionGroups);
+
+    const withNewOption = React.useCallback(
+        (rows: readonly any[]) => {
+            if (!shouldShowNewOption) {
+                return rows;
+            }
+            return [
+                {[optionValue]: NEW_OPTION_VALUE, [optionLabel]: newOptionLabel, __isNewOption: true},
+                ...rows,
+            ];
+        },
+        [shouldShowNewOption, optionLabel, optionValue, newOptionLabel],
+    );
 
     const searchInput = useMemo(
         () => ({
@@ -122,8 +150,17 @@ const RHAutocomplete = ({
             CustomerID: selectedCustomer || undefined,
             SourceID: selectedSource || undefined,
             LoadTypeID: selectedLoadType || undefined,
+            TruckID: selectedTruck || undefined,
+            DriverID: selectedDriver || undefined,
         }),
-        [debouncedSearch, selectedCustomer, selectedSource, selectedLoadType]
+        [
+            debouncedSearch,
+            selectedCustomer,
+            selectedSource,
+            selectedLoadType,
+            selectedTruck,
+            selectedDriver,
+        ]
     );
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -154,18 +191,36 @@ const RHAutocomplete = ({
 
     useEffect(() => {
         if (clientProvidedOptions) {
-            setOptions(data);
+            // Merge `.get` row when the selected ID is not in client `data` yet (e.g. inline create).
+            const mergedData = [...data];
+            if (
+                parsedId &&
+                selectedRow &&
+                !mergedData.some(
+                    (o) =>
+                        (o as Record<string, unknown>)[optionValue] ===
+                        (selectedRow as Record<string, unknown>)[optionValue],
+                )
+            ) {
+                mergedData.unshift(selectedRow);
+            }
+            setOptions(withNewOption(mergedData));
             const match = parsedId
-                ? data.find((item) => item[optionValue] == parsedId)
+                ? mergedData.find((item) => item[optionValue] == parsedId)
                 : null;
             if (match) {
                 setValue(match);
+            } else if (!parsedId) {
+                setValue(null);
             }
             return;
         }
 
         const rows = searchQueryResult.data as any[] | undefined;
         if (!rows) {
+            if (shouldShowNewOption) {
+                setOptions(withNewOption([]));
+            }
             return;
         }
         const merged = [...rows];
@@ -179,7 +234,7 @@ const RHAutocomplete = ({
         ) {
             merged.unshift(selectedRow);
         }
-        setOptions(merged);
+        setOptions(withNewOption(merged));
     }, [
         clientProvidedOptions,
         data,
@@ -187,6 +242,8 @@ const RHAutocomplete = ({
         selectedRow,
         optionValue,
         parsedId,
+        shouldShowNewOption,
+        withNewOption,
     ]);
 
     useEffect(() => {
@@ -205,6 +262,10 @@ const RHAutocomplete = ({
     const loading = menuOpen && !clientProvidedOptions && searchQueryResult.isFetching;
 
     function groupByFunction(option: {[x: string]: any}): string {
+        // Keep "New …" in its own group without custom `renderGroup` (MUI default = full-row hit target + spacing).
+        if (option?.__isNewOption) {
+            return "";
+        }
         if (!groupBy || !groupByNames) {
             return "";
         }
@@ -228,7 +289,13 @@ const RHAutocomplete = ({
             return fallback ?? "";
         }
 
-        return raw ? (tokens[0] ?? "") : (tokens[1] ?? "");
+        // Two-bucket groups from boolean `Recommend` (drivers/trucks/delivery locations): inclusive | exclusive.
+        const inclusive = tokens[0] ?? "";
+        const exclusive = tokens[1] ?? inclusive;
+        if (raw === true) {
+            return inclusive;
+        }
+        return exclusive;
     }
 
     const checkKeyDown = (e: {key: string; preventDefault: () => void}) => {
@@ -248,7 +315,11 @@ const RHAutocomplete = ({
                     <Autocomplete
                         {...field}
                         id={label + "-autocomplete"}
-                        groupBy={(option): string => groupByFunction(option)}
+                        groupBy={
+                            useOptionGrouping
+                                ? (option): string => groupByFunction(option)
+                                : undefined
+                        }
                         open={menuOpen}
                         fullWidth={true}
                         disabled={disabled}
@@ -262,12 +333,22 @@ const RHAutocomplete = ({
                         }}
                         onKeyPress={(e) => checkKeyDown(e)}
                         getOptionLabel={(option): string =>
+                            // "New ..." meta-option is synthesized, keep label simple.
+                            (option?.__isNewOption
+                                ? String(newOptionLabel)
+                                :
                             String(formatOptionLabel(optionLabel, option) ?? "")
+                            )
                         }
                         options={options}
                         loading={loading}
                         onChange={(e, row) => {
                             e.preventDefault();
+                            if (row?.__isNewOption) {
+                                onNewOptionClick?.();
+                                setMenuOpen(false);
+                                return;
+                            }
                             if (row === null) {
                                 setSearch("");
                             }
@@ -281,7 +362,7 @@ const RHAutocomplete = ({
                             } else if (reason === "clear") {
                                 setSearch("");
                                 if (clientProvidedOptions) {
-                                    setOptions(data ?? []);
+                                    setOptions(withNewOption(data ?? []));
                                 }
                             }
                         }}

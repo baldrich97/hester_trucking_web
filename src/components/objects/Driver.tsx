@@ -38,7 +38,19 @@ const defaultValues = {
 };
 
 
-const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDriver?: null | DriversType}) => {
+const Driver = ({
+    states,
+    initialDriver = null,
+    onCreated,
+    submitLabel = "Submit",
+    skipRouteRefresh = false,
+}: {
+    states: StatesType[];
+    initialDriver?: null | DriversType;
+    onCreated?: (driver: DriversType) => void;
+    submitLabel?: string;
+    skipRouteRefresh?: boolean;
+}) => {
 
     const router = useRouter();
 
@@ -82,6 +94,9 @@ const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDr
     const addOrUpdateDriver = trpc.useMutation(key, {
         async onSuccess(data) {
             toast('Successfully Submitted!', {autoClose: 2000, type: 'success'})
+            if (!initialDriver) {
+                onCreated?.(data as DriversType);
+            }
             reset(
                 initialDriver
                     ? {...data, DOB: parseDateOnlyFromJson((data as DriversType).DOB)}
@@ -97,7 +112,7 @@ const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDr
             DOB: dateOnlyLocalToUtcNoon(data.DOB),
         };
         await addOrUpdateDriver.mutateAsync(payload);
-        if (key === 'drivers.put') {
+        if (initialDriver && !skipRouteRefresh) {
             await router.replace(router.asPath);
         }
     }
@@ -152,7 +167,11 @@ const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDr
             component='form'
             autoComplete='off'
             noValidate
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void handleSubmit(onSubmit)(e);
+            }}
             sx={{
                 px: 2.5,
                 py: 1,
@@ -165,6 +184,7 @@ const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDr
                 fields={fields}
                 selectData={selectData}
                 submitDisabled={addOrUpdateDriver.isLoading}
+                submitLabel={submitLabel}
             />
         </Box>
     )

@@ -1,5 +1,7 @@
 import React, {useRef, useState} from "react";
 import Box from "@mui/material/Box";
+import Modal from "@mui/material/Modal";
+import Typography from "@mui/material/Typography";
 import {useForm} from "react-hook-form";
 import {z} from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
@@ -38,6 +40,12 @@ import {formatDateToWeek} from "../../utils/UtilityFunctions";
 import $ from "jquery";
 import Button from "@mui/material/Button";
 import NextLink from "next/link";
+import Customer from "./Customer";
+import Driver from "./Driver";
+import Truck from "./Truck";
+import LoadType from "./LoadType";
+import DeliveryLocation from "./DeliveryLocation";
+import Source from "./Source";
 
 const today = new Date();
 const defaultWeek = formatDateToWeek(new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000));
@@ -61,6 +69,28 @@ const defaultValues = {
     MaterialRate: undefined,
     TicketNumber: undefined,
     onReset: false,
+};
+
+type InlineCreatableField =
+    | "CustomerID"
+    | "DriverID"
+    | "TruckID"
+    | "LoadTypeID"
+    | "DeliveryLocationID"
+    | "SourceID";
+
+const createModalStyle = {
+    position: "absolute" as const,
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: {xs: "95vw", md: 900},
+    maxHeight: "90vh",
+    overflowY: "auto",
+    bgcolor: "background.paper",
+    borderRadius: 1,
+    boxShadow: 24,
+    p: 2,
 };
 
 function Load({
@@ -212,8 +242,39 @@ function Load({
     });
 
     const [overrideWarning, toggleOverride] = useState(false);
+    const [newObjectModalTarget, setNewObjectModalTarget] =
+        useState<InlineCreatableField | null>(null);
+    const [inlineDefaultIds, setInlineDefaultIds] = useState<Record<InlineCreatableField, number | null>>({
+        CustomerID: initialLoad?.CustomerID ?? null,
+        DriverID: initialLoad?.DriverID ?? null,
+        TruckID: initialLoad?.TruckID ?? null,
+        LoadTypeID: initialLoad?.LoadTypeID ?? null,
+        DeliveryLocationID: initialLoad?.DeliveryLocationID ?? null,
+        SourceID:
+            initialLoad && "SourceID" in initialLoad
+                ? ((initialLoad as LoadsType & {SourceID?: number | null}).SourceID ?? null)
+                : null,
+    });
     /** Prevents double submits while duplicate check or save is in flight. */
     const submitLockRef = useRef(false);
+    const {data: states = []} = trpc.useQuery(["states.getAll"]);
+
+    const closeNewObjectModal = () => setNewObjectModalTarget(null);
+
+    const onInlineObjectCreated = (fieldName: InlineCreatableField, id: number) => {
+        setInlineDefaultIds((prev) => ({...prev, [fieldName]: id}));
+        setValue(fieldName, id, {shouldValidate: true, shouldDirty: true, shouldTouch: true});
+        if (fieldName === "DeliveryLocationID") {
+            dlsetShouldRefresh(true);
+        } else if (fieldName === "LoadTypeID") {
+            ltsetShouldRefresh(true);
+        } else if (fieldName === "DriverID" || fieldName === "TruckID") {
+            tdsetShouldRefresh(true);
+        } else if (fieldName === "SourceID") {
+            srcsetShouldRefresh(true);
+        }
+        closeNewObjectModal();
+    };
 
     const onSubmit = async (data: ValidationSchema) => {
         if (submitLockRef.current) {
@@ -478,6 +539,8 @@ function Load({
             type: "select",
             label: "Customer",
             searchQuery: "customers",
+            newOptionLabel: "New Customer",
+            onNewOptionClick: () => setNewObjectModalTarget("CustomerID"),
         },
         {
             name: "DriverID",
@@ -488,6 +551,9 @@ function Load({
             searchQuery: "drivers",
             groupBy: "Recommend",
             groupByNames: "Has Driven Truck|New for Driver",
+            enableOptionGroups: truck > 0,
+            newOptionLabel: "New Driver",
+            onNewOptionClick: () => setNewObjectModalTarget("DriverID"),
         },
         {
             name: "TruckID",
@@ -498,6 +564,9 @@ function Load({
             searchQuery: "trucks",
             groupBy: "Recommend",
             groupByNames: "Driven Before|New for Driver",
+            enableOptionGroups: driver > 0,
+            newOptionLabel: "New Truck",
+            onNewOptionClick: () => setNewObjectModalTarget("TruckID"),
         },
         {
             name: "LoadTypeID",
@@ -510,7 +579,11 @@ function Load({
             searchQuery: "loadtypes",
             groupBy: "Recommend",
             groupByNames: "Customer=Used by Customer|Source=Linked to Source|Other",
+            enableOptionGroups: customer > 0,
+            newOptionLabel: "New Load Type",
+            onNewOptionClick: () => setNewObjectModalTarget("LoadTypeID"),
         },
+        // Uncomment Source select and keep `newOptionLabel` / `onNewOptionClick` for inline "New Source" creation:
         // {
         //     name: "SourceID",
         //     size: 6,
@@ -520,6 +593,9 @@ function Load({
         //     searchQuery: "sources",
         //     groupBy: "Recommend",
         //     groupByNames: "Linked=Linked to Load Type|Other",
+        //     enableOptionGroups: loadTypeSelected > 0,
+        //     newOptionLabel: "New Source",
+        //     onNewOptionClick: () => setNewObjectModalTarget("SourceID"),
         // },
         // TODO when above is uncommented need to turn below into size 6
         {
@@ -531,6 +607,9 @@ function Load({
             searchQuery: "deliverylocations",
             groupBy: "Recommend",
             groupByNames: "Used by Customer|New for Customer",
+            enableOptionGroups: customer > 0,
+            newOptionLabel: "New Delivery Location",
+            onNewOptionClick: () => setNewObjectModalTarget("DeliveryLocationID"),
         },
         {
             name: "StartDate",
@@ -639,28 +718,28 @@ function Load({
             data: [],
             optionValue: "ID",
             optionLabel: "Name+|+Street+,+City",
-            defaultValue: initialLoad ? initialLoad.CustomerID : null,
+            defaultValue: inlineDefaultIds.CustomerID,
         },
         {
             key: "SourceID",
             data: srctrpcData.length > 0 ? srctrpcData : [],
             optionValue: "ID",
             optionLabel: "Name",
-            defaultValue: null,
+            defaultValue: inlineDefaultIds.SourceID,
         },
         {
             key: "LoadTypeID",
             data: lttrpcData.length > 0 ? lttrpcData : [],
             optionValue: "ID",
             optionLabel: lttrpcData.length > 0 ? "DisplayName" : "Description",
-            defaultValue: initialLoad ? initialLoad.LoadTypeID : null,
+            defaultValue: inlineDefaultIds.LoadTypeID,
         },
         {
             key: "DeliveryLocationID",
             data: dltrpcData.length > 0 ? dltrpcData : [],
             optionValue: "ID",
             optionLabel: "Description",
-            defaultValue: initialLoad ? initialLoad.DeliveryLocationID : null,
+            defaultValue: inlineDefaultIds.DeliveryLocationID,
         },
         {
             key: "TruckID",
@@ -675,7 +754,7 @@ function Load({
                     : [],
             optionValue: "ID",
             optionLabel: "Name+|+Notes",
-            defaultValue: initialLoad ? initialLoad.TruckID : null,
+            defaultValue: inlineDefaultIds.TruckID,
         },
         {
             key: "DriverID",
@@ -690,7 +769,7 @@ function Load({
                     : [],
             optionValue: "ID",
             optionLabel: "FirstName+LastName",
-            defaultValue: initialLoad ? initialLoad.DriverID : null,
+            defaultValue: inlineDefaultIds.DriverID,
         },
     ];
 
@@ -701,7 +780,16 @@ function Load({
                 component="form"
                 autoComplete="off"
                 noValidate
-                onSubmit={handleSubmit(onSubmit)}
+                onSubmit={(e) => {
+                    // Portaled inline-create forms are still React descendants; in some environments
+                    // their submit can surface here. Only run the Load handler for this form's own submit.
+                    if (e.target !== e.currentTarget) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
+                    void handleSubmit(onSubmit)(e);
+                }}
                 sx={{
                     paddingLeft: 2.5,
                 }}
@@ -714,6 +802,8 @@ function Load({
                     selectedCustomer={customer}
                     selectedSource={source}
                     selectedLoadType={loadTypeSelected}
+                    selectedTruck={truck}
+                    selectedDriver={driver}
                     submitDisabled={
                         isSubmitting ||
                         addOrUpdateLoad.isLoading ||
@@ -743,6 +833,64 @@ function Load({
                     }
                 />
             </Box>
+            <Modal open={newObjectModalTarget !== null} onClose={closeNewObjectModal}>
+                <Box sx={createModalStyle} onClick={(e) => e.stopPropagation()}>
+                    <Typography variant="h6" sx={{mb: 1}}>
+                        {newObjectModalTarget ? `Create ${newObjectModalTarget.replace("ID", "").replace(/([A-Z])/g, " $1").trim()}` : ""}
+                    </Typography>
+                    {newObjectModalTarget === "CustomerID" && (
+                        <Customer
+                            states={states}
+                            submitLabel="Create"
+                            skipRouteRefresh
+                            onCreated={(customer) => onInlineObjectCreated("CustomerID", customer.ID)}
+                        />
+                    )}
+                    {newObjectModalTarget === "DriverID" && (
+                        <Driver
+                            states={states}
+                            submitLabel="Create"
+                            skipRouteRefresh
+                            onCreated={(driverRecord) => onInlineObjectCreated("DriverID", driverRecord.ID)}
+                        />
+                    )}
+                    {newObjectModalTarget === "TruckID" && (
+                        <Truck
+                            submitLabel="Create"
+                            skipRouteRefresh
+                            onCreated={(truckRecord) => onInlineObjectCreated("TruckID", truckRecord.ID)}
+                        />
+                    )}
+                    {newObjectModalTarget === "LoadTypeID" && (
+                        <LoadType
+                            submitLabel="Create"
+                            skipRouteRefresh
+                            onCreated={(loadTypeRecord) => onInlineObjectCreated("LoadTypeID", loadTypeRecord.ID)}
+                        />
+                    )}
+                    {newObjectModalTarget === "DeliveryLocationID" && (
+                        <DeliveryLocation
+                            submitLabel="Create"
+                            skipRouteRefresh
+                            onCreated={(deliveryLocation) =>
+                                onInlineObjectCreated("DeliveryLocationID", deliveryLocation.ID)
+                            }
+                        />
+                    )}
+                    {newObjectModalTarget === "SourceID" && (
+                        <Source
+                            submitLabel="Create"
+                            skipRouteRefresh
+                            onCreated={(sourceRecord) => onInlineObjectCreated("SourceID", sourceRecord.ID)}
+                        />
+                    )}
+                    <Box sx={{display: "flex", justifyContent: "flex-end", mt: 1}}>
+                        <Button type="button" variant="outlined" onClick={closeNewObjectModal}>
+                            Cancel
+                        </Button>
+                    </Box>
+                </Box>
+            </Modal>
         </>
     );
 }

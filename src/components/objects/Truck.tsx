@@ -24,7 +24,17 @@ const defaultValues = {
     LicensedState: null as number | null,
 };
 
-const Truck = ({initialTruck = null}: {initialTruck?: null | TrucksType}) => {
+const Truck = ({
+    initialTruck = null,
+    onCreated,
+    submitLabel = "Submit",
+    skipRouteRefresh = false,
+}: {
+    initialTruck?: null | TrucksType;
+    onCreated?: (truck: TrucksType) => void;
+    submitLabel?: string;
+    skipRouteRefresh?: boolean;
+}) => {
     const router = useRouter();
     const {data: states = []} = trpc.useQuery(["states.getAll"]);
 
@@ -65,6 +75,9 @@ const Truck = ({initialTruck = null}: {initialTruck?: null | TrucksType}) => {
     const addOrUpdateTruck = trpc.useMutation(key, {
         async onSuccess(data) {
             toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
+            if (!initialTruck) {
+                onCreated?.(data as TrucksType);
+            }
             reset(initialTruck ? data : defaultValues);
         },
     });
@@ -72,7 +85,7 @@ const Truck = ({initialTruck = null}: {initialTruck?: null | TrucksType}) => {
     const onSubmit = async (data: ValidationSchema) => {
         toast("Submitting...", {autoClose: 2000, type: "info"});
         await addOrUpdateTruck.mutateAsync(data);
-        if (key === "trucks.put") {
+        if (initialTruck && !skipRouteRefresh) {
             await router.replace(router.asPath);
         }
     };
@@ -124,7 +137,11 @@ const Truck = ({initialTruck = null}: {initialTruck?: null | TrucksType}) => {
             component="form"
             autoComplete="off"
             noValidate
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void handleSubmit(onSubmit)(e);
+            }}
             sx={{
                 paddingLeft: 2.5,
             }}
@@ -135,6 +152,7 @@ const Truck = ({initialTruck = null}: {initialTruck?: null | TrucksType}) => {
                 fields={fields}
                 selectData={selectData}
                 submitDisabled={addOrUpdateTruck.isLoading}
+                submitLabel={submitLabel}
             />
         </Box>
     );

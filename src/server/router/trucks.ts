@@ -37,7 +37,9 @@ export const trucksRouter = createRouter()
             search: z.string(),
             page: z.number().optional(),
             orderBy: z.string().optional(),
-            order: z.string().optional()
+            order: z.string().optional(),
+            /** When set (e.g. Load form), marks trucks this driver has driven — used for grouped autocomplete search. */
+            DriverID: z.number().optional(),
         }),
         async resolve({ctx, input}) {
             const formattedSearch = input.search.replace('"', '\"');
@@ -51,39 +53,53 @@ export const trucksRouter = createRouter()
             // @ts-ignore
             orderObj[orderBy] = order;
 
-            if (input.search.length > 0) {
-                return ctx.prisma.trucks.findMany({
+            const trucks = input.search.length > 0
+                ? await ctx.prisma.trucks.findMany({
                     where: {
                         OR: [
                             {
                                 Name: {
-                                    contains: formattedSearch
-                                }
+                                    contains: formattedSearch,
+                                },
                             },
                             {
                                 VIN: {
-                                    contains: formattedSearch
-                                }
+                                    contains: formattedSearch,
+                                },
                             },
                             {
                                 Notes: {
-                                    contains: formattedSearch
-                                }
+                                    contains: formattedSearch,
+                                },
                             },
-                        ]
+                        ],
                     },
                     take: 10,
                     orderBy: orderObj,
                 })
-            } else {
-                return ctx.prisma.trucks.findMany({
+                : await ctx.prisma.trucks.findMany({
                     take: 10,
                     orderBy: orderObj,
-                    skip: input.page ? input.page * 10 : 0
-                })
+                    skip: input.page ? input.page * 10 : 0,
+                });
+
+            if (input.DriverID) {
+                const pairs = await ctx.prisma.trucksDriven.findMany({
+                    where: {DriverID: input.DriverID},
+                    select: {TruckID: true},
+                });
+                const driven = new Set(pairs.map((p) => p.TruckID));
+                return trucks.map((t) => ({
+                    ...t,
+                    Recommend: driven.has(t.ID),
+                }));
             }
 
-        }
+            return trucks.map((t) => ({
+                ...t,
+                Recommend: false,
+            }));
+        },
     })
     .mutation('put', {
         // validate input with Zod

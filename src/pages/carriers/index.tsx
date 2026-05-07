@@ -1,105 +1,130 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
+import Grid2 from "@mui/material/Unstable_Grid2";
+import Carrier from "../../components/objects/Carrier";
+import {GetServerSideProps} from "next";
+import {prisma} from "server/db/client";
+import {CarriersModel, StatesModel} from "../../../prisma/zod";
+import {z} from "zod";
+import GenericTable from "../../elements/GenericTable";
+import SearchBar from "../../elements/SearchBar";
+import Divider from "@mui/material/Divider";
+import {TableColumnsType, TableColumnOverridesType} from "../../utils/types";
 import {trpc} from "../../utils/trpc";
-import Typography from "@mui/material/Typography";
-import Box from "@mui/material/Box";
-import Button from "@mui/material/Button";
-import TextField from "@mui/material/TextField";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import {toast} from "react-toastify";
-import TableEntityLink from "../../elements/TableEntityLink";
-import {confirmDestructive} from "../../utils/appConfirm";
 
-export default function CarriersIndex() {
-    const {data: carriers = [], refetch} = trpc.useQuery(["carriers.getAll"]);
-    const [name, setName] = useState("");
-    const createMut = trpc.useMutation("carriers.put", {
-        onSuccess() {
-            toast.success("Carrier added");
-            setName("");
-            refetch();
+type StatesType = z.infer<typeof StatesModel>;
+type CarrierRowType = z.infer<typeof CarriersModel> & {
+    States: {Abbreviation: string} | null;
+};
+
+const columns: TableColumnsType = [
+    {name: "Name"},
+    {name: "ContactName", as: "Contact"},
+    {name: "Phone"},
+    {name: "Street"},
+    {name: "City"},
+    {name: "States.Abbreviation", as: "State"},
+    {name: "ZIP"},
+    {name: "ID", as: "", navigateTo: "/carriers/"},
+];
+
+const overrides: TableColumnOverridesType = [{name: "ID", type: "button"}];
+
+const CarriersIndex = ({
+    states,
+    carriers,
+    count,
+}: {
+    states: StatesType[];
+    carriers: CarrierRowType[];
+    count: number;
+}) => {
+    const [search, setSearch] = useState("");
+    const [trpcData, setData] = useState<CarrierRowType[]>([]);
+    const [trpcCount, setCount] = useState(0);
+    const [shouldSearch, setShouldSearch] = useState(false);
+    const [page, setPage] = useState(0);
+    const [order, setOrder] = React.useState<"asc" | "desc">("desc");
+    const [orderBy, setOrderBy] = React.useState("ID");
+
+    useEffect(() => {
+        if (search.length === 0) {
+            setData([]);
+            setPage(0);
+        }
+    }, [search]);
+
+    trpc.useQuery(["carriers.searchPage", {search, page, orderBy, order}], {
+        enabled: shouldSearch,
+        refetchOnWindowFocus: false,
+        onSuccess(data) {
+            setData(data.rows as CarrierRowType[]);
+            setCount(data.count);
+            setShouldSearch(false);
         },
-        onError(e) {
-            toast.error(e.message);
-        },
-    });
-    const deleteMut = trpc.useMutation("carriers.delete", {
-        onSuccess() {
-            toast.success("Carrier removed");
-            refetch();
-        },
-        onError(e) {
-            toast.error(e.message);
+        onError(error) {
+            console.warn(error.message);
+            setShouldSearch(false);
         },
     });
 
     return (
-        <Box>
-            <Typography variant="h5" sx={{mb: 2}}>
-                Carriers (subcontractors)
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{mb: 2}}>
-                External motor carriers drivers can be assigned to.
-            </Typography>
-            <Box sx={{display: "flex", gap: 1, mb: 2, alignItems: "center"}}>
-                <TextField
-                    size="small"
-                    label="Carrier name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+        <Grid2 container wrap={"nowrap"}>
+            <Grid2 xs={8} sx={{paddingRight: 2.5}}>
+                <Grid2 xs={4}>
+                    <SearchBar
+                        setSearchQuery={setSearch}
+                        setShouldSearch={setShouldSearch}
+                        query={search}
+                        label={"Carriers"}
+                    />
+                </Grid2>
+                <GenericTable
+                    data={
+                        trpcData.length > 0 || order !== "desc" || orderBy !== "ID"
+                            ? trpcData
+                            : carriers
+                    }
+                    columns={columns}
+                    overrides={overrides}
+                    count={search ? trpcCount : count}
+                    refreshData={(
+                        pageArg: React.SetStateAction<number>,
+                        orderByArg: string,
+                        orderArg: "asc" | "desc",
+                    ) => {
+                        setPage(pageArg);
+                        setOrderBy(orderByArg);
+                        setOrder(orderArg);
+                        setShouldSearch(true);
+                    }}
                 />
-                <Button
-                    variant="contained"
-                    disabled={!name.trim() || createMut.isLoading}
-                    onClick={() => createMut.mutate({Name: name.trim()})}
-                >
-                    Add
-                </Button>
-            </Box>
-            <Table size="small" sx={{maxWidth: 640}}>
-                <TableHead>
-                    <TableRow>
-                        <TableCell>Name</TableCell>
-                        <TableCell></TableCell>
-                        <TableCell></TableCell>
-                    </TableRow>
-                </TableHead>
-                <TableBody>
-                    {carriers.map((c) => (
-                        <TableRow key={c.ID}>
-                            <TableCell>{c.Name}</TableCell>
-                            <TableCell>
-                                <TableEntityLink href={`/carriers/${c.ID}`}>
-                                    View / edit
-                                </TableEntityLink>
-                            </TableCell>
-                            <TableCell>
-                                <Button
-                                    size="small"
-                                    variant="outlined"
-                                    color="error"
-                                    disabled={deleteMut.isLoading}
-                                    onClick={() => {
-                                        confirmDestructive({
-                                            title: "Delete carrier",
-                                            message:
-                                                "Delete this carrier? Drivers will be unassigned.",
-                                            confirmLabel: "Delete",
-                                            onConfirm: () =>
-                                                deleteMut.mutate({ID: c.ID}),
-                                        });
-                                    }}
-                                >
-                                    Delete
-                                </Button>
-                            </TableCell>
-                        </TableRow>
-                    ))}
-                </TableBody>
-            </Table>
-        </Box>
+            </Grid2>
+            <Divider flexItem orientation={"vertical"} sx={{mr: "-1px"}} variant={"fullWidth"} />
+            <Grid2 xs={4}>
+                <Carrier states={states} />
+            </Grid2>
+        </Grid2>
     );
-}
+};
+
+export default CarriersIndex;
+
+export const getServerSideProps: GetServerSideProps = async () => {
+    const count = await prisma.carriers.count();
+    const states = await prisma.states.findMany({});
+    const carriers = await prisma.carriers.findMany({
+        take: 10,
+        orderBy: {ID: "desc"},
+        include: {
+            States: {select: {Abbreviation: true}},
+        },
+    });
+
+    return {
+        props: {
+            states: JSON.parse(JSON.stringify(states)),
+            carriers: JSON.parse(JSON.stringify(carriers)),
+            count,
+        },
+    };
+};

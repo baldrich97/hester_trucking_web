@@ -8,7 +8,6 @@ import Button from "@mui/material/Button";
 import {FormFieldsType, SelectDataType} from "../utils/types";
 import RHCheckbox from "./RHCheckbox";
 import RHAutocomplete from "./RHAutocomplete";
-import TextField from "@mui/material/TextField";
 
 const GenericForm = ({
                          errors = [],
@@ -18,10 +17,13 @@ const GenericForm = ({
                          selectedCustomer = 0,
                          selectedSource = 0,
                          selectedLoadType = 0,
+                         selectedTruck = 0,
+                         selectedDriver = 0,
                          onDelete = null,
                          onReset = null,
                          submitDisabled = false,
                          deleteDisabled = false,
+                         submitLabel = "Submit",
                      }: {
     errors: any;
     control: Control<any>;
@@ -30,10 +32,13 @@ const GenericForm = ({
     selectedCustomer?: number | null;
     selectedSource?: number | null;
     selectedLoadType?: number | null;
+    selectedTruck?: number | null;
+    selectedDriver?: number | null;
     onDelete?: any;
     onReset?: any;
     submitDisabled?: boolean;
     deleteDisabled?: boolean;
+    submitLabel?: string;
 }) => {
     return (
         <Grid2 container columnSpacing={2} rowSpacing={2}>
@@ -95,9 +100,14 @@ const GenericForm = ({
                                     searchQuery={field.searchQuery ?? ""}
                                     groupBy={field.groupBy}
                                     groupByNames={field.groupByNames}
+                                    enableOptionGroups={field.enableOptionGroups}
                                     selectedCustomer={selectedCustomer}
                                     selectedSource={selectedSource}
                                     selectedLoadType={selectedLoadType}
+                                    selectedTruck={selectedTruck}
+                                    selectedDriver={selectedDriver}
+                                    newOptionLabel={field.newOptionLabel}
+                                    onNewOptionClick={field.onNewOptionClick}
                                 />
                             </Grid2>
                         );
@@ -214,7 +224,7 @@ const GenericForm = ({
                     color="primary"
                     disabled={submitDisabled}
                 >
-                    Submit
+                    {submitLabel}
                 </Button>
             </Grid2>
             {(onDelete || onReset) && <Grid2 xs={6}></Grid2>}
