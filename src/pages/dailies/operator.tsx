@@ -83,7 +83,7 @@ export default function Dailies() {
                     fontWeight: 'bold',
                 }}
             >
-                {data.length > 0 ? 'Non-W2 Employees Missing Pay' : 'There are no W2 employees missing pay.'}
+                {data.length > 0 ? 'Owner Operator Missing Pay' : 'There are no W2 employees missing pay.'}
             </h1>
             <LoadingModal isOpen={loading}/>
             {data && data.length > 0 && <Paper sx={{width: "100%", mb: 2}}>

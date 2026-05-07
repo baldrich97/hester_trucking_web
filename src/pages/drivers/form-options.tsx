@@ -44,10 +44,9 @@ function RowEditor({row, onSaved}: {row: FormOptionsRow; onSaved: () => void}) {
         row.OOVisible,
         row.W2Required,
         row.OORequired,
-        row.CarrierWide,
+        row.FleetWide,
         row.ExpiryCadence,
         row.ValidityMonths,
-        row.PdfOrder,
         row.PdfColumnLabel,
         row.IncludeInPdf,
         row.Forms.DisplayName,
@@ -113,10 +112,10 @@ function RowEditor({row, onSaved}: {row: FormOptionsRow; onSaved: () => void}) {
                 </Tooltip>
             </TableCell>
             <TableCell>
-                <Tooltip title="One compliant filing can satisfy this form for all drivers in the same carrier.">
+                <Tooltip title="When checked, this form is only required for OO entities with more than one truck on file (solo single-truck operators skip it). Combine with OO required to gate required OO forms by fleet size.">
                     <Checkbox
-                        checked={draft.CarrierWide}
-                        onChange={(_, v) => setField("CarrierWide")(v)}
+                        checked={draft.FleetWide}
+                        onChange={(_, v) => setField("FleetWide")(v)}
                     />
                 </Tooltip>
             </TableCell>
@@ -155,15 +154,6 @@ function RowEditor({row, onSaved}: {row: FormOptionsRow; onSaved: () => void}) {
             <TableCell>
                 <TextField
                     size="small"
-                    type="number"
-                    label="PDF order"
-                    value={draft.PdfOrder}
-                    onChange={(e) => setField("PdfOrder")(parseInt(e.target.value, 10) || 0)}
-                />
-            </TableCell>
-            <TableCell>
-                <TextField
-                    size="small"
                     label="PDF column label"
                     value={draft.PdfColumnLabel ?? ""}
                     onChange={(e) =>
@@ -192,7 +182,7 @@ function RowEditor({row, onSaved}: {row: FormOptionsRow; onSaved: () => void}) {
                                 OOVisible: draft.OOVisible,
                                 W2Required: draft.W2Required,
                                 OORequired: draft.OORequired,
-                                CarrierWide: draft.CarrierWide,
+                                FleetWide: draft.FleetWide,
                                 ExpiryCadence: draft.ExpiryCadence,
                                 ValidityMonths: draft.ValidityMonths,
                                 PdfOrder: draft.PdfOrder,
@@ -230,8 +220,10 @@ export default function FormOptionsPage() {
                 Form options
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{mb: 2}}>
-                Configure which forms appear for W-2 vs owner-operators, expiry rules, PDF export
-                columns, and carrier-wide filings (one filing covers all drivers under the same carrier).
+                Configure which forms appear for W-2 vs owner-operators, expiry rules, optional PDF
+                column labels and inclusion in the printable driver-forms PDF, and fleet-wide rules (some
+                forms are only required when an OO entity has more than one truck on file). OO filings
+                are shared across the entity (carrier group or solo operator).
             </Typography>
             <Box sx={{display: "flex", gap: 1, mb: 3, alignItems: "center"}}>
                 <TextField
@@ -258,10 +250,9 @@ export default function FormOptionsPage() {
                         <TableCell>OO vis</TableCell>
                         <TableCell>W2 req</TableCell>
                         <TableCell>OO req</TableCell>
-                        <TableCell>Carrier-wide</TableCell>
+                        <TableCell>Fleet-wide</TableCell>
                         <TableCell>Expiry type</TableCell>
                         <TableCell>Validity (months)</TableCell>
-                        <TableCell>PDF #</TableCell>
                         <TableCell>PDF label</TableCell>
                         <TableCell>PDF</TableCell>
                         <TableCell></TableCell>

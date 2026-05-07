@@ -24,7 +24,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         include: {
             DriverForms: true,
-            TrucksDriven: {include: {Trucks: true}},
+            States: true,
+            Carriers: {include: {States: true}},
+            TrucksDriven: {
+                include: {Trucks: {include: {LicensedIn: true}}},
+            },
         },
         orderBy: {LastName: "asc"},
     });
@@ -32,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const allForms = await prisma.formOptions.findMany({
         where: isW2 ? {W2Visible: true} : {OOVisible: true},
         include: {Forms: true},
-        orderBy: [{PdfOrder: "asc"}, {ID: "asc"}],
+        orderBy: [{Forms: {DisplayName: "asc"}}, {Form: "asc"}],
     });
 
     const pdfStream = await renderToStream(

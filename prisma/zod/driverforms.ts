@@ -1,10 +1,18 @@
 import * as z from "zod"
-import { CompleteDrivers, RelatedDriversModel, CompleteForms, RelatedFormsModel } from "./index"
+import { CompleteDrivers, RelatedDriversModel, CompleteForms, RelatedFormsModel, CompleteCarriers, RelatedCarriersModel } from "./index"
 
 export const DriverFormsModel = z.object({
   ID: z.number().int(),
   Driver: z.number().int(),
   Form: z.number().int(),
+  /**
+   * When set, this filing is scoped to the carrier (OO entity) rather than only the driver row.
+   */
+  CarrierID: z.number().int().nullish(),
+  /**
+   * Optional display of who physically submitted the paperwork.
+   */
+  Filer: z.string().nullish(),
   Expiration: z.coerce.date().nullish(),
   Created: z.coerce.date(),
 })
@@ -12,6 +20,7 @@ export const DriverFormsModel = z.object({
 export interface CompleteDriverForms extends z.infer<typeof DriverFormsModel> {
   Drivers: CompleteDrivers
   Forms: CompleteForms
+  Carriers?: CompleteCarriers | null
 }
 
 /**
@@ -22,4 +31,5 @@ export interface CompleteDriverForms extends z.infer<typeof DriverFormsModel> {
 export const RelatedDriverFormsModel: z.ZodSchema<CompleteDriverForms> = z.lazy(() => DriverFormsModel.extend({
   Drivers: RelatedDriversModel,
   Forms: RelatedFormsModel,
+  Carriers: RelatedCarriersModel.nullish(),
 }))

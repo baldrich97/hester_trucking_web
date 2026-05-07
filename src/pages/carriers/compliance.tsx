@@ -12,8 +12,10 @@ export default function CarrierComplianceHub() {
             </Typography>
             <Typography variant="body1" sx={{mb: 2}}>
                 Use Form options to define which paperwork is required, how often it renews, and
-                which items can be satisfied once per carrier (carrier-wide). Assign drivers to a
-                carrier on each driver profile so shared filings apply to the right group.
+                which items are fleet-wide (only required when an owner-operator entity has more than
+                one truck on file). Owner-operator filings are shared across the entity (everyone under
+                the same carrier, or a solo operator). Assign drivers to a carrier on each driver profile
+                and keep carrier contact info current for compliance headers.
             </Typography>
             <Typography component="ul" sx={{pl: 3}}>
                 <li>

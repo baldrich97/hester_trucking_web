@@ -132,7 +132,11 @@ const BasicAutocomplete = ({
         const merged = [...rows];
         if (
             selectedRow &&
-            !merged.some((o) => o[optionValue] === selectedRow[optionValue])
+            !merged.some(
+                (o) =>
+                    (o as Record<string, unknown>)[optionValue] ===
+                    (selectedRow as Record<string, unknown>)[optionValue],
+            )
         ) {
             merged.unshift(selectedRow);
         }
@@ -205,7 +209,7 @@ const BasicAutocomplete = ({
                                 {loading ? (
                                     <CircularProgress color="inherit" size={20} />
                                 ) : null}
-                                {params.InputProps.endAdornment}
+                                {params.InputProps?.endAdornment}
                             </React.Fragment>
                         ),
                     }}

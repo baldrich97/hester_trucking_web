@@ -1,16 +1,9 @@
 import {GetServerSideProps} from "next";
 import {prisma} from 'server/db/client'
-import {CompleteFormOptions, DriverFormsModel, DriversModel} from "../../../prisma/zod";
-import {z} from "zod";
-import Driver_Forms from "../../components/collections/DriverForms";
+import {CompleteFormOptions} from "../../../prisma/zod";
+import Driver_Forms, {type DriverFormsDataType} from "../../components/collections/DriverForms";
 
-const DataModel = DriversModel.extend({
-    DriverForms: z.array(DriverFormsModel).optional()
-})
-
-type DataType = z.infer<typeof DataModel>;
-
-const Owner_Forms = ({data, all_forms}: { data: DataType[], all_forms: CompleteFormOptions[] }) => {
+const Owner_Forms = ({data, all_forms}: { data: DriverFormsDataType[]; all_forms: CompleteFormOptions[] }) => {
     return (
         <Driver_Forms data={data} all_forms={all_forms} mode="oo"/>
     )
@@ -25,8 +18,12 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     const data = await prisma.drivers.findMany({
         include: {
             DriverForms: true,
+            Carriers: {include: {States: true}},
+            States: true,
             TrucksDriven: {
-                include: { Trucks: true },
+                include: {
+                    Trucks: {include: {LicensedIn: true}},
+                },
             },
         },
         where: {
@@ -45,7 +42,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         include: {
             Forms: true
         },
-        orderBy: [{ PdfOrder: 'asc' }, { ID: 'asc' }],
+        orderBy: [{Forms: {DisplayName: "asc"}}, {Form: "asc"}],
     });
 
     return {

@@ -441,12 +441,12 @@ function PartialLoad({
             key: "TruckID",
             data:
                 tdtrpcData.length > 0
-                    ? tdtrpcData
-                        .map((item) => item.Trucks)
-                        .filter((item) => item !== undefined)
-                        .filter((value, index, self) => {
-                            return index === self.findIndex((t) => t.ID === value.ID);
-                        })
+                    ? (tdtrpcData
+                          .map((item) => item.Trucks)
+                          .filter((item) => item !== undefined)
+                          .filter((value, index, self) => {
+                              return index === self.findIndex((t) => t.ID === value.ID);
+                          }) as unknown as Record<string, unknown>[])
                     : [],
             optionValue: "ID",
             optionLabel: "Name+|+Notes",
@@ -456,12 +456,12 @@ function PartialLoad({
             key: "DriverID",
             data:
                 tdtrpcData.length > 0
-                    ? tdtrpcData
-                        .map((item) => item.Drivers)
-                        .filter((item) => item !== undefined)
-                        .filter((value, index, self) => {
-                            return index === self.findIndex((t) => t.ID === value.ID);
-                        })
+                    ? (tdtrpcData
+                          .map((item) => item.Drivers)
+                          .filter((item) => item !== undefined)
+                          .filter((value, index, self) => {
+                              return index === self.findIndex((t) => t.ID === value.ID);
+                          }) as unknown as Record<string, unknown>[])
                     : [],
             optionValue: "ID",
             optionLabel: "FirstName+LastName",

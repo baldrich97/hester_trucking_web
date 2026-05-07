@@ -98,10 +98,10 @@ const Customer = ({
 }: {
   states: StatesType[];
   initialCustomer: CustomersType;
-  invoices: InvoicesType[];
+  invoices: InvoicesType[] | Record<string, unknown>[];
   icount: number;
   lcount: number;
-  loads: Loads[];
+  loads: Loads[] | Record<string, unknown>[];
   ltcount: number;
   dlcount: number;
 }) => {
@@ -416,14 +416,14 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   let initialCustomer;
 
-  let invoices: (Invoices & { Customers: Customers; Loads: Loads[] })[] = [];
+  let invoices: (Invoices & { Customers: { Name: string }; Loads?: Loads[] })[] = [];
 
   let loads: (Loads & {
-    Customers: Customers | null;
-    DeliveryLocations: DeliveryLocations | null;
-    Drivers: Drivers | null;
-    LoadTypes: LoadTypes | null;
-    Trucks: Trucks | null;
+    Customers: { Name: string } | null;
+    DeliveryLocations: { Description: string } | null;
+    Drivers: { FirstName: string; LastName: string } | null;
+    LoadTypes: { Description: string } | null;
+    Trucks: { Name: string } | null;
   })[] = [];
 
   let lcount = 0;

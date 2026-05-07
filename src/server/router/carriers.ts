@@ -16,6 +16,7 @@ export const carriersRouter = createRouter()
             return ctx.prisma.carriers.findUnique({
                 where: {ID: input.ID},
                 include: {
+                    States: true,
                     Drivers: {
                         select: {
                             ID: true,

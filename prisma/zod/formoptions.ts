@@ -10,9 +10,9 @@ export const FormOptionsModel = z.object({
   W2Required: z.boolean(),
   OORequired: z.boolean(),
   /**
-   * When true, one valid filing for any driver under the same `Carriers` satisfies the form for all of them.
+   * When true, this form is only required for OO entities with more than one truck on file.
    */
-  CarrierWide: z.boolean(),
+  FleetWide: z.boolean(),
   ExpiryCadence: z.nativeEnum(FormExpiryCadence),
   IncludeInPdf: z.boolean(),
   PdfColumnLabel: z.string().nullish(),

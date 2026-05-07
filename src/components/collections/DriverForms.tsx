@@ -8,21 +8,32 @@ import {toast} from "react-toastify";
 import {LocalizationProvider} from "@mui/x-date-pickers/LocalizationProvider";
 import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
 import Grid2 from "@mui/material/Unstable_Grid2";
-import {Box, Button, Checkbox, Modal, TextField, Tooltip, Typography} from "@mui/material";
+import {Box, Button, Checkbox, IconButton, Modal, TextField, Tooltip, Typography} from "@mui/material";
 import {DatePicker} from "@mui/x-date-pickers/DatePicker";
 import {z} from "zod";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import type {Trucks} from "@prisma/client";
-import {tableTextLinkSx} from "../../theme/muiShared";
+import ExpandMore from "@mui/icons-material/ExpandMore";
+import ChevronRight from "@mui/icons-material/ChevronRight";
+import type {Carriers, States, Trucks} from "@prisma/client";
+import {calendarNavButtonSx, tableTextLinkSx} from "../../theme/muiShared";
 import {
+    collectEntityTrucks,
     driverMissingRequiredForm,
+    entityDistinctTruckCount,
     getDriverFormRecord,
+    groupOoDriversByEntity,
     isDriverFormRecordCompliant,
     isFormSatisfiedForDriver,
+    isFormSatisfiedForOoEntity,
+    isOoFormRequired,
     modalTitleForCadence,
-    ooDriverTrucksVitalOk,
+    ooEntityMissingRequiredForm,
+    ooEntityTrucksVitalOk,
+    primaryDriverIdForEntity,
+    truckOoVitalMissingReasons,
+    truckOoVitalsOk,
     type DriverComplianceShape,
     type FormOptionComplianceShape,
 } from "../../utils/driverFormCompliance";
@@ -74,16 +85,34 @@ const DataModel = DriversModel.extend({
     DriverForms: z.array(DriverFormsModel).optional(),
 });
 
-type DataType = z.infer<typeof DataModel> & {
+export type DriverFormsDataType = z.infer<typeof DataModel> & {
     TrucksDriven?: { TruckID: number; Trucks: Trucks | null }[];
+    Carriers?: (Carriers & { States: States | null }) | null;
+    States?: States | null;
 };
+
+const OO_LEFT_COL = {flex: "0 0 300px", minWidth: 260, maxWidth: 400} as const;
+const OO_STATUS_W = 40;
+const OO_CHEVRON_W = 44;
+
+function formatDriverAddress(d: DriverFormsDataType): string {
+    const abbr = d.States?.Abbreviation ?? "";
+    const cityLine = [d.City, abbr, d.ZIP].filter((x) => x && String(x).trim()).join(" ");
+    return [d.Street, cityLine].filter((x) => x && String(x).trim()).join(" · ");
+}
+
+function formatCarrierAddress(c: Carriers & { States: States | null }): string {
+    const abbr = c.States?.Abbreviation ?? "";
+    const cityLine = [c.City, abbr, c.ZIP].filter((x) => x && String(x).trim()).join(" ");
+    return [c.Street, cityLine].filter((x) => x && String(x).trim()).join(" · ");
+}
 
 const Driver_Forms = ({
     data,
     all_forms,
     mode,
 }: {
-    data: DataType[];
+    data: DriverFormsDataType[];
     all_forms: CompleteFormOptions[];
     mode: "w2" | "oo";
 }) => {
@@ -99,7 +128,10 @@ const Driver_Forms = ({
                     Form: df.Form,
                     Expiration: df.Expiration ? new Date(df.Expiration as unknown as string) : null,
                     Created: new Date(df.Created as unknown as string),
+                    CarrierID: (df as {CarrierID?: number | null}).CarrierID ?? null,
+                    Filer: (df as {Filer?: string | null}).Filer ?? null,
                 })),
+                TrucksDriven: d.TrucksDriven,
             })),
         [data],
     );
@@ -108,7 +140,7 @@ const Driver_Forms = ({
         () =>
             all_forms.map((f) => ({
                 Form: f.Form,
-                CarrierWide: f.CarrierWide,
+                FleetWide: f.FleetWide,
                 ExpiryCadence: f.ExpiryCadence,
                 ValidityMonths: f.ValidityMonths ?? null,
                 W2Visible: f.W2Visible,
@@ -133,8 +165,12 @@ const Driver_Forms = ({
 
     const [modalOpen, setModalOpen] = useState<boolean>(false);
     const [selectedForm, setSelectedForm] = useState<CompleteFormOptions | null>(null);
-    const [selectedDriver, setSelectedDriver] = useState<DataType | null>(null);
+    const [selectedDriver, setSelectedDriver] = useState<DriverFormsDataType | null>(null);
     const [selectedDate, setSelectedDate] = useState<Dayjs | null>(null);
+    const [filerName, setFilerName] = useState("");
+
+    const [ooExpanded, setOoExpanded] = useState<Record<string, boolean>>({});
+    const [ooExpandAllOpen, setOoExpandAllOpen] = useState(false);
 
     const expiryPreview = useMemo(() => {
         if (!selectedForm) return null;
@@ -183,7 +219,7 @@ const Driver_Forms = ({
             case "EXPIRATION_DATE":
                 return {
                     title: "Explicit expiration date",
-                    detail: `Filed ${fmtDate(picked)}. Expires on ${fmtDate(picked)}.`,
+                    detail: `Filed ${fmtDate(new Date())} (today). Expires on ${fmtDate(picked)}.`,
                 };
             case "CALENDAR_YEAR": {
                 const expires = new Date(picked.getFullYear() + 1, 0, 1);
@@ -213,7 +249,33 @@ const Driver_Forms = ({
 
     const shapeFor = (id: number) => driverShapes.find((s) => s.ID === id)!;
 
-    const handleCheckboxClick = (driver: DataType, form: CompleteFormOptions) => {
+    const entityShapesFor = (entityDrivers: DriverFormsDataType[]) =>
+        entityDrivers.map((d) => shapeFor(d.ID));
+
+    const findFilingHolderDriverId = (
+        entityDrivers: DriverFormsDataType[],
+        form: CompleteFormOptions,
+        entityCarrierId: number | null | undefined,
+    ): number | null => {
+        const carrierScope = entityCarrierId != null && entityCarrierId > 0;
+        for (const d of entityDrivers) {
+            const r = getDriverFormRecord(shapeFor(d.ID).DriverForms, form.Form);
+            if (
+                !r ||
+                !isDriverFormRecordCompliant(r, form.ExpiryCadence, form.ValidityMonths)
+            ) {
+                continue;
+            }
+            if (!carrierScope) return d.ID;
+            const cid = r.CarrierID;
+            if (cid === entityCarrierId || cid == null || cid === undefined) {
+                return d.ID;
+            }
+        }
+        return null;
+    };
+
+    const handleCheckboxClickW2 = (driver: DriverFormsDataType, form: CompleteFormOptions) => {
         const dShape = shapeFor(driver.ID);
         const fShape = formOptShapes.find((o) => o.Form === form.Form)!;
         const satisfied = isFormSatisfiedForDriver(dShape, fShape, driverShapes);
@@ -223,14 +285,8 @@ const Driver_Forms = ({
             setSelectedDriver(driver);
             setSelectedForm(form);
             setSelectedDate(null);
+            setFilerName("");
             setModalOpen(true);
-            return;
-        }
-
-        if (satisfied && !localMatch) {
-            toast.info("This form is satisfied by another driver under the same carrier.", {
-                autoClose: 3500,
-            });
             return;
         }
 
@@ -252,11 +308,81 @@ const Driver_Forms = ({
         });
     };
 
+    const handleCheckboxClickOo = (
+        entityDrivers: DriverFormsDataType[],
+        form: CompleteFormOptions,
+    ) => {
+        const entityShapes = entityShapesFor(entityDrivers);
+        const fShape = formOptShapes.find((o) => o.Form === form.Form)!;
+        const primaryId = primaryDriverIdForEntity(entityDrivers);
+        const primaryDriver = entityDrivers.find((d) => d.ID === primaryId)!;
+        const entityCarrierId = primaryDriver.CarrierID ?? null;
+        const satisfied = isFormSatisfiedForOoEntity(
+            entityShapes,
+            entityCarrierId,
+            fShape,
+        );
+        const localOnPrimary = getDriverFormRecord(
+            shapeFor(primaryId).DriverForms,
+            form.Form,
+        );
+
+        if (!satisfied) {
+            setSelectedDriver(primaryDriver);
+            setSelectedForm(form);
+            setSelectedDate(null);
+            setFilerName("");
+            setModalOpen(true);
+            return;
+        }
+
+        const holderId = findFilingHolderDriverId(entityDrivers, form, entityCarrierId);
+        const holder = entityDrivers.find((d) => d.ID === holderId) ?? primaryDriver;
+
+        if (satisfied && !localOnPrimary && holderId !== primaryId) {
+            confirmAlert({
+                title: "Remove filing",
+                message: `This form is on file under ${holder.FirstName ?? ""} ${holder.LastName ?? ""} for this entity. Remove it?`,
+                buttons: [
+                    {
+                        label: "Yes",
+                        onClick: () => {
+                            deleteDriverForm.mutate({
+                                driverId: holder.ID,
+                                formId: form.Form,
+                            });
+                        },
+                    },
+                    {label: "No", onClick: () => undefined},
+                ],
+            });
+            return;
+        }
+
+        confirmAlert({
+            title: "Remove filing",
+            message: `Remove ${form.Forms.DisplayName} for this entity? The date will be cleared; re-check the box to set a new date.`,
+            buttons: [
+                {
+                    label: "Yes",
+                    onClick: () => {
+                        deleteDriverForm.mutate({
+                            driverId: holder.ID,
+                            formId: form.Form,
+                        });
+                    },
+                },
+                {label: "No", onClick: () => undefined},
+            ],
+        });
+    };
+
     const handleModalClose = () => {
         setModalOpen(false);
         setSelectedDriver(null);
         setSelectedForm(null);
         setSelectedDate(null);
+        setFilerName("");
     };
 
     const addDriverForm = trpc.useMutation("driverForms.put", {
@@ -271,192 +397,525 @@ const Driver_Forms = ({
         }
         toast.info("Submitting...", {autoClose: 2000});
         const pickedDate = dateOnlyLocalToUtcNoon(selectedDate.toDate());
-        await addDriverForm.mutateAsync({
-            Form: selectedForm.Form,
-            Driver: selectedDriver.ID,
-            Expiration: pickedDate,
-        });
+        const filedToday = dateOnlyLocalToUtcNoon(new Date());
+        const basePayload =
+            mode === "oo"
+                ? {
+                      Form: selectedForm.Form,
+                      Driver: selectedDriver.ID,
+                      Expiration: pickedDate,
+                      CarrierID:
+                          selectedDriver.CarrierID != null && selectedDriver.CarrierID > 0
+                              ? selectedDriver.CarrierID
+                              : null,
+                      Filer: filerName.trim() ? filerName.trim() : null,
+                  }
+                : {
+                      Form: selectedForm.Form,
+                      Driver: selectedDriver.ID,
+                      Expiration: pickedDate,
+                      CarrierID: null,
+                      Filer: null,
+                  };
+        const payload =
+            selectedForm.ExpiryCadence === "EXPIRATION_DATE" && filedToday
+                ? {...basePayload, FiledDate: filedToday}
+                : basePayload;
+        await addDriverForm.mutateAsync(payload);
         await router.replace(router.asPath);
         handleModalClose();
     };
 
     const pdfKind = mode === "w2" ? "w2" : "oo";
 
+    const downloadPdf = () => {
+        toast.info("Generating PDF...", {autoClose: 2000, type: "info"});
+        const element = document.createElement("a");
+        element.href = `/api/getPDF/driver-forms/${pdfKind}`;
+        element.download = `driver-forms-${pdfKind}.pdf`;
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+    };
+
+    const ooEntityEntries = useMemo(() => {
+        if (mode !== "oo") return [] as [string, DriverFormsDataType[]][];
+        const m = groupOoDriversByEntity(data);
+        const entries = Array.from(m.entries());
+        entries.sort((a, b) => {
+            const aCarrier = a[1][0]?.Carriers?.Name?.trim() ?? "";
+            const bCarrier = b[1][0]?.Carriers?.Name?.trim() ?? "";
+            // const aHas = Boolean(aCarrier);
+            // const bHas = Boolean(bCarrier);
+            // if (aHas && bHas && aCarrier !== bCarrier) return aCarrier.localeCompare(bCarrier);
+            // if (aHas !== bHas) return aHas ? -1 : 1;
+            const fa = ((aCarrier ? aCarrier : (a[1][0]?.FirstName ?? ""))).localeCompare((bCarrier ? bCarrier : (b[1][0]?.FirstName ?? "")));
+            if (fa !== 0) return fa;
+            return (a[1][0]?.LastName ?? "").localeCompare(b[1][0]?.LastName ?? "");
+        });
+        return entries;
+    }, [data, mode]);
+
+    const renderFormHeaderRow = () => (
+        <Grid2 container alignItems="flex-end" sx={{mb: 1}}>
+            {mode === "oo" ? (
+                <Grid2 sx={{width: OO_STATUS_W + OO_CHEVRON_W, flexShrink: 0}} />
+            ) : null}
+            <Grid2 sx={OO_LEFT_COL}>
+                <Typography fontWeight="bold">
+                    {mode === "oo" ? "Carrier / operator" : "Driver"}
+                </Typography>
+                {mode === "w2" ? (
+                    <>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                            Address
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" display="block">
+                            Phone
+                        </Typography>
+                    </>
+                ) : null}
+            </Grid2>
+            <Grid2 xs container spacing={0} sx={{display: "flex"}}>
+                {all_forms.map((form) => (
+                    <Grid2 key={form.ID} xs sx={{minWidth: 0, textAlign: "center"}}>
+                        <Typography fontWeight="bold" variant="body2" noWrap title={form.Forms.DisplayName}>
+                            {form.Forms.DisplayName}
+                        </Typography>
+                    </Grid2>
+                ))}
+            </Grid2>
+        </Grid2>
+    );
+
+    const renderOoEntity = (entityKey: string, entityDrivers: DriverFormsDataType[]) => {
+        const primaryId = primaryDriverIdForEntity(entityDrivers);
+        const primary = entityDrivers.find((d) => d.ID === primaryId)!;
+        const carrier = primary.Carriers ?? null;
+        const entityCarrierId = primary.CarrierID ?? null;
+        const entityShapes = entityShapesFor(entityDrivers);
+        const truckCount = entityDistinctTruckCount(entityDrivers);
+        const trucksMap = collectEntityTrucks(entityDrivers);
+        const formsBad = ooEntityMissingRequiredForm(
+            entityShapes,
+            formOptShapes,
+            truckCount,
+            entityCarrierId,
+        );
+        const trucksBad = !ooEntityTrucksVitalOk(entityDrivers);
+        const entityBad = formsBad || trucksBad;
+
+        const expanded = ooExpanded[entityKey] ?? false;
+        const setExpanded = (v: boolean) =>
+            setOoExpanded((prev) => ({...prev, [entityKey]: v}));
+
+        const missingFormLabels: string[] = [];
+        for (const opt of formOptShapes) {
+            if (!isOoFormRequired(opt, truckCount)) continue;
+            if (!isFormSatisfiedForOoEntity(entityShapes, entityCarrierId, opt)) {
+                const label =
+                    all_forms.find((f) => f.Form === opt.Form)?.Forms.DisplayName ??
+                    `Form ${opt.Form}`;
+                missingFormLabels.push(label);
+            }
+        }
+        const truckTooltipLines: string[] = [];
+        for (const t of trucksMap.values()) {
+            if (truckOoVitalsOk(t)) continue;
+            const miss = truckOoVitalMissingReasons(t);
+            truckTooltipLines.push(`${t.Name}: missing ${miss.join(", ")}`);
+        }
+        const entityTooltipParts: string[] = [];
+        if (missingFormLabels.length) {
+            entityTooltipParts.push(`Forms: ${missingFormLabels.join("; ")}`);
+        }
+        if (truckTooltipLines.length) {
+            entityTooltipParts.push(`Trucks: ${truckTooltipLines.join(" · ")}`);
+        }
+        if (!entityTooltipParts.length) {
+            entityTooltipParts.push("Entity forms and trucks look complete.");
+        }
+
+        const titleLines: { bold?: boolean; text: string }[] = [];
+        if (carrier) {
+            titleLines.push({bold: true, text: carrier.Name});
+            if (carrier.ContactName?.trim()) {
+                titleLines.push({text: carrier.ContactName});
+            }
+            const addr = formatCarrierAddress(carrier);
+            if (addr) titleLines.push({text: addr});
+            if (carrier.Phone?.trim()) titleLines.push({text: carrier.Phone});
+        } else {
+            const name = `${primary.FirstName ?? ""} ${primary.LastName ?? ""}`.trim();
+            titleLines.push({bold: true, text: name || "Operator"});
+            const addr = formatDriverAddress(primary);
+            if (addr) titleLines.push({text: addr});
+            if (primary.Phone?.trim()) titleLines.push({text: primary.Phone});
+        }
+
+        const renderEntityFormCheckboxes = () => (
+            <Box sx={{flex: 1, display: "flex", minWidth: 0, alignItems: "flex-start"}}>
+                {all_forms.map((form) => {
+                    const fShape = formOptShapes.find((o) => o.Form === form.Form)!;
+                    const satisfied = isFormSatisfiedForOoEntity(
+                        entityShapes,
+                        entityCarrierId,
+                        fShape,
+                    );
+                    const localOnPrimary = getDriverFormRecord(
+                        shapeFor(primaryId).DriverForms,
+                        form.Form,
+                    );
+                    const requiredOo = isOoFormRequired(fShape, truckCount);
+                    const compliantPrimary =
+                        localOnPrimary &&
+                        isDriverFormRecordCompliant(
+                            localOnPrimary,
+                            form.ExpiryCadence,
+                            form.ValidityMonths,
+                        );
+                    const showError =
+                        (requiredOo && !satisfied) ||
+                        (Boolean(localOnPrimary) && !compliantPrimary);
+
+                    let recordForTooltip = localOnPrimary;
+                    if (!localOnPrimary && satisfied) {
+                        for (const d of entityDrivers) {
+                            const r = getDriverFormRecord(shapeFor(d.ID).DriverForms, form.Form);
+                            if (
+                                r &&
+                                isDriverFormRecordCompliant(
+                                    r,
+                                    form.ExpiryCadence,
+                                    form.ValidityMonths,
+                                )
+                            ) {
+                                recordForTooltip = r;
+                                break;
+                            }
+                        }
+                    }
+
+                    const tooltipParts: string[] = [];
+                    if (recordForTooltip) {
+                        const filed = new Date(recordForTooltip.Created);
+                        tooltipParts.push(`Filed: ${fmtDate(filed)}`);
+                        tooltipParts.push(
+                            cadenceTooltipDetail(
+                                form.ExpiryCadence,
+                                filed,
+                                recordForTooltip.Expiration,
+                                form.ValidityMonths,
+                            ),
+                        );
+                        if (recordForTooltip.Filer?.trim()) {
+                            tooltipParts.push(`Filer: ${recordForTooltip.Filer.trim()}`);
+                        }
+                        if (!localOnPrimary && satisfied) {
+                            tooltipParts.push("(Another driver in this entity)");
+                        }
+                    }
+
+                    return (
+                        <Box
+                            key={form.ID}
+                            sx={{flex: 1, minWidth: 0, display: "flex", justifyContent: "center"}}
+                        >
+                            <Tooltip title={tooltipParts.join(" · ")}>
+                                <Checkbox
+                                    checked={satisfied}
+                                    onClick={() => handleCheckboxClickOo(entityDrivers, form)}
+                                    color={showError ? "error" : "primary"}
+                                />
+                            </Tooltip>
+                        </Box>
+                    );
+                })}
+            </Box>
+        );
+
+        return (
+            <Box key={entityKey} sx={{borderBottom: "1px solid", borderColor: "divider", py: 1.5}}>
+                <Box sx={{display: "flex", alignItems: "flex-start", gap: 0}}>
+                    <Box
+                        sx={{
+                            width: OO_STATUS_W,
+                            flexShrink: 0,
+                            display: "flex",
+                            justifyContent: "center",
+                            pt: 1,
+                        }}
+                    >
+                        {entityBad ? (
+                            <Tooltip title={entityTooltipParts.join(" ")}>
+                                <CloseIcon color="error" />
+                            </Tooltip>
+                        ) : (
+                            <Tooltip title={entityTooltipParts.join(" ")}>
+                                <CheckIcon color="success" />
+                            </Tooltip>
+                        )}
+                    </Box>
+                    <Box sx={{width: OO_CHEVRON_W, flexShrink: 0}}>
+                        <IconButton
+                            size="small"
+                            sx={calendarNavButtonSx}
+                            color="inherit"
+                            onClick={() => setExpanded(!expanded)}
+                            aria-expanded={expanded}
+                        >
+                            {expanded ? (
+                                <ExpandMore sx={{fontSize: 30}} />
+                            ) : (
+                                <ChevronRight sx={{fontSize: 30}} />
+                            )}
+                        </IconButton>
+                    </Box>
+                    <Box sx={{...OO_LEFT_COL, pt: 0.5}}>
+                        {titleLines.map((line, i) => (
+                            <Typography
+                                key={i}
+                                variant={line.bold ? "subtitle1" : "body2"}
+                                fontWeight={line.bold ? 700 : 400}
+                            >
+                                {line.text}
+                            </Typography>
+                        ))}
+                        {carrier ? (
+                            <Typography variant="caption" color="text.secondary" sx={{mt: 0.5, display: "block"}}>
+                                Drivers:{" "}
+                                {entityDrivers
+                                    .map((d) => `${d.FirstName ?? ""} ${d.LastName ?? ""}`.trim())
+                                    .join(", ")}
+                            </Typography>
+                        ) : null}
+                        {carrier ? (
+                            <Typography variant="body2" color="text.secondary" sx={{mt: 0.5}}>
+                                Filing apply to the carrier as a whole.
+                            </Typography>
+                        ) : null}
+                    </Box>
+                    {renderEntityFormCheckboxes()}
+                </Box>
+
+                {expanded ? (
+                    <>
+                        {Array.from(trucksMap.entries()).map(([tid, t]) => {
+                            const ok = truckOoVitalsOk(t);
+                            const miss = truckOoVitalMissingReasons(t);
+                            const truckTip = ok
+                                ? "Truck record complete for OO compliance."
+                                : `Missing: ${miss.join(", ")}`;
+                            return (
+                                <Box
+                                    key={tid}
+                                    sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 0,
+                                        py: 0.75,
+                                    }}
+                                >
+                                    <Box
+                                        sx={{
+                                            width: OO_STATUS_W,
+                                            flexShrink: 0,
+                                            display: "flex",
+                                            justifyContent: "center",
+                                        }}
+                                    >
+                                        <Tooltip title={truckTip}>
+                                            {ok ? (
+                                                <CheckIcon color="success" fontSize="small" />
+                                            ) : (
+                                                <CloseIcon color="error" fontSize="small" />
+                                            )}
+                                        </Tooltip>
+                                    </Box>
+                                    <Box sx={{width: OO_CHEVRON_W, flexShrink: 0}} />
+                                    <Box sx={OO_LEFT_COL}>
+                                        <Typography variant="body2" fontWeight={600}>
+                                            {t.Name}
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary">
+                                            Plate {t.LicensePlate?.trim() || "—"} · VIN{" "}
+                                            {t.VIN?.trim() || "—"} · Year {t.ModelYear ?? "—"}
+                                        </Typography>
+                                    </Box>
+                                    <Box sx={{flex: 1}} />
+                                </Box>
+                            );
+                        })}
+                        {trucksMap.size === 0 ? (
+                            <Typography variant="body2" color="error" sx={{pl: OO_STATUS_W + OO_CHEVRON_W, py: 1}}>
+                                No trucks on file for this entity.
+                            </Typography>
+                        ) : null}
+                    </>
+                ) : null}
+            </Box>
+        );
+    };
+
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs}>
             <Box sx={{mb: 2, display: "flex", gap: 2, alignItems: "center"}}>
-                <Button
-                    component="a"
-                    href={`/api/getPDF/driver-forms/${pdfKind}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    variant="outlined"
-                >
+                {mode === "oo" ? (
+                    <Tooltip
+                        title={
+                            ooExpandAllOpen
+                                ? "Collapse all carrier / operator sections."
+                                : "Expand all carrier / operator sections."
+                        }
+                    >
+                        <Button
+                            variant="text"
+                            type="button"
+                            size="small"
+                            sx={calendarNavButtonSx}
+                            color="inherit"
+                            onClick={() => {
+                                const next = !ooExpandAllOpen;
+                                setOoExpandAllOpen(next);
+                                const m: Record<string, boolean> = {};
+                                for (const [k] of ooEntityEntries) {
+                                    m[k] = next;
+                                }
+                                setOoExpanded(m);
+                            }}
+                        >
+                            {ooExpandAllOpen ? (
+                                <ExpandMore sx={{fontSize: 40}} />
+                            ) : (
+                                <ChevronRight sx={{fontSize: 40}} />
+                            )}
+                        </Button>
+                    </Tooltip>
+                ) : null}
+                <Button variant="outlined" onClick={downloadPdf}>
                     Download PDF
                 </Button>
             </Box>
-            <Grid2 container direction="column" spacing={2}>
-                <Grid2 container>
-                    <Grid2 xs={2}>
-                        <Typography fontWeight="bold">Driver</Typography>
-                    </Grid2>
-                    {mode === "oo" ? (
-                        <Grid2 xs={1}>
-                            <Typography fontWeight="bold" align="center">
-                                Trucks
-                            </Typography>
-                        </Grid2>
-                    ) : null}
-                    {all_forms.map((form) => (
-                        <Grid2 key={form.ID} xs>
-                            <Typography fontWeight="bold" align="center">
-                                {form.Forms.DisplayName}
-                            </Typography>
-                        </Grid2>
-                    ))}
-                </Grid2>
 
-                {data.map((driver) => {
-                    const dShape = shapeFor(driver.ID);
-                    const formsBad = driverMissingRequiredForm(
-                        dShape,
-                        formOptShapes,
-                        driverShapes,
-                        mode,
-                    );
-                    const trucksBad =
-                        mode === "oo" ? !ooDriverTrucksVitalOk(driver.TrucksDriven ?? []) : false;
+            {mode === "oo" ? (
+                <Box>
+                    {renderFormHeaderRow()}
+                    {ooEntityEntries.map(([k, drivers]) => renderOoEntity(k, drivers))}
+                </Box>
+            ) : (
+                <Grid2 container direction="column" spacing={1}>
+                    {renderFormHeaderRow()}
+                    {data.map((driver) => {
+                        const dShape = shapeFor(driver.ID);
+                        const formsBad = driverMissingRequiredForm(
+                            dShape,
+                            formOptShapes,
+                            driverShapes,
+                            "w2",
+                        );
+                        const addr = formatDriverAddress(driver);
+                        const phone = driver.Phone?.trim() || "—";
 
-                    return (
-                        <Grid2 container key={driver.ID} alignItems="center">
-                            <Grid2 xs={2}>
-                                <Typography>
-                                    <Typography
-                                        component="span"
-                                        role="link"
-                                        tabIndex={0}
-                                        onClick={() => {
-                                            void router.push(`/drivers/${driver.ID}`);
-                                        }}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" || e.key === " ") {
-                                                e.preventDefault();
+                        return (
+                            <Grid2 container key={driver.ID} alignItems="center" wrap="nowrap">
+                                <Grid2 sx={OO_LEFT_COL}>
+                                    <Typography>
+                                        <Typography
+                                            component="span"
+                                            role="link"
+                                            tabIndex={0}
+                                            onClick={() => {
                                                 void router.push(`/drivers/${driver.ID}`);
-                                            }
-                                        }}
-                                        sx={{
-                                            ...tableTextLinkSx,
-                                            display: "inline",
-                                            cursor: "pointer",
-                                        }}
-                                    >
-                                        {`${driver.FirstName ?? ""} ${driver.LastName ?? ""}`}
-                                    </Typography>
-                                    {formsBad || trucksBad ? (
-                                        <Typography component="span" color="error" sx={{ml: 0.5}}>
-                                            *
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" || e.key === " ") {
+                                                    e.preventDefault();
+                                                    void router.push(`/drivers/${driver.ID}`);
+                                                }
+                                            }}
+                                            sx={{
+                                                ...tableTextLinkSx,
+                                                display: "inline",
+                                                cursor: "pointer",
+                                            }}
+                                        >
+                                            {`${driver.FirstName ?? ""} ${driver.LastName ?? ""}`}
                                         </Typography>
-                                    ) : null}
-                                </Typography>
-                            </Grid2>
-                            {mode === "oo" ? (
-                                <Grid2 xs={1} display="flex" justifyContent="center">
-                                    <Tooltip
-                                        title={
-                                            ooDriverTrucksVitalOk(driver.TrucksDriven ?? [])
-                                                ? "All driven trucks have VIN and license plate."
-                                                : "A truck this driver has driven is missing VIN or plate, is deleted, or no trucks on file."
-                                        }
-                                    >
-                                        {ooDriverTrucksVitalOk(driver.TrucksDriven ?? []) ? (
-                                            <CheckIcon color="success" />
-                                        ) : (
-                                            <CloseIcon color="error" />
-                                        )}
-                                    </Tooltip>
+                                        {formsBad ? (
+                                            <Typography component="span" color="error" sx={{ml: 0.5}}>
+                                                *
+                                            </Typography>
+                                        ) : null}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {addr || "—"}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {phone}
+                                    </Typography>
                                 </Grid2>
-                            ) : null}
-
-                            {all_forms.map((form) => {
-                                const fShape = formOptShapes.find((o) => o.Form === form.Form)!;
-                                const satisfied = isFormSatisfiedForDriver(
-                                    dShape,
-                                    fShape,
-                                    driverShapes,
-                                );
-                                const localMatch = getDriverFormRecord(dShape.DriverForms, form.Form);
-                                const required =
-                                    mode === "w2" ? form.W2Required : form.OORequired;
-
-                                let recordForTooltip = localMatch;
-                                if (!localMatch && satisfied && driver.CarrierID) {
-                                    const mates = data.filter(
-                                        (x) => x.CarrierID === driver.CarrierID,
-                                    );
-                                    for (const m of mates) {
-                                        const ms = shapeFor(m.ID);
-                                        const r = getDriverFormRecord(ms.DriverForms, form.Form);
-                                        if (
-                                            r &&
+                                <Grid2 xs container sx={{display: "flex", minWidth: 0}}>
+                                    {all_forms.map((form) => {
+                                        const fShape = formOptShapes.find((o) => o.Form === form.Form)!;
+                                        const satisfied = isFormSatisfiedForDriver(
+                                            dShape,
+                                            fShape,
+                                            driverShapes,
+                                        );
+                                        const localMatch = getDriverFormRecord(
+                                            dShape.DriverForms,
+                                            form.Form,
+                                        );
+                                        const required = form.W2Required;
+                                        const compliantWhenPresent =
+                                            localMatch &&
                                             isDriverFormRecordCompliant(
-                                                r,
+                                                localMatch,
                                                 form.ExpiryCadence,
                                                 form.ValidityMonths,
-                                            )
-                                        ) {
-                                            recordForTooltip = r;
-                                            break;
+                                            );
+                                        const showError =
+                                            (required && !satisfied) ||
+                                            (Boolean(localMatch) && !compliantWhenPresent);
+
+                                        const tooltipParts: string[] = [];
+                                        if (localMatch) {
+                                            const filed = new Date(localMatch.Created);
+                                            tooltipParts.push(`Filed: ${fmtDate(filed)}`);
+                                            tooltipParts.push(
+                                                cadenceTooltipDetail(
+                                                    form.ExpiryCadence,
+                                                    filed,
+                                                    localMatch.Expiration,
+                                                    form.ValidityMonths,
+                                                ),
+                                            );
                                         }
-                                    }
-                                }
 
-                                const compliantWhenPresent =
-                                    localMatch &&
-                                    isDriverFormRecordCompliant(
-                                        localMatch,
-                                        form.ExpiryCadence,
-                                        form.ValidityMonths,
-                                    );
-
-                                const showError =
-                                    (required && !satisfied) ||
-                                    (Boolean(localMatch) && !compliantWhenPresent);
-
-                                const tooltipParts: string[] = [];
-                                if (recordForTooltip) {
-                                    const filed = new Date(recordForTooltip.Created);
-                                    tooltipParts.push(
-                                        `Filed: ${fmtDate(filed)}`,
-                                    );
-                                    tooltipParts.push(
-                                        cadenceTooltipDetail(
-                                            form.ExpiryCadence,
-                                            filed,
-                                            recordForTooltip.Expiration,
-                                            form.ValidityMonths,
-                                        ),
-                                    );
-                                    if (!localMatch && satisfied) {
-                                        tooltipParts.push("(Another driver at this carrier)");
-                                    }
-                                }
-
-                                return (
-                                    <Grid2 key={form.ID} xs display="flex" justifyContent="center">
-                                        <Tooltip title={tooltipParts.join(" · ")}>
-                                            <Checkbox
-                                                checked={satisfied}
-                                                onClick={() => handleCheckboxClick(driver, form)}
-                                                color={showError ? "error" : "primary"}
-                                            />
-                                        </Tooltip>
-                                    </Grid2>
-                                );
-                            })}
-                        </Grid2>
-                    );
-                })}
-            </Grid2>
+                                        return (
+                                            <Grid2
+                                                key={form.ID}
+                                                xs
+                                                sx={{minWidth: 0, display: "flex", justifyContent: "center"}}
+                                            >
+                                                <Tooltip title={tooltipParts.join(" · ")}>
+                                                    <Checkbox
+                                                        checked={satisfied}
+                                                        onClick={() =>
+                                                            handleCheckboxClickW2(driver, form)
+                                                        }
+                                                        color={showError ? "error" : "primary"}
+                                                    />
+                                                </Tooltip>
+                                            </Grid2>
+                                        );
+                                    })}
+                                </Grid2>
+                            </Grid2>
+                        );
+                    })}
+                </Grid2>
+            )}
 
             <Modal open={modalOpen} onClose={handleModalClose}>
                 <Box
@@ -465,7 +924,7 @@ const Driver_Forms = ({
                         backgroundColor: "background.paper",
                         borderRadius: 2,
                         boxShadow: 24,
-                        width: 320,
+                        width: mode === "oo" ? 400 : 320,
                         mx: "auto",
                         mt: "15%",
                         display: "flex",
@@ -480,11 +939,25 @@ const Driver_Forms = ({
                     </Typography>
 
                     <DatePicker
-                        label="Select date"
+                        label={
+                            selectedForm?.ExpiryCadence === "EXPIRATION_DATE"
+                                ? "Expiration date"
+                                : "Select date"
+                        }
                         value={selectedDate}
                         onChange={(newValue) => setSelectedDate(newValue)}
                         renderInput={(params) => <TextField {...params} />}
                     />
+                    {mode === "oo" ? (
+                        <TextField
+                            size="small"
+                            label="Filer (optional)"
+                            placeholder="Who submitted this paperwork"
+                            value={filerName}
+                            onChange={(e) => setFilerName(e.target.value)}
+                            fullWidth
+                        />
+                    ) : null}
                     {expiryPreview ? (
                         <Box
                             sx={{

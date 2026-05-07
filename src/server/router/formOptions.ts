@@ -6,7 +6,7 @@ export const formOptionsRouter = createRouter()
         async resolve({ctx}) {
             return ctx.prisma.formOptions.findMany({
                 include: {Forms: true},
-                orderBy: [{PdfOrder: "asc"}, {ID: "asc"}],
+                orderBy: [{Forms: {DisplayName: "asc"}}, {Form: "asc"}],
             });
         },
     })

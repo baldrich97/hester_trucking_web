@@ -64,11 +64,9 @@ const Drawer = styled(MuiDrawer, {
     },
 }));
 
-function Sidenav(props: any) {
+/** Side nav highlight index; keep driver sub-routes (20–22) disjoint from invoices (50–51). */
+function pathToSideNavIndex(currentPath: string): number {
     let selectedLink = 1;
-
-    const router = useRouter();
-    const currentPath = router.asPath;
 
     if (currentPath.includes("/reports/customers")) {
         selectedLink = 28;
@@ -78,10 +76,20 @@ function Sidenav(props: any) {
         selectedLink = 2;
     } else if (currentPath.includes("/deliverylocations")) {
         selectedLink = 3;
+    } else if (currentPath.includes("/drivers/owner_forms")) {
+        selectedLink = 22;
+    } else if (currentPath.includes("/drivers/w2_forms")) {
+        selectedLink = 21;
+    } else if (currentPath.includes("/drivers/expiring-soon")) {
+        selectedLink = 23;
+    } else if (currentPath.includes("/drivers/form-options")) {
+        selectedLink = 20;
     } else if (currentPath.includes("/drivers")) {
         selectedLink = 4;
+    } else if (currentPath.includes("/invoices/overdue")) {
+        selectedLink = 51;
     } else if (currentPath.includes("/invoices")) {
-        selectedLink = 5;
+        selectedLink = 50;
     } else if (currentPath.includes("/loads")) {
         selectedLink = 6;
     } else if (currentPath.includes("/loadtypes")) {
@@ -100,7 +108,13 @@ function Sidenav(props: any) {
         selectedLink = 26;
     }
 
-    //TODO highest is 25
+    return selectedLink;
+}
+
+function Sidenav(props: any) {
+    const router = useRouter();
+    const currentPath = router.asPath;
+    const selectedLink = pathToSideNavIndex(currentPath);
 
     const {data: compliance} = trpc.useQuery(["compliance.driverFormsSummary"], {
         staleTime: 60 * 1000,
@@ -109,6 +123,7 @@ function Sidenav(props: any) {
     const complianceCount = compliance?.totalIssues ?? 0;
     const w2ComplianceCount = compliance?.w2Issues ?? 0;
     const ooComplianceCount = compliance?.ooIssues ?? 0;
+    const expiringSoonCount = compliance?.expiringSoonTotal ?? 0;
 
     const [isDailiesOpen, setDailiesOpen] = React.useState<boolean>(false);
     const [isCarriersOpen, setCarriersOpen] = React.useState<boolean>(false);
@@ -130,12 +145,17 @@ function Sidenav(props: any) {
     }, [currentPath, overdueCount]);
 
     React.useEffect(() => {
-        if (currentPath.includes("/drivers") && complianceCount) {
+        if (currentPath.includes("/drivers") && (complianceCount || expiringSoonCount)) {
             setDriversOpen(true);
         }
-    }, [currentPath, complianceCount]);
+    }, [currentPath, complianceCount, expiringSoonCount]);
 
     const [selectedIndex, setSelectedIndex] = React.useState(selectedLink);
+
+    React.useEffect(() => {
+        setSelectedIndex(pathToSideNavIndex(currentPath));
+    }, [currentPath]);
+
     return (
         <Drawer variant="permanent" open={props.open}>
             <Toolbar
@@ -300,7 +320,7 @@ function Sidenav(props: any) {
                                 sx={{ pl: 4 }}
                                 onClick={() => setSelectedIndex(14)}
                             >
-                                <ListItemText primary="Non-W2 Missing Pay" />
+                                <ListItemText primary="OO Missing Pay" />
                             </ListItemButton>
                         </NextLink>
                         <NextLink href="/dailies/not_printed" passHref>
@@ -328,7 +348,7 @@ function Sidenav(props: any) {
                 </NextLink>
 
                 <ListItemButton
-                    selected={[4, 20, 21, 22].includes(selectedIndex)}
+                    selected={[4, 20, 21, 22, 23].includes(selectedIndex)}
                 >
                     <NextLink href="/drivers" passHref>
                         <ListItemIcon>
@@ -368,6 +388,35 @@ function Sidenav(props: any) {
                                 <ListItemText primary="Form Options" />
                             </ListItemButton>
                         </NextLink>
+                        <NextLink href="/drivers/expiring-soon" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 23}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(23)}
+                            >
+                                <ListItemText primary="Exp Soon" />
+                                {isDriversOpen && expiringSoonCount > 0 ? (
+                                    <span
+                                        style={{
+                                            marginLeft: "auto",
+                                            minWidth: 22,
+                                            height: 22,
+                                            borderRadius: 11,
+                                            background: "#ed6c02",
+                                            color: "#fff",
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            padding: "0 7px",
+                                        }}
+                                    >
+                                        {expiringSoonCount}
+                                    </span>
+                                ) : null}
+                            </ListItemButton>
+                        </NextLink>
                         <NextLink href="/drivers/w2_forms" passHref>
                             <ListItemButton
                                 selected={selectedIndex === 21}
@@ -403,7 +452,7 @@ function Sidenav(props: any) {
                                 sx={{ pl: 4 }}
                                 onClick={() => setSelectedIndex(22)}
                             >
-                                <ListItemText primary="Non-W2 Forms" />
+                                <ListItemText primary="OO Forms" />
                                 {isDriversOpen && ooComplianceCount > 0 ? (
                                     <span
                                         style={{
@@ -441,7 +490,7 @@ function Sidenav(props: any) {
 
 
                 <ListItemButton
-                    selected={[5, 20, 21].includes(selectedIndex)}
+                    selected={[5, 50, 51].includes(selectedIndex)}
                 >
                     <NextLink href="/invoices" passHref>
                         <ListItemIcon>
@@ -477,18 +526,18 @@ function Sidenav(props: any) {
                     <List component="div" disablePadding>
                         <NextLink href="/invoices" passHref>
                             <ListItemButton
-                                selected={selectedIndex === 20}
+                                selected={selectedIndex === 50}
                                 sx={{ pl: 4 }}
-                                onClick={() => setSelectedIndex(20)}
+                                onClick={() => setSelectedIndex(50)}
                             >
                                 <ListItemText primary="By Date" />
                             </ListItemButton>
                         </NextLink>
                         <NextLink href="/invoices/overdue" passHref>
                             <ListItemButton
-                                selected={selectedIndex === 21}
+                                selected={selectedIndex === 51}
                                 sx={{ pl: 4, display: "flex", justifyContent: "space-between" }}
-                                onClick={() => setSelectedIndex(21)}
+                                onClick={() => setSelectedIndex(51)}
                             >
                                 <ListItemText primary="Overdue" />
                                 {isInvoicesOpen && overdueCount > 0 && (

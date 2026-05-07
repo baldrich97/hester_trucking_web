@@ -171,7 +171,11 @@ const RHAutocomplete = ({
         const merged = [...rows];
         if (
             selectedRow &&
-            !merged.some((o) => o[optionValue] === selectedRow[optionValue])
+            !merged.some(
+                (o) =>
+                    (o as Record<string, unknown>)[optionValue] ===
+                    (selectedRow as Record<string, unknown>)[optionValue],
+            )
         ) {
             merged.unshift(selectedRow);
         }
@@ -200,7 +204,7 @@ const RHAutocomplete = ({
 
     const loading = menuOpen && !clientProvidedOptions && searchQueryResult.isFetching;
 
-    function groupByFunction(option: {[x: string]: any}) {
+    function groupByFunction(option: {[x: string]: any}): string {
         if (!groupBy || !groupByNames) {
             return "";
         }
@@ -218,13 +222,13 @@ const RHAutocomplete = ({
         if (mapEntries.length > 0) {
             const map = Object.fromEntries(mapEntries);
             if (typeof raw === "string" && raw.length > 0 && map[raw]) {
-                return map[raw];
+                return String(map[raw] ?? "");
             }
             const fallback = tokens.find((t) => !t.includes("="));
             return fallback ?? "";
         }
 
-        return raw ? tokens[0] ?? "" : tokens[1] ?? "";
+        return raw ? (tokens[0] ?? "") : (tokens[1] ?? "");
     }
 
     const checkKeyDown = (e: {key: string; preventDefault: () => void}) => {
@@ -244,18 +248,21 @@ const RHAutocomplete = ({
                     <Autocomplete
                         {...field}
                         id={label + "-autocomplete"}
-                        groupBy={(option) => groupByFunction(option)}
+                        groupBy={(option): string => groupByFunction(option)}
                         open={menuOpen}
                         fullWidth={true}
                         disabled={disabled}
                         onOpen={() => setMenuOpen(true)}
                         onClose={() => setMenuOpen(false)}
                         isOptionEqualToValue={(option, v) => {
-                            return option[optionValue] === v[optionValue];
+                            return (
+                                (option as Record<string, unknown>)[optionValue] ===
+                                (v as Record<string, unknown>)[optionValue]
+                            );
                         }}
                         onKeyPress={(e) => checkKeyDown(e)}
-                        getOptionLabel={(option) =>
-                            formatOptionLabel(optionLabel, option) || ""
+                        getOptionLabel={(option): string =>
+                            String(formatOptionLabel(optionLabel, option) ?? "")
                         }
                         options={options}
                         loading={loading}
@@ -290,7 +297,7 @@ const RHAutocomplete = ({
                                             {loading ? (
                                                 <CircularProgress color="inherit" size={20} />
                                             ) : null}
-                                            {params.InputProps.endAdornment}
+                                            {params.InputProps?.endAdornment}
                                         </React.Fragment>
                                     ),
                                 }}
