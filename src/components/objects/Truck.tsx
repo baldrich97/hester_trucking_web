@@ -129,7 +129,13 @@ const Truck = ({initialTruck = null}: {initialTruck?: null | TrucksType}) => {
                 paddingLeft: 2.5,
             }}
         >
-            <GenericForm errors={errors} control={control} fields={fields} selectData={selectData} />
+            <GenericForm
+                errors={errors}
+                control={control}
+                fields={fields}
+                selectData={selectData}
+                submitDisabled={addOrUpdateTruck.isLoading}
+            />
         </Box>
     );
 };

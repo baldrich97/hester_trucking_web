@@ -1,8 +1,7 @@
 import React from "react";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
-import MuiLink from "@mui/material/Link";
-import NextLink from "next/link";
+import TableEntityLink from "../../elements/TableEntityLink";
 
 export default function CarrierComplianceHub() {
     return (
@@ -19,24 +18,18 @@ export default function CarrierComplianceHub() {
             </Typography>
             <Typography component="ul" sx={{pl: 3}}>
                 <li>
-                    <MuiLink component={NextLink} href="/drivers/form-options">
-                        Form options
-                    </MuiLink>
+                    <TableEntityLink href="/drivers/form-options">Form options</TableEntityLink>
                 </li>
                 <li>
-                    <MuiLink component={NextLink} href="/drivers/w2_forms">
-                        W-2 forms grid
-                    </MuiLink>
+                    <TableEntityLink href="/drivers/w2_forms">W-2 forms grid</TableEntityLink>
                 </li>
                 <li>
-                    <MuiLink component={NextLink} href="/drivers/owner_forms">
+                    <TableEntityLink href="/drivers/owner_forms">
                         Non-W-2 (owner operator) forms grid
-                    </MuiLink>
+                    </TableEntityLink>
                 </li>
                 <li>
-                    <MuiLink component={NextLink} href="/carriers">
-                        Carriers list
-                    </MuiLink>
+                    <TableEntityLink href="/carriers">Carriers list</TableEntityLink>
                 </li>
             </Typography>
         </Box>

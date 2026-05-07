@@ -12,8 +12,7 @@ import {toast} from "react-toastify";
 import {z} from "zod";
 import {CompleteJobs, LoadsModel, DriversModel, DailiesModel} from "../../../prisma/zod";
 import Tooltip from '@mui/material/Tooltip';
-import {confirmAlert} from "react-confirm-alert";
-import "react-confirm-alert/src/react-confirm-alert.css";
+import {confirmAlert, confirmDestructive} from "../../utils/appConfirm";
 import {trpc} from "../../utils/trpc";
 import {calendarNavButtonSx, tableTextLinkSx} from "../../theme/muiShared";
 import Box from "@mui/material/Box";
@@ -51,6 +50,7 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
     }, [forceExpand, initialExpand])
 
     const [daily, setDaily] = useState<DriverSheet>(sheet);
+    const [pdfDailyBusy, setPdfDailyBusy] = useState(false);
 
     return (
         <div style={{padding: 5}}>
@@ -86,7 +86,13 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
                     <Button
                         variant="contained"
                         color="warning"
-                        onClick={async () => {
+                        disabled={pdfDailyBusy}
+                        onClick={() => {
+                            if (pdfDailyBusy) return;
+                            const armCooldown = () => {
+                                setPdfDailyBusy(true);
+                                window.setTimeout(() => setPdfDailyBusy(false), 2000);
+                            };
                             if (daily.LastPrinted) {
                                 confirmAlert({
                                     customUI: ({onClose}) => {
@@ -99,7 +105,11 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
                                                         only loads created after the last print date, or print the
                                                         entire sheet?</p>
                                                     <div className="react-confirm-alert-button-group">
-                                                        <button onClick={async () => {
+                                                        <button
+                                                            type="button"
+                                                            className="rca-btn-confirm-primary"
+                                                            onClick={() => {
+                                                            armCooldown();
                                                             toast("Generating PDF...", {autoClose: 2000, type: "info"});
                                                             const element = document.createElement("a");
                                                             element.href = `/api/getPDF/daily/${daily.ID}|${week}|partial`;
@@ -112,10 +122,13 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
                                                         }}>New Data Only/Partial Sheet
                                                         </button>
                                                         <button
-                                                            onClick={async () => {
+                                                            type="button"
+                                                            className="rca-btn-confirm-primary"
+                                                            onClick={() => {
+                                                                armCooldown();
                                                                 toast("Generating PDF...", {
                                                                     autoClose: 2000,
-                                                                    type: "info"
+                                                                    type: "info",
                                                                 });
                                                                 const element = document.createElement("a");
                                                                 element.href = `/api/getPDF/daily/${daily.ID}|${week}|full`;
@@ -123,13 +136,19 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
                                                                 document.body.appendChild(element);
                                                                 element.click();
                                                                 document.body.removeChild(element);
-                                                                setDaily({...daily, LastPrinted: new Date})
+                                                                setDaily({...daily, LastPrinted: new Date});
                                                                 onClose();
                                                             }}
                                                         >
                                                             All Data/Full Sheet
                                                         </button>
-                                                        <button style={{marginLeft: 'auto'}} onClick={onClose}>Close
+                                                        <button
+                                                            type="button"
+                                                            className="rca-btn-cancel"
+                                                            style={{marginLeft: "auto"}}
+                                                            onClick={onClose}
+                                                        >
+                                                            Close
                                                         </button>
                                                     </div>
                                                 </div>
@@ -138,6 +157,7 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
                                     },
                                 });
                             } else {
+                                armCooldown();
                                 toast("Generating PDF...", {autoClose: 2000, type: "info"});
                                 const element = document.createElement("a");
                                 element.href = `/api/getPDF/daily/${daily.ID}|${week}|full`;
@@ -145,7 +165,7 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
                                 document.body.appendChild(element);
                                 element.click();
                                 document.body.removeChild(element);
-                                setDaily({...daily, LastPrinted: new Date})
+                                setDaily({...daily, LastPrinted: new Date});
                             }
                         }}
                     >
@@ -292,79 +312,75 @@ const TotalsRow = ({
                                           : "info.dark",
                                 },
                             }}
-                            disabled={isPaidOut}
-                            onClick={async () => {
+                            disabled={
+                                isPaidOut ||
+                                postJobPaid.isLoading ||
+                                postJobClosed.isLoading
+                            }
+                            onClick={() => {
                                 if (isClosed) {
                                     if (ownerOperator) {
-                                        confirmAlert({
+                                        confirmDestructive({
                                             title: "Confirm Owner Operator Payment",
-                                            message: "Doing this will mark the job as paid out. This cannot be undone. Are you sure?",
-                                            //TODO once pay stubs are set up add in here that it will automatically be done once a paystub is generated
-                                            buttons: [
-                                                {
-                                                    label: "Yes",
-                                                    onClick: async () => {
-                                                        await postJobPaid.mutateAsync({
-                                                            ...jobState,
-                                                            PaidOut: true,
-                                                        });
-                                                        setIsPaidOut(true)
-                                                    },
-                                                },
-                                                {
-                                                    label: "No",
-                                                    //onClick: () => {}
-                                                },
-                                            ],
+                                            message:
+                                                "Doing this will mark the job as paid out. This cannot be undone. Are you sure?",
+                                            confirmLabel: "Yes",
+                                            cancelLabel: "No",
+                                            onConfirm: async () => {
+                                                await postJobPaid.mutateAsync({
+                                                    ...jobState,
+                                                    PaidOut: true,
+                                                });
+                                                setIsPaidOut(true);
+                                            },
                                         });
                                     } else {
-                                        confirmAlert({
+                                        confirmDestructive({
                                             title: "Confirm Company Employee Payment",
-                                            message: "Doing this will mark the job as paid out. This cannot be undone. Are you sure?",
-                                            //TODO once pay stubs are set up add in here that it will be automatically done once a paystub is generated
-                                            buttons: [
-                                                {
-                                                    label: "Yes",
-                                                    onClick: async () => {
-                                                        await postJobPaid.mutateAsync({
-                                                            ...jobState,
-                                                            PaidOut: true,
-                                                        });
-                                                        setIsPaidOut(true)
-                                                    },
-                                                },
-                                                {
-                                                    label: "No",
-                                                    //onClick: () => {}
-                                                },
-                                            ],
+                                            message:
+                                                "Doing this will mark the job as paid out. This cannot be undone. Are you sure?",
+                                            confirmLabel: "Yes",
+                                            cancelLabel: "No",
+                                            onConfirm: async () => {
+                                                await postJobPaid.mutateAsync({
+                                                    ...jobState,
+                                                    PaidOut: true,
+                                                });
+                                                setIsPaidOut(true);
+                                            },
                                         });
                                     }
                                 } else {
-                                    confirmAlert({
+                                    confirmDestructive({
                                         title: "Confirm Job Closure",
-                                        message: "This will close the job. Any future loads similar to this job will be on their own job. To invoice this job, please close the weekly associated with it. This cannot be undone, are you sure?",
-                                        buttons: [
-                                            {
-                                                label: "Yes",
-                                                onClick: async () => {
-                                                    const data = await postJobClosed.mutateAsync({
-                                                        ...jobState,
-                                                        TruckingRevenue: jobState.TruckingRevenue ? jobState.TruckingRevenue : (Math.round(weightSum * (load.DriverRate != load.TruckRate ? load.DriverRate ?? 0 : load.TruckRate ?? 0) * 100) / 100),
-                                                        CompanyRevenue: jobState.CompanyRevenue ? jobState.CompanyRevenue : (Math.round(weightSum * (load.TotalRate ? load.TotalRate : 0) * 100) / 100)
-                                                    });
-                                                    setJobState(prevState => ({
-                                                        ...prevState,
-                                                        ...data
-                                                    }));
-                                                    setIsClosed(true);
-                                                },
-                                            },
-                                            {
-                                                label: "No",
-                                                //onClick: () => {}
-                                            },
-                                        ],
+                                        message:
+                                            "This will close the job. Any future loads similar to this job will be on their own job. To invoice this job, please close the weekly associated with it. This cannot be undone, are you sure?",
+                                        confirmLabel: "Yes",
+                                        cancelLabel: "No",
+                                        onConfirm: async () => {
+                                            const data = await postJobClosed.mutateAsync({
+                                                ...jobState,
+                                                TruckingRevenue: jobState.TruckingRevenue
+                                                    ? jobState.TruckingRevenue
+                                                    : Math.round(
+                                                          weightSum *
+                                                              (load.DriverRate !== load.TruckRate
+                                                                  ? load.DriverRate ?? 0
+                                                                  : load.TruckRate ?? 0) *
+                                                              100,
+                                                      ) / 100,
+                                                CompanyRevenue: jobState.CompanyRevenue
+                                                    ? jobState.CompanyRevenue
+                                                    : Math.round(
+                                                          weightSum * (load.TotalRate ? load.TotalRate : 0) * 100,
+                                                      ) / 100,
+                                            });
+                                            setJobState((prevState) => ({
+                                                ...prevState,
+                                                ...data,
+                                            }));
+                                            setIsClosed(true);
+                                        },
                                     });
                                 }
                             }}

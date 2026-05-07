@@ -10,7 +10,6 @@ import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
-import NextLink from "next/link";
 import { styled, useTheme } from "@mui/material/styles";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
@@ -26,9 +25,11 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import { visuallyHidden } from "@mui/utils";
 
+import NextLink from "next/link";
 import { TableColumnsType, TableColumnOverridesType } from "../utils/types";
-import { tableTextLinkSx } from "../theme/muiShared";
+import {tableContainedNavButtonSx} from "../theme/muiShared";
 import Modal from "@mui/material/Modal";
+import TableEntityLink from "./TableEntityLink";
 import BasicAutocomplete from "./Autocomplete";
 
 interface TablePaginationActionsProps {
@@ -379,15 +380,23 @@ export default function GenericTable({
                           >
                             <NextLink
                               href={
-                                column.navigateTo + row[column.name].toString()
+                                column.navigateTo +
+                                row[column.name].toString()
                               }
                               passHref
+                              legacyBehavior
                             >
-                              <a target={"_blank"}>
-                                  <Button color="primary" variant="contained">
-                                      Edit
-                                  </Button>
-                              </a>
+                              <Button
+                                component="a"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                color="primary"
+                                variant="contained"
+                                size="small"
+                                sx={tableContainedNavButtonSx}
+                              >
+                                Edit
+                              </Button>
                             </NextLink>
                           </StyledTableCell>
                         );
@@ -476,16 +485,7 @@ export default function GenericTable({
                               "row-" + rowindex.toString() + "-" + column.name
                             }
                           >
-                            <NextLink href={link} passHref>
-                              <Box
-                                component="a"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                sx={tableTextLinkSx}
-                              >
-                                {data}
-                              </Box>
-                            </NextLink>
+                            <TableEntityLink href={link}>{data}</TableEntityLink>
                           </StyledTableCell>
                         );
                       case "date":

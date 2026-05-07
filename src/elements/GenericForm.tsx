@@ -20,6 +20,8 @@ const GenericForm = ({
                          selectedLoadType = 0,
                          onDelete = null,
                          onReset = null,
+                         submitDisabled = false,
+                         deleteDisabled = false,
                      }: {
     errors: any;
     control: Control<any>;
@@ -30,6 +32,8 @@ const GenericForm = ({
     selectedLoadType?: number | null;
     onDelete?: any;
     onReset?: any;
+    submitDisabled?: boolean;
+    deleteDisabled?: boolean;
 }) => {
     return (
         <Grid2 container columnSpacing={2} rowSpacing={2}>
@@ -204,7 +208,12 @@ const GenericForm = ({
             })}
 
             <Grid2 xs={3}>
-                <Button type="submit" variant="contained" color="primary">
+                <Button
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    disabled={submitDisabled}
+                >
                     Submit
                 </Button>
             </Grid2>
@@ -216,6 +225,7 @@ const GenericForm = ({
                         variant="contained"
                         color="error"
                         sx={{justifySelf: "flex-end"}}
+                        disabled={deleteDisabled}
                         onClick={onDelete}
                     >
                         Delete

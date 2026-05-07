@@ -159,7 +159,13 @@ const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDr
                 maxWidth: 960,
             }}
         >
-            <GenericForm errors={errors} control={control} fields={fields} selectData={selectData}/>
+            <GenericForm
+                errors={errors}
+                control={control}
+                fields={fields}
+                selectData={selectData}
+                submitDisabled={addOrUpdateDriver.isLoading}
+            />
         </Box>
     )
 }

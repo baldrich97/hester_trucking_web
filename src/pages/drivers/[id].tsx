@@ -10,8 +10,7 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import Link from "next/link";
-import Button from "@mui/material/Button";
+import TableEntityLink from "../../elements/TableEntityLink";
 
 type StatesType = z.infer<typeof StatesModel>;
 type DriversType = z.infer<typeof DriversModel>;
@@ -37,35 +36,28 @@ const Driver = ({states, initialDriver, trucksDriven}: {states: StatesType[], in
                         <TableCell>Truck</TableCell>
                         <TableCell>VIN</TableCell>
                         <TableCell>Plate</TableCell>
-                        <TableCell></TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
                     {trucksDriven.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={5}>No trucks on file for this driver.</TableCell>
+                            <TableCell colSpan={4}>No trucks on file for this driver.</TableCell>
                         </TableRow>
                     ) : (
                         trucksDriven.map((row) => (
                             <TableRow key={row.ID}>
                                 <TableCell>{new Date(row.DateDriven).toLocaleDateString()}</TableCell>
-                                <TableCell>{row.Trucks?.Name ?? "—"}</TableCell>
-                                <TableCell>{row.Trucks?.VIN ?? "—"}</TableCell>
-                                <TableCell>{row.Trucks?.LicensePlate ?? "—"}</TableCell>
                                 <TableCell>
                                     {row.Trucks ? (
-                                        <Link href={`/trucks/${row.Trucks.ID}`} passHref>
-                                            <Button
-                                                component="a"
-                                                variant="contained"
-                                                color="primary"
-                                                size="small"
-                                            >
-                                                Open truck
-                                            </Button>
-                                        </Link>
-                                    ) : null}
+                                        <TableEntityLink href={`/trucks/${row.Trucks.ID}`}>
+                                            {row.Trucks.Name}
+                                        </TableEntityLink>
+                                    ) : (
+                                        "—"
+                                    )}
                                 </TableCell>
+                                <TableCell>{row.Trucks?.VIN ?? "—"}</TableCell>
+                                <TableCell>{row.Trucks?.LicensePlate ?? "—"}</TableCell>
                             </TableRow>
                         ))
                     )}

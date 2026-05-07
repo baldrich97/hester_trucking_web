@@ -9,8 +9,7 @@ import {useRouter} from "next/router";
 import GenericForm from "../../elements/GenericForm";
 import {toast} from "react-toastify";
 import {FormFieldsType} from "../../utils/types";
-import {confirmAlert} from "react-confirm-alert";
-import "react-confirm-alert/src/react-confirm-alert.css";
+import {confirmDestructive} from "../../utils/appConfirm";
 
 type SourcesType = z.infer<typeof SourcesModel>;
 
@@ -74,21 +73,19 @@ const Source = ({initialSource = null}: {initialSource?: null | SourcesType}) =>
                 errors={errors}
                 control={control}
                 fields={fields}
+                submitDisabled={addOrUpdateSource.isLoading}
+                deleteDisabled={deleteSource.isLoading}
                 onDelete={
                     initialSource
                         ? () => {
-                            confirmAlert({
-                                title: "Confirm Deletion",
-                                message: "Delete this source? Any linked load types will be unassigned.",
-                                buttons: [
-                                    {
-                                        label: "Yes",
-                                        onClick: async () => {
-                                            await deleteSource.mutateAsync({ID: initialSource.ID});
-                                        },
-                                    },
-                                    {label: "No"},
-                                ],
+                            confirmDestructive({
+                                title: "Confirm deletion",
+                                message:
+                                    "Delete this source? Any linked load types will be unassigned.",
+                                confirmLabel: "Delete",
+                                onConfirm: () => {
+                                    void deleteSource.mutateAsync({ID: initialSource.ID});
+                                },
                             });
                         }
                         : null

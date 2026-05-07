@@ -37,3 +37,20 @@ export const tableTextLinkSx: SxProps<Theme> = {
     "&:visited": {color: "text.primary"},
     "&:hover": {color: "text.primary"},
 };
+
+/**
+ * Nav controls in table cells that must read as buttons (bold white on filled BG), not underline text links.
+ * Use with contained Buttons, including anchors used with NextLink.
+ */
+export const tableContainedNavButtonSx: SxProps<Theme> = {
+    fontWeight: 700,
+    fontSize: 15,
+    textDecoration: "none !important",
+    color: "#fff !important",
+    "&:visited": {
+        color: "#fff !important",
+    },
+    "&:hover": {
+        color: "#fff !important",
+    },
+};

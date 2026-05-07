@@ -11,8 +11,7 @@ import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Typography from "@mui/material/Typography";
 import Grid2 from "@mui/material/Unstable_Grid2";
-import NextLink from "next/link";
-import MuiLink from "@mui/material/Link";
+import TableEntityLink from "../../elements/TableEntityLink";
 import type {FormExpiryCadence} from "@prisma/client";
 import React, {useMemo, useState} from "react";
 import {trpc} from "../../utils/trpc";
@@ -213,17 +212,18 @@ export default function DriverFormsExpiringSoon() {
             <Typography variant="body1" color="text.secondary" sx={{mb: 2}}>
                 On-file forms whose compliance end date is within the next {data?.daysAhead ?? 30} days (still
                 compliant today). Update filings from{" "}
-                <NextLink href="/drivers/w2_forms" passHref legacyBehavior>
-                    <MuiLink component="a">W2 Forms</MuiLink>
-                </NextLink>{" "}
+                <TableEntityLink href="/drivers/w2_forms">W2 Forms</TableEntityLink>{" "}
                 or{" "}
-                <NextLink href="/drivers/owner_forms" passHref legacyBehavior>
-                    <MuiLink component="a">OO Forms</MuiLink>
-                </NextLink>
+                <TableEntityLink href="/drivers/owner_forms">OO Forms</TableEntityLink>
                 .
             </Typography>
             <Box sx={{mb: 2, display: "flex", gap: 1, flexWrap: "wrap"}}>
-                <Button size="small" variant="outlined" onClick={() => void refetch()}>
+                <Button
+                    size="small"
+                    variant="outlined"
+                    disabled={isFetching}
+                    onClick={() => void refetch()}
+                >
                     Refresh
                 </Button>
                 {allKeys.length > 0 ? (

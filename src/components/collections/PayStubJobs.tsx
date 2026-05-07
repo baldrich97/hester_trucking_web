@@ -17,7 +17,7 @@ import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import {confirmAlert} from "react-confirm-alert";
+import {confirmProceed} from "../../utils/appConfirm";
 
 interface Data {
     "ID": number,
@@ -306,21 +306,19 @@ function Row(props: {
                             }}
                             onClick={() =>{
                                 if (!row.Weeklies?.Invoices?.Paid && !isItemSelected) {
-                                    confirmAlert({
-                                        title: "Confirm Non Paid Selection",
-                                        message: "This job's invoice has not yet been paid. Are you sure you want to add it to the paystub?",
-                                        buttons: [
-                                            {
-                                                label: "Yes",
-                                                onClick: async () => {
-                                                    handleClick(row.ID.toString(), Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100)
-                                                },
-                                            },
-                                            {
-                                                label: "No",
-                                                //onClick: () => {}
-                                            },
-                                        ],
+                                    confirmProceed({
+                                        title: "Confirm non-paid selection",
+                                        message:
+                                            "This job's invoice has not yet been paid. Are you sure you want to add it to the paystub?",
+                                        confirmLabel: "Yes",
+                                        cancelLabel: "No",
+                                        onConfirm: () => {
+                                            handleClick(
+                                                row.ID.toString(),
+                                                Math.round((calculateRevenue(row) + Number.EPSILON) * 100) /
+                                                    100,
+                                            );
+                                        },
                                     });
                                 } else {
                                     handleClick(row.ID.toString(), Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100)

@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useRef, useState} from "react";
 import Box from "@mui/material/Box";
 import {useForm} from "react-hook-form";
 import {z} from "zod";
@@ -18,8 +18,7 @@ import {trpc} from "../../utils/trpc";
 import {useRouter} from "next/router";
 import GenericForm from "../../elements/GenericForm";
 import {toast} from "react-toastify";
-import {confirmAlert} from "react-confirm-alert";
-import "react-confirm-alert/src/react-confirm-alert.css";
+import {confirmDestructive} from "../../utils/appConfirm";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
@@ -97,7 +96,7 @@ function Load({
 
     const {
         handleSubmit,
-        formState: {errors},
+        formState: {errors, isSubmitting},
         control,
         resetField,
         reset,
@@ -213,8 +212,15 @@ function Load({
     });
 
     const [overrideWarning, toggleOverride] = useState(false);
+    /** Prevents double submits while duplicate check or save is in flight. */
+    const submitLockRef = useRef(false);
 
     const onSubmit = async (data: ValidationSchema) => {
+        if (submitLockRef.current) {
+            return;
+        }
+        submitLockRef.current = true;
+        try {
         const duplicate = await checkDuplicate.mutateAsync(data);
 
         if (duplicate !== false && !overrideWarning) {
@@ -241,6 +247,9 @@ function Load({
                     refreshData();
                 }
             }
+        }
+        } finally {
+            submitLockRef.current = false;
         }
     };
 
@@ -705,6 +714,12 @@ function Load({
                     selectedCustomer={customer}
                     selectedSource={source}
                     selectedLoadType={loadTypeSelected}
+                    submitDisabled={
+                        isSubmitting ||
+                        addOrUpdateLoad.isLoading ||
+                        checkDuplicate.isLoading
+                    }
+                    deleteDisabled={deleteLoad.isLoading}
                     onReset={
                         resetButton
                             ? () => {
@@ -715,21 +730,13 @@ function Load({
                     onDelete={
                         initialLoad
                             ? () => {
-                                confirmAlert({
-                                    title: "Confirm Deletion",
+                                confirmDestructive({
+                                    title: "Confirm deletion",
                                     message: "Are you sure you want to delete this load?",
-                                    buttons: [
-                                        {
-                                            label: "Yes",
-                                            onClick: async () => {
-                                                onDelete(initialLoad).then();
-                                            },
-                                        },
-                                        {
-                                            label: "No",
-                                            //onClick: () => {}
-                                        },
-                                    ],
+                                    confirmLabel: "Delete",
+                                    onConfirm: () => {
+                                        void onDelete(initialLoad);
+                                    },
                                 });
                             }
                             : null

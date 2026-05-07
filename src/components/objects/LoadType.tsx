@@ -62,7 +62,12 @@ const LoadType = ({initialLoadType = null}: {initialLoadType?: null | LoadTypesT
                 paddingLeft: 2.5
             }}
         >
-            <GenericForm errors={errors} control={control} fields={fields}/>
+            <GenericForm
+                errors={errors}
+                control={control}
+                fields={fields}
+                submitDisabled={addOrUpdateLoadType.isLoading}
+            />
         </Box>
     )
 }

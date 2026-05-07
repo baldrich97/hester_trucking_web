@@ -17,8 +17,7 @@ import {trpc} from "../../utils/trpc";
 import {useRouter} from "next/router";
 import GenericForm from "../../elements/GenericForm";
 import {toast} from "react-toastify";
-import {confirmAlert} from "react-confirm-alert";
-import "react-confirm-alert/src/react-confirm-alert.css";
+import {confirmAlert} from "../../utils/appConfirm";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
@@ -139,6 +138,7 @@ function PartialLoad({
             }
         }
 
+        if (doMassEdit.isLoading) return;
 
         confirmAlert({
             overlayClassName: "custom-overlay-style",
@@ -165,7 +165,8 @@ function PartialLoad({
                 },
                 {
                     label: "Close",
-                    //onClick: () => {}
+                    className: "rca-btn-cancel",
+                    onClick: () => undefined,
                 },
             ],
         });
@@ -487,6 +488,7 @@ function PartialLoad({
                     fields={fields}
                     selectData={selectData}
                     selectedCustomer={customer}
+                    submitDisabled={doMassEdit.isLoading}
                     onReset={
                         resetButton
                             ? () => {

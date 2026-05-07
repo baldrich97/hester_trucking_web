@@ -81,7 +81,13 @@ const Customer = ({states, initialCustomer = null}: {states: StatesType[], initi
                 paddingLeft: 2.5
             }}
         >
-            <GenericForm errors={errors} control={control} fields={fields} selectData={selectData}/>
+            <GenericForm
+                errors={errors}
+                control={control}
+                fields={fields}
+                selectData={selectData}
+                submitDisabled={addOrUpdateCustomer.isLoading}
+            />
         </Box>
     )
 }

@@ -24,8 +24,7 @@ import InvoiceLoads from "../collections/InvoiceLoads";
 import InvoiceWeeklies from "../collections/InvoiceWeeklies";
 import { toast } from "react-toastify";
 import RHAutocomplete from "elements/RHAutocomplete";
-import { confirmAlert } from "react-confirm-alert";
-import "react-confirm-alert/src/react-confirm-alert.css";
+import {confirmDestructive} from "../../utils/appConfirm";
 import ConsolidatedInvoices from "components/collections/ConsolidatedInvoices";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
@@ -43,6 +42,7 @@ const defaultValues = {
   Paid: false,
   Printed: false,
   PaymentType: "N/A",
+  selected: [] as string[],
 };
 
 const Invoice = ({
@@ -71,6 +71,9 @@ const Invoice = ({
   //const [customerLoads, setCustomerLoads] = useState<any>([]);
 
   const [customerWeeklies, setCustomerWeeklies] = useState<any>([]);
+
+  /** Bumped after a successful **new** invoice submit so InvoiceWeeklies clears its internal selection state. */
+  const [weeklySelectionClearNonce, setWeeklySelectionClearNonce] = useState(0);
 
   const [selected, setSelected] = useState<any>(
     !initialInvoice ? [] : loads?.map((load) => load.ID.toString())
@@ -108,7 +111,9 @@ const Invoice = ({
     setValue,
   } = useForm<ValidationSchema>({
     resolver: zodResolver(validationSchema),
-    defaultValues: initialInvoice ?? defaultValues,
+    defaultValues: (initialInvoice
+      ? initialInvoice
+      : {...defaultValues, selected: []}) as ValidationSchema,
   });
 
   React.useEffect(() => {
@@ -129,9 +134,14 @@ const Invoice = ({
 
   const addOrUpdateInvoice = trpc.useMutation(key, {
     async onSuccess(data) {
+      if (!initialInvoice) {
+        setSelected([]);
+        setValue("selected", []);
+        setWeeklySelectionClearNonce((n) => n + 1);
+      }
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      reset(initialInvoice ? data : defaultValues);
+      reset(initialInvoice ? data : { ...defaultValues, ...(data ?? {}), selected: [] });
       toast("Successfully Submitted!", { autoClose: 2000, type: "success" });
     },
     async onError(error) {
@@ -525,6 +535,7 @@ const Invoice = ({
                 <Button
                   variant="contained"
                   color="success"
+                  disabled={payInvoice.isLoading}
                   onClick={async () => {
                     if (
                       !["Cash", "Check", "Credit Card"].includes(paymentType)
@@ -582,6 +593,7 @@ const Invoice = ({
                   key={initialInvoice ? initialInvoice.Paid ? 'paid-true' : 'paid-false' : 'invweeks'}
                   readOnly={!!initialInvoice}
                   isPaid={initialInvoice ? initialInvoice.Paid : false}
+                  selectionClearNonce={weeklySelectionClearNonce}
                   rows={weeklies.length > 0 ? weeklies : customerWeeklies ?? []}
                   updateTotal={(newTotal: number) => {
                     setValue("TotalAmount", newTotal);
@@ -604,7 +616,7 @@ const Invoice = ({
               type="submit"
               variant="contained"
               color="primary"
-              disabled={selected.length === 0}
+              disabled={selected.length === 0 || addOrUpdateInvoice.isLoading}
             >
               Submit
             </Button>
@@ -618,23 +630,16 @@ const Invoice = ({
                 type="button"
                 variant="contained"
                 color="error"
+                disabled={deleteInvoice.isLoading}
                 onClick={() => {
-                  confirmAlert({
-                    title: "Confirm Deletion",
+                  confirmDestructive({
+                    title: "Confirm deletion",
                     message:
                       "Are you sure you want to delete this invoice? It will make any loads associated available again.",
-                    buttons: [
-                      {
-                        label: "Yes",
-                        onClick: async () => {
-                          onDelete(initialInvoice).then();
-                        },
-                      },
-                      {
-                        label: "No",
-                        //onClick: () => {}
-                      },
-                    ],
+                    confirmLabel: "Delete",
+                    onConfirm: () => {
+                      void onDelete(initialInvoice);
+                    },
                   });
                 }}
               >
@@ -645,6 +650,7 @@ const Invoice = ({
               <Button
                 variant="contained"
                 color="warning"
+                disabled={printInvoice.isLoading}
                 onClick={async () => {
                   toast("Generating PDF...", { autoClose: 2000, type: "info" });
                   const element = document.createElement("a");
@@ -677,6 +683,7 @@ const Invoice = ({
                 type="submit"
                 variant="contained"
                 color="primary"
+                disabled={addOrUpdateInvoice.isLoading}
               >
                 Submit
               </Button>

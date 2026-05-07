@@ -27,6 +27,8 @@ import {
     CompleteWeeklies
 } from "../../../prisma/zod";
 import Button from "@mui/material/Button";
+import TableEntityLink from "../../elements/TableEntityLink";
+import {tableContainedNavButtonSx} from "../../theme/muiShared";
 import NextLink from "next/link";
 import PayStub from "../objects/PayStub";
 
@@ -259,14 +261,24 @@ function Row(props: {
                 </TableCell>
                 <TableCell align="right" padding="none" size={"small"}>
                     <NextLink
-                        href={{pathname: "/weeklies", query: {forceExpand: row.ID, defaultWeek: row.Week}}}
+                        href={{
+                            pathname: "/weeklies",
+                            query: {forceExpand: row.ID, defaultWeek: row.Week},
+                        }}
                         passHref
+                        legacyBehavior
                     >
-                        <a target={"_blank"}>
-                            <Button color="primary" variant="contained">
-                                To Weekly
-                            </Button>
-                        </a>
+                        <Button
+                            component="a"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            color="primary"
+                            variant="contained"
+                            size="small"
+                            sx={tableContainedNavButtonSx}
+                        >
+                            To weekly
+                        </Button>
                     </NextLink>
                 </TableCell>
                 <TableCell align={'right'} padding="none" size={"small"}>
@@ -299,38 +311,54 @@ function Row(props: {
                                             <Typography variant="h6" gutterBottom component="div">
                                                 Job Details
                                             </Typography>
-                                            <TableCell align="right" padding="none" size={"small"}>
-                                                {!job.PaidOut && job.Drivers?.OwnerOperator && redBackground && <Button
-                                                    color="primary"
-                                                    variant="contained"
-                                                    onClick={() => {
-                                                        setInitialJob(job)
-                                                        setShowPayModal(true)
-                                                    }}
-                                                >
-                                                    New Paystub
-                                                </Button>}
+                                            <Box sx={{display: "flex", gap: 1, alignItems: "center", flexShrink: 0}}>
+                                                {!job.PaidOut && job.Drivers?.OwnerOperator && redBackground ? (
+                                                    <Button
+                                                        color="primary"
+                                                        variant="contained"
+                                                        size="small"
+                                                        sx={tableContainedNavButtonSx}
+                                                        onClick={() => {
+                                                            setInitialJob(job)
+                                                            setShowPayModal(true)
+                                                        }}
+                                                    >
+                                                        New Paystub
+                                                    </Button>
+                                                ) : null}
                                                 <NextLink
                                                     href={{
                                                         pathname: "/dailies",
-                                                        query: {forceExpand: job.DriverID, defaultWeek: row.Week}
+                                                        query: {
+                                                            forceExpand: job.DriverID,
+                                                            defaultWeek: row.Week,
+                                                        },
                                                     }}
                                                     passHref
+                                                    legacyBehavior
                                                 >
-                                                    <a target={"_blank"}>
-                                                        <Button color="info" variant="contained">
-                                                            To Daily
-                                                        </Button>
-                                                    </a>
+                                                    <Button
+                                                        component="a"
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        color="info"
+                                                        variant="contained"
+                                                        size="small"
+                                                        sx={tableContainedNavButtonSx}
+                                                    >
+                                                        To daily
+                                                    </Button>
                                                 </NextLink>
-                                            </TableCell>
+                                            </Box>
                                         </div>
                                         <Table size="small" aria-label="purchases">
                                             <TableHead>
                                                 <TableRow>
                                                     <TableCell align="left" padding="none" size={"small"}
                                                                sx={{width: "50%"}}>
-                                                        {job.Drivers.FirstName + ' ' + job.Drivers.LastName}
+                                                        <TableEntityLink href={`/drivers/${job.Drivers.ID}`}>
+                                                            {job.Drivers.FirstName + " " + job.Drivers.LastName}
+                                                        </TableEntityLink>
                                                     </TableCell>
                                                     <TableCell align="left" padding="none" size={"small"}
                                                                sx={{width: "33%"}}>
@@ -353,7 +381,15 @@ function Row(props: {
                                                                 : "N/A"}
                                                         </TableCell>
                                                         <TableCell align="left" padding="none" size={"small"}>
-                                                            {load.Trucks ? load.Trucks?.Name : "N/A"}
+                                                            {load.Trucks ? (
+                                                                <TableEntityLink
+                                                                    href={`/trucks/${load.Trucks.ID}`}
+                                                                >
+                                                                    {load.Trucks.Name}
+                                                                </TableEntityLink>
+                                                            ) : (
+                                                                "N/A"
+                                                            )}
                                                         </TableCell>
                                                         <TableCell align="left" padding="normal" size={"small"}>
                                                             {Math.round((load.Weight ? load.Weight : load.Hours ? load.Hours : 0) * 100) / 100}
@@ -377,13 +413,16 @@ export default function InvoiceWeeklies({
                                             rows,
                                             updateTotal,
                                             updateSelected,
-                                            isPaid
+                                            isPaid,
+                                            selectionClearNonce = 0,
                                         }: {
     readOnly: boolean;
     rows: any[];
     updateTotal: any;
     updateSelected: any;
     isPaid?: any;
+    /** Increment to clear row checkboxes when parent resets selection (e.g. after creating an invoice). */
+    selectionClearNonce?: number;
 
 }) {
     const [order, setOrder] = React.useState<Order>("asc");
@@ -412,7 +451,10 @@ export default function InvoiceWeeklies({
     React.useEffect(() => {
         setSelected([]);
         setTotal(0);
-    }, [rows]);
+        updateTotal(0);
+        updateSelected([]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- parent callbacks; align selection with parent clears
+    }, [rows, selectionClearNonce]);
 
     const handleRequestSort = (
         event: React.MouseEvent<unknown>,

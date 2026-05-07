@@ -60,7 +60,12 @@ const DeliveryLocation = ({initialDeliveryLocation = null}: {initialDeliveryLoca
                 paddingLeft: 2.5
             }}
         >
-            <GenericForm errors={errors} control={control} fields={fields}/>
+            <GenericForm
+                errors={errors}
+                control={control}
+                fields={fields}
+                submitDisabled={addOrUpdateDeliveryLocation.isLoading}
+            />
         </Box>
     )
 }

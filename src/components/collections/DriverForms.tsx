@@ -3,7 +3,7 @@ import {useRouter} from "next/router";
 import {trpc} from "../../utils/trpc";
 import React, {useMemo, useState} from "react";
 import {Dayjs} from "dayjs";
-import {confirmAlert} from "react-confirm-alert";
+import {confirmDestructive} from "../../utils/appConfirm";
 import {toast} from "react-toastify";
 import {LocalizationProvider} from "@mui/x-date-pickers/LocalizationProvider";
 import {AdapterDayjs} from "@mui/x-date-pickers/AdapterDayjs";
@@ -11,13 +11,12 @@ import Grid2 from "@mui/material/Unstable_Grid2";
 import {Box, Button, Checkbox, IconButton, Modal, TextField, Tooltip, Typography} from "@mui/material";
 import {DatePicker} from "@mui/x-date-pickers/DatePicker";
 import {z} from "zod";
-import "react-confirm-alert/src/react-confirm-alert.css";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import ChevronRight from "@mui/icons-material/ChevronRight";
 import type {Carriers, States, Trucks} from "@prisma/client";
-import {calendarNavButtonSx, tableTextLinkSx} from "../../theme/muiShared";
+import {calendarNavButtonSx} from "../../theme/muiShared";
 import {
     collectEntityTrucks,
     driverMissingRequiredForm,
@@ -38,6 +37,7 @@ import {
     type FormOptionComplianceShape,
 } from "../../utils/driverFormCompliance";
 import {dateOnlyLocalToUtcNoon} from "../../utils/dateOnly";
+import TableEntityLink from "../../elements/TableEntityLink";
 
 function fmtDate(d: Date): string {
     return d.toLocaleDateString();
@@ -163,6 +163,12 @@ const Driver_Forms = ({
         },
     });
 
+    const addDriverForm = trpc.useMutation("driverForms.put", {
+        async onSuccess() {
+            toast.success("Successfully submitted!", {autoClose: 2000});
+        },
+    });
+
     const [modalOpen, setModalOpen] = useState<boolean>(false);
     const [selectedForm, setSelectedForm] = useState<CompleteFormOptions | null>(null);
     const [selectedDriver, setSelectedDriver] = useState<DriverFormsDataType | null>(null);
@@ -171,6 +177,7 @@ const Driver_Forms = ({
 
     const [ooExpanded, setOoExpanded] = useState<Record<string, boolean>>({});
     const [ooExpandAllOpen, setOoExpandAllOpen] = useState(false);
+    const [pdfDownloading, setPdfDownloading] = useState(false);
 
     const expiryPreview = useMemo(() => {
         if (!selectedForm) return null;
@@ -276,6 +283,7 @@ const Driver_Forms = ({
     };
 
     const handleCheckboxClickW2 = (driver: DriverFormsDataType, form: CompleteFormOptions) => {
+        if (deleteDriverForm.isLoading || addDriverForm.isLoading) return;
         const dShape = shapeFor(driver.ID);
         const fShape = formOptShapes.find((o) => o.Form === form.Form)!;
         const satisfied = isFormSatisfiedForDriver(dShape, fShape, driverShapes);
@@ -290,21 +298,17 @@ const Driver_Forms = ({
             return;
         }
 
-        confirmAlert({
+        confirmDestructive({
             title: "Remove filing",
             message: `Remove ${form.Forms.DisplayName} for ${driver.FirstName ?? ""} ${driver.LastName ?? ""}? The date will be cleared; re-check the box to set a new date.`,
-            buttons: [
-                {
-                    label: "Yes",
-                    onClick: () => {
-                        deleteDriverForm.mutate({
-                            driverId: driver.ID,
-                            formId: form.Form,
-                        });
-                    },
-                },
-                {label: "No", onClick: () => undefined},
-            ],
+            confirmLabel: "Yes",
+            cancelLabel: "No",
+            onConfirm: () => {
+                deleteDriverForm.mutate({
+                    driverId: driver.ID,
+                    formId: form.Form,
+                });
+            },
         });
     };
 
@@ -312,6 +316,7 @@ const Driver_Forms = ({
         entityDrivers: DriverFormsDataType[],
         form: CompleteFormOptions,
     ) => {
+        if (deleteDriverForm.isLoading || addDriverForm.isLoading) return;
         const entityShapes = entityShapesFor(entityDrivers);
         const fShape = formOptShapes.find((o) => o.Form === form.Form)!;
         const primaryId = primaryDriverIdForEntity(entityDrivers);
@@ -340,40 +345,32 @@ const Driver_Forms = ({
         const holder = entityDrivers.find((d) => d.ID === holderId) ?? primaryDriver;
 
         if (satisfied && !localOnPrimary && holderId !== primaryId) {
-            confirmAlert({
+            confirmDestructive({
                 title: "Remove filing",
                 message: `This form is on file under ${holder.FirstName ?? ""} ${holder.LastName ?? ""} for this entity. Remove it?`,
-                buttons: [
-                    {
-                        label: "Yes",
-                        onClick: () => {
-                            deleteDriverForm.mutate({
-                                driverId: holder.ID,
-                                formId: form.Form,
-                            });
-                        },
-                    },
-                    {label: "No", onClick: () => undefined},
-                ],
+                confirmLabel: "Yes",
+                cancelLabel: "No",
+                onConfirm: () => {
+                    deleteDriverForm.mutate({
+                        driverId: holder.ID,
+                        formId: form.Form,
+                    });
+                },
             });
             return;
         }
 
-        confirmAlert({
+        confirmDestructive({
             title: "Remove filing",
             message: `Remove ${form.Forms.DisplayName} for this entity? The date will be cleared; re-check the box to set a new date.`,
-            buttons: [
-                {
-                    label: "Yes",
-                    onClick: () => {
-                        deleteDriverForm.mutate({
-                            driverId: holder.ID,
-                            formId: form.Form,
-                        });
-                    },
-                },
-                {label: "No", onClick: () => undefined},
-            ],
+            confirmLabel: "Yes",
+            cancelLabel: "No",
+            onConfirm: () => {
+                deleteDriverForm.mutate({
+                    driverId: holder.ID,
+                    formId: form.Form,
+                });
+            },
         });
     };
 
@@ -385,13 +382,8 @@ const Driver_Forms = ({
         setFilerName("");
     };
 
-    const addDriverForm = trpc.useMutation("driverForms.put", {
-        async onSuccess() {
-            toast.success("Successfully submitted!", {autoClose: 2000});
-        },
-    });
-
     const handleDateSave = async () => {
+        if (addDriverForm.isLoading) return;
         if (selectedForm === null || selectedDriver === null || selectedDate === null) {
             return;
         }
@@ -429,6 +421,9 @@ const Driver_Forms = ({
     const pdfKind = mode === "w2" ? "w2" : "oo";
 
     const downloadPdf = () => {
+        if (pdfDownloading) return;
+        setPdfDownloading(true);
+        window.setTimeout(() => setPdfDownloading(false), 2000);
         toast.info("Generating PDF...", {autoClose: 2000, type: "info"});
         const element = document.createElement("a");
         element.href = `/api/getPDF/driver-forms/${pdfKind}`;
@@ -520,7 +515,7 @@ const Driver_Forms = ({
             }
         }
         const truckTooltipLines: string[] = [];
-        for (const t of trucksMap.values()) {
+        for (const t of Array.from(trucksMap.values())) {
             if (truckOoVitalsOk(t)) continue;
             const miss = truckOoVitalMissingReasons(t);
             truckTooltipLines.push(`${t.Name}: missing ${miss.join(", ")}`);
@@ -624,6 +619,7 @@ const Driver_Forms = ({
                             <Tooltip title={tooltipParts.join(" · ")}>
                                 <Checkbox
                                     checked={satisfied}
+                                    disabled={deleteDriverForm.isLoading || addDriverForm.isLoading}
                                     onClick={() => handleCheckboxClickOo(entityDrivers, form)}
                                     color={showError ? "error" : "primary"}
                                 />
@@ -734,8 +730,8 @@ const Driver_Forms = ({
                                     </Box>
                                     <Box sx={{width: OO_CHEVRON_W, flexShrink: 0}} />
                                     <Box sx={OO_LEFT_COL}>
-                                        <Typography variant="body2" fontWeight={600}>
-                                            {t.Name}
+                                        <Typography component="div" variant="body2" fontWeight={600}>
+                                            <TableEntityLink href={`/trucks/${tid}`}>{t.Name}</TableEntityLink>
                                         </Typography>
                                         <Typography variant="caption" color="text.secondary">
                                             Plate {t.LicensePlate?.trim() || "—"} · VIN{" "}
@@ -792,7 +788,7 @@ const Driver_Forms = ({
                         </Button>
                     </Tooltip>
                 ) : null}
-                <Button variant="outlined" onClick={downloadPdf}>
+                <Button variant="outlined" disabled={pdfDownloading} onClick={downloadPdf}>
                     Download PDF
                 </Button>
             </Box>
@@ -819,28 +815,10 @@ const Driver_Forms = ({
                         return (
                             <Grid2 container key={driver.ID} alignItems="center" wrap="nowrap">
                                 <Grid2 sx={OO_LEFT_COL}>
-                                    <Typography>
-                                        <Typography
-                                            component="span"
-                                            role="link"
-                                            tabIndex={0}
-                                            onClick={() => {
-                                                void router.push(`/drivers/${driver.ID}`);
-                                            }}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter" || e.key === " ") {
-                                                    e.preventDefault();
-                                                    void router.push(`/drivers/${driver.ID}`);
-                                                }
-                                            }}
-                                            sx={{
-                                                ...tableTextLinkSx,
-                                                display: "inline",
-                                                cursor: "pointer",
-                                            }}
-                                        >
-                                            {`${driver.FirstName ?? ""} ${driver.LastName ?? ""}`}
-                                        </Typography>
+                                    <Typography component="div">
+                                        <TableEntityLink href={`/drivers/${driver.ID}`}>
+                                            {`${driver.FirstName ?? ""} ${driver.LastName ?? ""}`.trim()}
+                                        </TableEntityLink>
                                         {formsBad ? (
                                             <Typography component="span" color="error" sx={{ml: 0.5}}>
                                                 *
@@ -901,6 +879,10 @@ const Driver_Forms = ({
                                                 <Tooltip title={tooltipParts.join(" · ")}>
                                                     <Checkbox
                                                         checked={satisfied}
+                                                        disabled={
+                                                            deleteDriverForm.isLoading ||
+                                                            addDriverForm.isLoading
+                                                        }
                                                         onClick={() =>
                                                             handleCheckboxClickW2(driver, form)
                                                         }
@@ -983,7 +965,7 @@ const Driver_Forms = ({
                             color="primary"
                             variant="contained"
                             onClick={handleDateSave}
-                            disabled={!selectedDate}
+                            disabled={!selectedDate || addDriverForm.isLoading}
                         >
                             Save
                         </Button>

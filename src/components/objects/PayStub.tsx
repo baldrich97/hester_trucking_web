@@ -22,8 +22,7 @@ import InputLabel from "@mui/material/InputLabel";
 import Button from "@mui/material/Button";
 import {toast} from "react-toastify";
 import RHAutocomplete from "elements/RHAutocomplete";
-import {confirmAlert} from "react-confirm-alert";
-import "react-confirm-alert/src/react-confirm-alert.css";
+import {confirmDestructive} from "../../utils/appConfirm";
 import PayStubJobs from "../collections/PayStubJobs";
 
 type DriversType = z.infer<typeof DriversModel>;
@@ -544,7 +543,7 @@ const PayStub = ({
                             type="submit"
                             variant="contained"
                             color="primary"
-                            disabled={selected.length === 0}
+                            disabled={selected.length === 0 || addOrUpdatePayStub.isLoading}
                         >
                             Submit
                         </Button>
@@ -558,23 +557,16 @@ const PayStub = ({
                                 type="button"
                                 variant="contained"
                                 color="error"
+                                disabled={deletePaystub.isLoading}
                                 onClick={() => {
-                                    confirmAlert({
-                                        title: "Confirm Deletion",
+                                    confirmDestructive({
+                                        title: "Confirm deletion",
                                         message:
                                             "Are you sure you want to delete this pay stub? It will make any jobs associated available to be paid out again.",
-                                        buttons: [
-                                            {
-                                                label: "Yes",
-                                                onClick: async () => {
-                                                    onDelete(initialPayStub).then();
-                                                },
-                                            },
-                                            {
-                                                label: "No",
-                                                //onClick: () => {}
-                                            },
-                                        ],
+                                        confirmLabel: "Delete",
+                                        onConfirm: () => {
+                                            void onDelete(initialPayStub);
+                                        },
                                     });
                                 }}
                             >
@@ -585,6 +577,7 @@ const PayStub = ({
                             <Button
                                 variant="contained"
                                 color="warning"
+                                disabled={printPaystub.isLoading}
                                 onClick={async () => {
                                     toast("Generating PDF...", {autoClose: 2000, type: "info"});
                                     const element = document.createElement("a");
@@ -607,6 +600,7 @@ const PayStub = ({
                                 type="submit"
                                 variant="contained"
                                 color="primary"
+                                disabled={addOrUpdatePayStub.isLoading}
                             >
                                 Submit
                             </Button>

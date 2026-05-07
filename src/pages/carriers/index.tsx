@@ -9,10 +9,9 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import NextLink from "next/link";
-import MuiLink from "@mui/material/Link";
-import {tableTextLinkSx} from "../../theme/muiShared";
 import {toast} from "react-toastify";
+import TableEntityLink from "../../elements/TableEntityLink";
+import {confirmDestructive} from "../../utils/appConfirm";
 
 export default function CarriersIndex() {
     const {data: carriers = [], refetch} = trpc.useQuery(["carriers.getAll"]);
@@ -73,27 +72,25 @@ export default function CarriersIndex() {
                         <TableRow key={c.ID}>
                             <TableCell>{c.Name}</TableCell>
                             <TableCell>
-                                <MuiLink
-                                    component={NextLink}
-                                    href={`/carriers/${c.ID}`}
-                                    sx={tableTextLinkSx}
-                                >
+                                <TableEntityLink href={`/carriers/${c.ID}`}>
                                     View / edit
-                                </MuiLink>
+                                </TableEntityLink>
                             </TableCell>
                             <TableCell>
                                 <Button
                                     size="small"
                                     variant="outlined"
                                     color="error"
+                                    disabled={deleteMut.isLoading}
                                     onClick={() => {
-                                        if (
-                                            confirm(
+                                        confirmDestructive({
+                                            title: "Delete carrier",
+                                            message:
                                                 "Delete this carrier? Drivers will be unassigned.",
-                                            )
-                                        ) {
-                                            deleteMut.mutate({ID: c.ID});
-                                        }
+                                            confirmLabel: "Delete",
+                                            onConfirm: () =>
+                                                deleteMut.mutate({ID: c.ID}),
+                                        });
                                     }}
                                 >
                                     Delete

@@ -23,8 +23,7 @@ import {
     CompleteLoadTypes
 } from "../../../prisma/zod";
 import Tooltip from '@mui/material/Tooltip';
-import {confirmAlert} from "react-confirm-alert";
-import "react-confirm-alert/src/react-confirm-alert.css";
+import {confirmDestructive, confirmProceed} from "../../utils/appConfirm";
 import {trpc} from "../../utils/trpc";
 import {calendarNavButtonSx} from "../../theme/muiShared";
 import NextLink from "next/link";
@@ -82,6 +81,7 @@ const WeeklySheet = ({
     }, [forceExpand, initialExpand])
 
     const [sheet, setSheet] = useState<CustomerSheet>(weekly);
+    const [pdfWeeklyBusy, setPdfWeeklyBusy] = useState(false);
 
     return (
         <div style={{padding: 5}}>
@@ -117,22 +117,14 @@ const WeeklySheet = ({
                     <Button
                         variant="contained"
                         color="warning"
-                        onClick={async () => {
-                            confirmAlert({
+                        onClick={() => {
+                            confirmProceed({
                                 title: "Confirm Weekly Edit",
-                                message: "Editing this Weekly will apply the changes to ALL associated Loads, Jobs, and Dailies. If you need to change only SOME Loads, Jobs, or Dailies please edit the Loads individually. Are you sure you want to change ALL Loads for ALL Drivers?",
-                                buttons: [
-                                    {
-                                        label: "Yes",
-                                        onClick: async () => {
-                                            setOpenWeeklyModal(true);
-                                        },
-                                    },
-                                    {
-                                        label: "No",
-                                        //onClick: () => {}
-                                    },
-                                ],
+                                message:
+                                    "Editing this Weekly will apply the changes to ALL associated Loads, Jobs, and Dailies. If you need to change only SOME Loads, Jobs, or Dailies please edit the Loads individually. Are you sure you want to change ALL loads for ALL drivers?",
+                                confirmLabel: "Yes",
+                                cancelLabel: "No",
+                                onConfirm: () => setOpenWeeklyModal(true),
                             });
                         }}
                     >
@@ -143,7 +135,11 @@ const WeeklySheet = ({
                     <Button
                         variant="contained"
                         color="warning"
-                        onClick={async () => {
+                        disabled={pdfWeeklyBusy}
+                        onClick={() => {
+                            if (pdfWeeklyBusy) return;
+                            setPdfWeeklyBusy(true);
+                            window.setTimeout(() => setPdfWeeklyBusy(false), 2000);
                             toast("Generating PDF...", {autoClose: 2000, type: "info"});
                             const element = document.createElement("a");
                             element.href = `/api/getPDF/weekly/${sheet.ID}|${week}`;
@@ -151,7 +147,7 @@ const WeeklySheet = ({
                             document.body.appendChild(element);
                             element.click();
                             document.body.removeChild(element);
-                            setSheet({...weekly, LastPrinted: new Date})
+                            setSheet({...sheet, LastPrinted: new Date});
                         }}
                     >
                         Print Week
@@ -280,11 +276,15 @@ const WeeklySheet = ({
                         <Button
                             variant="contained"
                             color="success"
+                            disabled={updateWeekly.isLoading}
                             onClick={async () => {
-                                const changed = JSON.parse(JSON.stringify(weekly));
-                                changed.DeliveryLocationID = weeklyDeliveryLocation === 0 ? weekly.DeliveryLocationID : weeklyDeliveryLocation;
-                                changed.LoadTypeID = weeklyLoadType === 0 ? weekly.LoadTypeID : weeklyLoadType;
-                                changed.CustomerID = weeklyCustomer === 0 ? weekly.CustomerID : weeklyCustomer;
+                                const changed = JSON.parse(JSON.stringify(sheet));
+                                changed.DeliveryLocationID =
+                                    weeklyDeliveryLocation === 0 ? sheet.DeliveryLocationID : weeklyDeliveryLocation;
+                                changed.LoadTypeID =
+                                    weeklyLoadType === 0 ? sheet.LoadTypeID : weeklyLoadType;
+                                changed.CustomerID =
+                                    weeklyCustomer === 0 ? sheet.CustomerID : weeklyCustomer;
                                 await updateWeekly.mutateAsync(changed);
                             }}
                         >
@@ -432,32 +432,32 @@ const TotalsRow = ({
                                           : "info.dark",
                                 },
                             }}
-                            disabled={isClosed}
-                            onClick={async () => {
-                                confirmAlert({
+                            disabled={isClosed || postWeeklyClosed.isLoading}
+                            onClick={() => {
+                                confirmDestructive({
                                     title: "Confirm Weekly Closure",
-                                    message: "This will close the weekly. Any future loads similar to this weekly will be on their own weekly. This cannot be undone, are you sure?",
-                                    buttons: [
-                                        {
-                                            label: "Yes",
-                                            onClick: async () => {
-                                                const data = await postWeeklyClosed.mutateAsync({
-                                                    ...weekly,
-                                                    Revenue: weekly.Revenue ? parseFloat(weekly.Revenue.toString()) : (Math.round(weightSum * (weekly.CompanyRate ? weekly.CompanyRate : 0) * 100) / 100),
-                                                    TotalWeight: (Math.round(weightSum * 100) / 100)
-                                                });
-                                                setSheetState((prevState: any) => ({
-                                                    ...prevState,
-                                                    ...data
-                                                }));
-                                                setIsClosed(true);
-                                            },
-                                        },
-                                        {
-                                            label: "No",
-                                            //onClick: () => {}
-                                        },
-                                    ],
+                                    message:
+                                        "This will close the weekly. Any future loads similar to this weekly will be on their own weekly. This cannot be undone, are you sure?",
+                                    confirmLabel: "Yes",
+                                    cancelLabel: "No",
+                                    onConfirm: async () => {
+                                        const data = await postWeeklyClosed.mutateAsync({
+                                            ...weekly,
+                                            Revenue: weekly.Revenue
+                                                ? parseFloat(weekly.Revenue.toString())
+                                                : Math.round(
+                                                      weightSum *
+                                                          (weekly.CompanyRate ? weekly.CompanyRate : 0) *
+                                                          100,
+                                                  ) / 100,
+                                            TotalWeight: Math.round(weightSum * 100) / 100,
+                                        });
+                                        setSheetState((prevState: any) => ({
+                                            ...prevState,
+                                            ...data,
+                                        }));
+                                        setIsClosed(true);
+                                    },
                                 });
                             }}
                         >

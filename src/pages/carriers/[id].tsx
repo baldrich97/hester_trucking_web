@@ -10,11 +10,9 @@ import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-import NextLink from "next/link";
-import MuiLink from "@mui/material/Link";
 import MenuItem from "@mui/material/MenuItem";
 import Grid2 from "@mui/material/Unstable_Grid2";
-import {tableTextLinkSx} from "../../theme/muiShared";
+import TableEntityLink from "../../elements/TableEntityLink";
 import {toast} from "react-toastify";
 import {CarriersModel} from "../../../prisma/zod";
 import type {z} from "zod";
@@ -205,13 +203,7 @@ export default function CarrierDetail() {
                                 </TableCell>
                                 <TableCell>{d.OwnerOperator ? "Owner op" : "W-2"}</TableCell>
                                 <TableCell>
-                                    <MuiLink
-                                        component={NextLink}
-                                        href={`/drivers/${d.ID}`}
-                                        sx={tableTextLinkSx}
-                                    >
-                                        Open
-                                    </MuiLink>
+                                    <TableEntityLink href={`/drivers/${d.ID}`}>Open</TableEntityLink>
                                 </TableCell>
                             </TableRow>
                         ))

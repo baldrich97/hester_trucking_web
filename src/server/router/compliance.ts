@@ -575,7 +575,7 @@ export const complianceRouter = createRouter()
 
 
 
-            for (const ek of ooEntityKeys) {
+            for (const ek of Array.from(ooEntityKeys)) {
 
                 const entityDrivers = drivers.filter(
 
