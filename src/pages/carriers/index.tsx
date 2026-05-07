@@ -43,8 +43,7 @@ export default function CarriersIndex() {
                 Carriers (subcontractors)
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{mb: 2}}>
-                External motor carriers drivers can be assigned to. This is separate from a future
-                multi-tenant “company” on user accounts.
+                External motor carriers drivers can be assigned to.
             </Typography>
             <Box sx={{display: "flex", gap: 1, mb: 2, alignItems: "center"}}>
                 <TextField

@@ -49,6 +49,14 @@ export const carriersRouter = createRouter()
     .mutation("delete", {
         input: z.object({ID: z.number()}),
         async resolve({ctx, input}) {
+            // Carrier-scoped filings are for the OO entity, not individually "owned" by the driver row.
+            // Removing the carrier removes those filings; OO drivers re-file under solo / a new carrier as needed.
+            await ctx.prisma.driverForms.deleteMany({
+                where: {
+                    CarrierID: input.ID,
+                    Drivers: {OwnerOperator: true},
+                },
+            });
             await ctx.prisma.drivers.updateMany({
                 where: {CarrierID: input.ID},
                 data: {CarrierID: null},
