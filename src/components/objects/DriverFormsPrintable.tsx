@@ -68,21 +68,21 @@ const styles = StyleSheet.create({
         alignItems: "stretch",
     },
     cell: {
-        padding: 4,
+        padding: 1,
         borderRightWidth: 1,
         borderRightColor: "#eee",
         flexGrow: 1,
         flexBasis: 0,
     },
     cellNarrow: {
-        padding: 4,
+        padding: 1,
         borderRightWidth: 1,
         borderRightColor: "#eee",
         width: 36,
         textAlign: "center",
     },
     cellName: {
-        padding: 4,
+        padding: 1,
         borderRightWidth: 1,
         borderRightColor: "#eee",
         width: 160,
@@ -147,6 +147,9 @@ const DriverFormsPrintable = ({
     drivers: DriverRow[];
     allForms: FormOptionForPdf[];
 }) => {
+    const compareLabels = (a: string, b: string): number =>
+        a.localeCompare(b, undefined, {sensitivity: "base"});
+
     const formOptionsPdf = allForms
         .filter((f) => f.IncludeInPdf)
         .filter((f) => (mode === "w2" ? f.W2Visible : f.OOVisible))
@@ -233,15 +236,19 @@ const DriverFormsPrintable = ({
     const ooDrivers = drivers.filter((d) => d.OwnerOperator);
     const entityMap = groupOoDriversByEntity(ooDrivers);
     const entityEntries = Array.from(entityMap.entries()).sort((a, b) => {
-        const aCarrier = a[1][0]?.Carriers?.Name?.trim() ?? "";
-        const bCarrier = b[1][0]?.Carriers?.Name?.trim() ?? "";
-        const aHas = Boolean(aCarrier);
-        const bHas = Boolean(bCarrier);
-        if (aHas && bHas && aCarrier !== bCarrier) return aCarrier.localeCompare(bCarrier);
-        if (aHas !== bHas) return aHas ? -1 : 1;
-        const fa = (a[1][0]?.FirstName ?? "").localeCompare(b[1][0]?.FirstName ?? "");
-        if (fa !== 0) return fa;
-        return (a[1][0]?.LastName ?? "").localeCompare(b[1][0]?.LastName ?? "");
+        const aLead = a[1][0];
+        const bLead = b[1][0];
+        const aLabel =
+            aLead?.Carriers?.Name?.trim() ||
+            `${aLead?.FirstName ?? ""} ${aLead?.LastName ?? ""}`.trim() ||
+            "";
+        const bLabel =
+            bLead?.Carriers?.Name?.trim() ||
+            `${bLead?.FirstName ?? ""} ${bLead?.LastName ?? ""}`.trim() ||
+            "";
+        const byLabel = compareLabels(aLabel, bLabel);
+        if (byLabel !== 0) return byLabel;
+        return (aLead?.ID ?? 0) - (bLead?.ID ?? 0);
     });
 
     return (
@@ -305,7 +312,7 @@ const DriverFormsPrintable = ({
                                 ))}
                                 {Array.from(trucksMap.entries()).map(([tid, t]) => (
                                     <Text key={tid} style={styles.truckLine}>
-                                        Truck: {t.Name} · plate {t.LicensePlate?.trim() || "—"} ·{" "}
+                                        Truck: {t.Name} · Plate {t.LicensePlate?.trim() || "—"} ·{" "}
                                         {truckOoVitalsOk(t) ? "OK" : "INCOMPLETE"}
                                     </Text>
                                 ))}
@@ -316,9 +323,9 @@ const DriverFormsPrintable = ({
                             <View style={styles.row}>
                                 <Text style={styles.cellNarrow}>{done ? "X" : ""}</Text>
                                 <View style={styles.cellName}>
-                                    <Text>{headerLines[0] ?? "—"}</Text>
+                                    {/*<Text>{headerLines[0] ?? "—"}</Text>*/}
                                     {carrier ? (
-                                        <Text style={{fontSize: 6}}>
+                                        <Text style={{fontSize: 8}}>
                                             Drivers:{" "}
                                             {entityDrivers
                                                 .map(

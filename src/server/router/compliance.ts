@@ -482,6 +482,9 @@ export const complianceRouter = createRouter()
 
             };
 
+            const compareLabels = (a: string, b: string): number =>
+                a.localeCompare(b, undefined, {sensitivity: "base"});
+
 
 
             const w2Groups: {driverId: number; title: string; rows: RowOut[]}[] = [];
@@ -543,7 +546,7 @@ export const complianceRouter = createRouter()
 
                     driverId: d.ID,
 
-                    title: `${d.LastName}, ${d.FirstName}`.trim(),
+                    title: `${d.FirstName} ${d.LastName}`.trim(),
 
                     rows,
 
@@ -554,9 +557,7 @@ export const complianceRouter = createRouter()
 
 
             w2Groups.sort((a, b) => {
-                const ae = a.rows[0]?.endDate;
-                const be = b.rows[0]?.endDate;
-                return (ae ? new Date(ae).getTime() : 0) - (be ? new Date(be).getTime() : 0);
+                return compareLabels(a.title, b.title);
             });
 
 
@@ -668,7 +669,7 @@ export const complianceRouter = createRouter()
                     title = withCarrier?.Carriers?.Name ?? `Carrier #${entityCarrierId}`;
 
                 } else {
-                    title = `${entityLead.LastName}, ${entityLead.FirstName}`.trim();
+                    title = `${entityLead.FirstName} ${entityLead.LastName}`.trim();
                 }
 
 
@@ -680,9 +681,7 @@ export const complianceRouter = createRouter()
 
 
             ooGroups.sort((a, b) => {
-                const ae = a.rows[0]?.endDate;
-                const be = b.rows[0]?.endDate;
-                return (ae ? new Date(ae).getTime() : 0) - (be ? new Date(be).getTime() : 0);
+                return compareLabels(a.title, b.title);
             });
 
 

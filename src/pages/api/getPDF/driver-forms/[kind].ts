@@ -30,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 include: {Trucks: {include: {LicensedIn: true}}},
             },
         },
-        orderBy: {LastName: "asc"},
+        orderBy: [{FirstName: "asc"}, {LastName: "asc"}],
     });
 
     const allForms = await prisma.formOptions.findMany({

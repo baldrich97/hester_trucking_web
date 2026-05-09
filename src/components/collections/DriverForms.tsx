@@ -117,6 +117,8 @@ const Driver_Forms = ({
     mode: "w2" | "oo";
 }) => {
     const router = useRouter();
+    const compareLabels = (a: string, b: string): number =>
+        a.localeCompare(b, undefined, {sensitivity: "base"});
 
     const driverShapes: DriverComplianceShape[] = useMemo(
         () =>
@@ -438,15 +440,19 @@ const Driver_Forms = ({
         const m = groupOoDriversByEntity(data);
         const entries = Array.from(m.entries());
         entries.sort((a, b) => {
-            const aCarrier = a[1][0]?.Carriers?.Name?.trim() ?? "";
-            const bCarrier = b[1][0]?.Carriers?.Name?.trim() ?? "";
-            // const aHas = Boolean(aCarrier);
-            // const bHas = Boolean(bCarrier);
-            // if (aHas && bHas && aCarrier !== bCarrier) return aCarrier.localeCompare(bCarrier);
-            // if (aHas !== bHas) return aHas ? -1 : 1;
-            const fa = ((aCarrier ? aCarrier : (a[1][0]?.FirstName ?? ""))).localeCompare((bCarrier ? bCarrier : (b[1][0]?.FirstName ?? "")));
-            if (fa !== 0) return fa;
-            return (a[1][0]?.LastName ?? "").localeCompare(b[1][0]?.LastName ?? "");
+            const aLead = a[1][0];
+            const bLead = b[1][0];
+            const aLabel =
+                aLead?.Carriers?.Name?.trim() ||
+                `${aLead?.FirstName ?? ""} ${aLead?.LastName ?? ""}`.trim() ||
+                "";
+            const bLabel =
+                bLead?.Carriers?.Name?.trim() ||
+                `${bLead?.FirstName ?? ""} ${bLead?.LastName ?? ""}`.trim() ||
+                "";
+            const byLabel = compareLabels(aLabel, bLabel);
+            if (byLabel !== 0) return byLabel;
+            return (aLead?.ID ?? 0) - (bLead?.ID ?? 0);
         });
         return entries;
     }, [data, mode]);

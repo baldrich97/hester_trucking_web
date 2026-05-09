@@ -30,9 +30,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             OwnerOperator: true,
             OR: [{Deleted: false}, {Deleted: null}],
         },
-        orderBy: {
-            LastName: "asc"
-        }
+        orderBy: [{FirstName: "asc"}, {LastName: "asc"}],
     });
 
     const all_forms = await prisma.formOptions.findMany({
