@@ -37,7 +37,15 @@ const overrides: TableColumnOverridesType = [
     {name: 'ID', type: 'button'}
 ]
 
-const PayStubs = ({count, drivers, payStubs}: { count: number, drivers: DriversType[], payStubs: PayStubData[] }) => {
+const PayStubs = ({
+    count,
+    payStubs,
+    drivers,
+}: {
+    count: number;
+    payStubs: PayStubData[];
+    drivers: DriversType[];
+}) => {
 
     const [search, setSearch] = useState('');
 
@@ -116,18 +124,17 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     });
 
     const drivers = await prisma.drivers.findMany({
-        orderBy: {
-            LastName: "asc",
+        where: {
+            OR: [{Deleted: false}, {Deleted: null}],
         },
-        take: 10,
+        orderBy: [{LastName: "asc"}, {FirstName: "asc"}],
     });
-
 
     return {
         props: {
             payStubs: JSON.parse(JSON.stringify(payStubs)),
             count,
             drivers: JSON.parse(JSON.stringify(drivers)),
-        }
-    }
+        },
+    };
 }

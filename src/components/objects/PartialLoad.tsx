@@ -17,8 +17,7 @@ import {trpc} from "../../utils/trpc";
 import {useRouter} from "next/router";
 import GenericForm from "../../elements/GenericForm";
 import {toast} from "react-toastify";
-import {confirmAlert} from "react-confirm-alert";
-import "react-confirm-alert/src/react-confirm-alert.css";
+import {confirmAlert} from "../../utils/appConfirm";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
@@ -62,21 +61,11 @@ const defaultValues = {
 };
 
 function PartialLoad({
-                         customers,
-                         loadTypes,
-                         deliveryLocations,
-                         trucks,
-                         drivers,
                          initialLoad = null,
                          refreshData,
                          resetButton = false,
                          selectedLoads = []
                      }: {
-    customers: CustomersType[];
-    loadTypes: LoadTypesType[];
-    deliveryLocations: DeliveryLocationsType[];
-    trucks: TrucksType[];
-    drivers: DriversType[];
     initialLoad?: null | LoadsType;
     refreshData?: any;
     resetButton?: any;
@@ -149,6 +138,7 @@ function PartialLoad({
             }
         }
 
+        if (doMassEdit.isLoading) return;
 
         confirmAlert({
             overlayClassName: "custom-overlay-style",
@@ -175,7 +165,8 @@ function PartialLoad({
                 },
                 {
                     label: "Close",
-                    //onClick: () => {}
+                    className: "rca-btn-cancel",
+                    onClick: () => undefined,
                 },
             ],
         });
@@ -198,6 +189,10 @@ function PartialLoad({
 
     const [truck, setTruck] = useState(
         initialLoad ? (initialLoad.TruckID ? initialLoad.TruckID : 0) : 0
+    );
+
+    const [loadTypeSelected, setLoadTypeSelected] = useState(
+        initialLoad ? (initialLoad.LoadTypeID ? initialLoad.LoadTypeID : 0) : 0
     );
 
     const [lttrpcData, ltsetData] = useState<CustomerLoadTypes[]>([]);
@@ -285,6 +280,9 @@ function PartialLoad({
                 dlsetShouldRefresh(true);
                 ltsetShouldRefresh(true);
             }
+            if (name === "LoadTypeID" && type === "change") {
+                setLoadTypeSelected(value.LoadTypeID ?? 0);
+            }
             if ((name === "TruckID" || name === "DriverID") && type === "change") {
                 if (name === "TruckID") {
                     //setValue("DriverID", 0)
@@ -342,8 +340,10 @@ function PartialLoad({
             type: "select",
             label: "Driver",
             searchQuery: "drivers",
+            onlyActive: true,
             groupBy: "Recommend",
             groupByNames: "Has Driven Truck|New for Driver",
+            enableOptionGroups: truck > 0,
         },
         {
             name: "TruckID",
@@ -352,8 +352,10 @@ function PartialLoad({
             type: "select",
             label: "Truck",
             searchQuery: "trucks",
+            onlyActive: true,
             groupBy: "Recommend",
             groupByNames: "Driven Before|New for Driver",
+            enableOptionGroups: driver > 0,
         },
         {
             name: "LoadTypeID",
@@ -365,7 +367,8 @@ function PartialLoad({
             label: "Load Type",
             searchQuery: "loadtypes",
             groupBy: "Recommend",
-            groupByNames: "Used by Customer|New for Customer",
+            groupByNames: "Customer=Used by Customer|Source=Linked to Source|Other",
+            enableOptionGroups: customer > 0,
         },
         {
             name: "DeliveryLocationID",
@@ -376,6 +379,7 @@ function PartialLoad({
             searchQuery: "deliverylocations",
             groupBy: "Recommend",
             groupByNames: "Used by Customer|New for Customer",
+            enableOptionGroups: customer > 0,
         },
         {
             name: "StartDate",
@@ -428,21 +432,21 @@ function PartialLoad({
     const selectData: SelectDataType = [
         {
             key: "CustomerID",
-            data: customers,
+            data: [],
             optionValue: "ID",
             optionLabel: "Name+|+Street+,+City",
             defaultValue: initialLoad ? initialLoad.CustomerID : null,
         },
         {
             key: "LoadTypeID",
-            data: lttrpcData.length > 0 ? lttrpcData : loadTypes,
+            data: lttrpcData.length > 0 ? lttrpcData : [],
             optionValue: "ID",
             optionLabel: "Description",
             defaultValue: initialLoad ? initialLoad.LoadTypeID : null,
         },
         {
             key: "DeliveryLocationID",
-            data: dltrpcData.length > 0 ? dltrpcData : deliveryLocations,
+            data: dltrpcData.length > 0 ? dltrpcData : [],
             optionValue: "ID",
             optionLabel: "Description",
             defaultValue: initialLoad ? initialLoad.DeliveryLocationID : null,
@@ -451,13 +455,13 @@ function PartialLoad({
             key: "TruckID",
             data:
                 tdtrpcData.length > 0
-                    ? tdtrpcData
-                        .map((item) => item.Trucks)
-                        .filter((item) => item !== undefined)
-                        .filter((value, index, self) => {
-                            return index === self.findIndex((t) => t.ID === value.ID);
-                        })
-                    : trucks,
+                    ? (tdtrpcData
+                          .map((item) => item.Trucks)
+                          .filter((item) => item !== undefined)
+                          .filter((value, index, self) => {
+                              return index === self.findIndex((t) => t.ID === value.ID);
+                          }) as unknown as Record<string, unknown>[])
+                    : [],
             optionValue: "ID",
             optionLabel: "Name+|+Notes",
             defaultValue: initialLoad ? initialLoad.TruckID : null,
@@ -466,13 +470,13 @@ function PartialLoad({
             key: "DriverID",
             data:
                 tdtrpcData.length > 0
-                    ? tdtrpcData
-                        .map((item) => item.Drivers)
-                        .filter((item) => item !== undefined)
-                        .filter((value, index, self) => {
-                            return index === self.findIndex((t) => t.ID === value.ID);
-                        })
-                    : drivers,
+                    ? (tdtrpcData
+                          .map((item) => item.Drivers)
+                          .filter((item) => item !== undefined)
+                          .filter((value, index, self) => {
+                              return index === self.findIndex((t) => t.ID === value.ID);
+                          }) as unknown as Record<string, unknown>[])
+                    : [],
             optionValue: "ID",
             optionLabel: "FirstName+LastName",
             defaultValue: initialLoad ? initialLoad.DriverID : null,
@@ -497,6 +501,10 @@ function PartialLoad({
                     fields={fields}
                     selectData={selectData}
                     selectedCustomer={customer}
+                    selectedLoadType={loadTypeSelected}
+                    selectedTruck={truck}
+                    selectedDriver={driver}
+                    submitDisabled={doMassEdit.isLoading}
                     onReset={
                         resetButton
                             ? () => {

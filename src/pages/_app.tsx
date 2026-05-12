@@ -7,6 +7,8 @@ import type { AppType } from "next/dist/shared/lib/utils";
 import superjson from "superjson";
 import type { AppRouter } from "../server/router";
 import "../styles/globals.css";
+import "react-confirm-alert/src/react-confirm-alert.css";
+import "../styles/confirm-alert-overrides.css";
 import "@fontsource/roboto/300.css";
 import "@fontsource/roboto/400.css";
 import "@fontsource/roboto/500.css";
@@ -18,7 +20,8 @@ import * as React from "react";
 import Sidenav from "../components/layout/Sidenav";
 import AppBar from "../components/layout/AppBar";
 import CssBaseline from "@mui/material/CssBaseline";
-import { createTheme, ThemeProvider } from "@mui/material/styles";
+import { ThemeProvider } from "@mui/material/styles";
+import {createAppTheme} from "../theme/appTheme";
 import Copyright from "../components/layout/Copyright";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
@@ -28,7 +31,7 @@ import {get} from "react-hook-form";
 import {Session} from "next-auth";
 import 'react-toastify/dist/ReactToastify.css';
 
-const mdTheme = createTheme();
+const mdTheme = createAppTheme();
 
 const MyApp: AppType = ({
   Component,
@@ -55,7 +58,7 @@ const MyApp: AppType = ({
   return (
     <SessionProvider session={session}>
       <ThemeProvider theme={mdTheme}>
-        <Box sx={{ display: "flex" }}>
+        <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
           <CssBaseline />
           <ToastContainer
           />
@@ -70,7 +73,9 @@ const MyApp: AppType = ({
                   : theme.palette.grey[900],
               flexGrow: 1,
               height: "100vh",
-              overflow: "auto",
+              minHeight: 0,
+              overflowY: "auto",
+              overflowX: "hidden",
             }}
           >
             <Toolbar />
@@ -102,6 +107,18 @@ export default withTRPC<AppRouter>({
       return {
         transformer: superjson, // optional - adds superjson serialization
         url: "/api/trpc",
+        // Batch multiple in-flight queries into one HTTP request (big win on navigation).
+        links: [httpBatchLink({ url: "/api/trpc" })],
+        queryClientConfig: {
+          defaultOptions: {
+            queries: {
+              // Avoid refetch storms on every mount / tab focus (defaults are very aggressive).
+              staleTime: 30 * 1000,
+              refetchOnWindowFocus: false,
+              retry: 1,
+            },
+          },
+        },
       };
     }
 

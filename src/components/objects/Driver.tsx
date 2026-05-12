@@ -1,4 +1,4 @@
-import React  from 'react';
+import React, {useMemo} from 'react';
 import Box from "@mui/material/Box";
 import {useForm} from "react-hook-form";
 import {z} from 'zod';
@@ -12,6 +12,10 @@ import { toast } from "react-toastify";
 type StatesType = z.infer<typeof StatesModel>;
 type DriversType = z.infer<typeof DriversModel>;
 import {FormFieldsType, SelectDataType} from "../../utils/types";
+import {
+    dateOnlyLocalToUtcNoon,
+    parseDateOnlyFromJson,
+} from "../../utils/dateOnly";
 
 const defaultValues = {
     FirstName: '',
@@ -27,21 +31,68 @@ const defaultValues = {
     Email: '',
     HireDate: '',
     Notes: '',
-    OwnerOperator: false
+    OwnerOperator: false,
+    TIN: '',
+    PayMethod: '',
+    CarrierID: null as number | null,
+    LicenseExpiration: null as Date | null,
+    Active: true,
 };
 
 
-const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDriver?: null | DriversType}) => {
+const Driver = ({
+    states,
+    initialDriver = null,
+    onCreated,
+    submitLabel = "Submit",
+    skipRouteRefresh = false,
+}: {
+    states: StatesType[];
+    initialDriver?: null | DriversType;
+    onCreated?: (driver: DriversType) => void;
+    submitLabel?: string;
+    skipRouteRefresh?: boolean;
+}) => {
 
     const router = useRouter();
 
-    const validationSchema = initialDriver ? DriversModel : DriversModel.omit({ ID: true})
+    const {data: carriers = []} = trpc.useQuery(["carriers.getAll"]);
+
+    const carrierSelectData = useMemo(
+        () => [{ID: "", Name: "(No carrier)"}, ...carriers],
+        [carriers],
+    );
+
+    /** Calendar DOB / license expiration from SSR is ISO midnight UTC; coerce to UTC noon + accept DatePicker `Date`s. */
+    const dateFieldFromJson = z.preprocess((v) => {
+        if (v === "" || v === null || v === undefined) return null;
+        if (v instanceof Date && !Number.isNaN(v.getTime())) {
+            return dateOnlyLocalToUtcNoon(v);
+        }
+        return parseDateOnlyFromJson(v);
+    }, z.date().nullable());
+
+    const validationSchema = initialDriver
+        ? DriversModel.extend({DOB: dateFieldFromJson, LicenseExpiration: dateFieldFromJson})
+        : DriversModel.omit({ID: true}).extend({DOB: dateFieldFromJson, LicenseExpiration: dateFieldFromJson});
 
     type ValidationSchema = z.infer<typeof validationSchema>;
 
+    const formDefaults = useMemo(
+        () =>
+            initialDriver
+                ? {
+                      ...initialDriver,
+                      DOB: parseDateOnlyFromJson(initialDriver.DOB),
+                      LicenseExpiration: parseDateOnlyFromJson(initialDriver.LicenseExpiration),
+                  }
+                : defaultValues,
+        [initialDriver],
+    );
+
     const {handleSubmit, formState: {errors}, control, reset} = useForm<ValidationSchema>({
         resolver: zodResolver(validationSchema),
-        defaultValues: initialDriver ?? defaultValues
+        defaultValues: formDefaults,
     });
 
     const key = initialDriver ? 'drivers.post' : 'drivers.put';
@@ -49,37 +100,89 @@ const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDr
     const addOrUpdateDriver = trpc.useMutation(key, {
         async onSuccess(data) {
             toast('Successfully Submitted!', {autoClose: 2000, type: 'success'})
-            reset(initialDriver ? data : defaultValues)
-        }
-    })
+            if (!initialDriver) {
+                onCreated?.(data as DriversType);
+            }
+            reset(
+                initialDriver
+                    ? {
+                          ...data,
+                          DOB: parseDateOnlyFromJson((data as DriversType).DOB),
+                          LicenseExpiration: parseDateOnlyFromJson(
+                              (data as DriversType).LicenseExpiration,
+                          ),
+                      }
+                    : defaultValues,
+            );
+        },
+    });
 
    const onSubmit = async (data: ValidationSchema) => {
         toast('Submitting...', {autoClose: 2000, type: 'info'})
-        await addOrUpdateDriver.mutateAsync(data)
-        if (key === 'drivers.put') {
+        const payload = {
+            ...data,
+            DOB: dateOnlyLocalToUtcNoon(data.DOB),
+            LicenseExpiration: dateOnlyLocalToUtcNoon(data.LicenseExpiration),
+        };
+        await addOrUpdateDriver.mutateAsync(payload);
+        if (initialDriver && !skipRouteRefresh) {
             await router.replace(router.asPath);
         }
     }
 
+    // Grid `size` values are out of 12 per row; each row below sums to 12 for even spacing.
     const fields: FormFieldsType = [
-        {name: 'FirstName', size: 6, label: 'First Name', required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'Driver name is required.', type: 'textfield'},
-        {name: 'MiddleName', size: 6, label: 'Middle Name', required: false, type: 'textfield'},
-        {name: 'LastName', size: 6, label: 'Last Name', required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'Driver name is required.', type: 'textfield'},
-        {name: 'Street', size: 6, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'Street address is required.', type: 'textfield'},
+        {name: 'FirstName', size: 4, label: 'First Name', required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'Driver name is required.', type: 'textfield'},
+        {name: 'MiddleName', size: 4, label: 'Middle Name', required: false, type: 'textfield'},
+        {name: 'LastName', size: 4, label: 'Last Name', required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'Driver name is required.', type: 'textfield'},
+        {name: 'Street', size: 12, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'Street address is required.', type: 'textfield'},
         {name: 'City', size: 5, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'City is required.', type: 'textfield'},
-        {name: 'State', size: 4,  required: false, type: 'select'},
+        {name: 'State', size: 4, required: false, type: 'select'},
         {name: 'ZIP', size: 3, required: true, shouldErrorOn: ['required', 'too_small'], errorMessage: 'ZIP code is required.', type: 'textfield', number: true},
-        {name: 'DOB', size: 4, required: false, shouldErrorOn: ['invalid_type'], errorMessage: 'DOB is required.', type: 'date'},
+        {
+            name: 'DOB',
+            size: 4,
+            required: false,
+            shouldErrorOn: ['invalid_type', 'invalid_union'],
+            errorMessage: 'Enter a valid date of birth.',
+            type: 'date',
+        },
         {name: 'License', size: 4, required: false, type: 'textfield'},
+        {
+            name: 'LicenseExpiration',
+            size: 4,
+            label: 'License expiration',
+            required: false,
+            shouldErrorOn: ['invalid_type', 'invalid_union'],
+            errorMessage: 'Enter a valid license expiration.',
+            type: 'date',
+        },
+        {name: 'Active', size: 4, required: false, type: 'checkbox', label: 'Active'},
         {name: 'Phone', size: 4, required: false, type: 'textfield'},
-        {name: 'Email', size: 4, required: false, type: 'textfield', shouldErrorOn: ['invalid_string'], errorMessage: 'Please enter a valid email.'},
+        {name: 'Email', size: 8, required: false, type: 'textfield', shouldErrorOn: ['invalid_string'], errorMessage: 'Please enter a valid email.'},
+        {name: 'TIN', size: 4, label: 'TIN / EIN', required: false, type: 'textfield'},
         {name: 'HireDate', size: 4, label: 'Hire Date', required: false, type: 'textfield'},
         {name: "OwnerOperator", size: 4, required: false, type: "checkbox", disabled: false, label: 'O. Operator'},
+        {name: 'PayMethod', size: 4, label: 'Pay method (e.g. D/D, Check)', required: false, type: 'textfield'},
+        {
+            name: 'CarrierID',
+            size: 12,
+            label: 'Carrier (subcontractor)',
+            required: false,
+            type: 'selectList',
+            coerceNumberOrNull: true,
+        },
         {name: 'Notes', size: 12, required: false, type: 'textfield', multiline: true},
     ]
 
     const selectData: SelectDataType = [
-        {key: 'State', data: states, defaultValue: 25, optionValue: 'ID', optionLabel: 'Name'}
+        {key: 'State', data: states, defaultValue: 25, optionValue: 'ID', optionLabel: 'Name'},
+        {
+            key: 'CarrierID',
+            data: carrierSelectData as Record<string, unknown>[],
+            optionValue: 'ID',
+            optionLabel: 'Name',
+        },
     ]
 
     return (
@@ -87,12 +190,25 @@ const Driver = ({states, initialDriver = null}: {states: StatesType[], initialDr
             component='form'
             autoComplete='off'
             noValidate
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void handleSubmit(onSubmit)(e);
+            }}
             sx={{
-                paddingLeft: 2.5
+                px: 2.5,
+                py: 1,
+                maxWidth: 960,
             }}
         >
-            <GenericForm errors={errors} control={control} fields={fields} selectData={selectData}/>
+            <GenericForm
+                errors={errors}
+                control={control}
+                fields={fields}
+                selectData={selectData}
+                submitDisabled={addOrUpdateDriver.isLoading}
+                submitLabel={submitLabel}
+            />
         </Box>
     )
 }

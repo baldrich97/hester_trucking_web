@@ -3,7 +3,7 @@ import Grid2 from "@mui/material/Unstable_Grid2";
 import Invoice from "../../components/objects/Invoice";
 import {GetServerSideProps} from "next";
 import {prisma} from "server/db/client";
-import {CustomersModel, InvoicesModel, LoadsModel} from "../../../prisma/zod";
+import {InvoicesModel, LoadsModel} from "../../../prisma/zod";
 import {z} from "zod";
 import GenericTable from "../../elements/GenericTable";
 import SearchBar from "../../elements/SearchBar";
@@ -23,8 +23,6 @@ import {toast} from "react-toastify";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
-type CustomersType = z.infer<typeof CustomersModel>;
-
 const columnsUnpaid: TableColumnsType = [
     {
         name: "Customers.Name",
@@ -149,7 +147,6 @@ const Invoices = ({
                       invoicesPaid,
                       invoicesAll,
                       invoicesConsolidated,
-                      customers,
                       lastInvoice,
                       countUnpaid,
                       countPaid,
@@ -160,7 +157,6 @@ const Invoices = ({
     invoicesPaid: InvoicesType[];
     invoicesAll: InvoicesType[];
     invoicesConsolidated: InvoicesType[];
-    customers: CustomersType[];
     lastInvoice: number;
     countUnpaid: number;
     countPaid: number;
@@ -231,11 +227,13 @@ const Invoices = ({
     const [key, setNewKey] = React.useState(Math.random());
 
     trpc.useQuery(
-        ["invoices.getAllUnpaid", {customer, search, page, orderBy, order, deliveryLocation, loadType}],
+        ["invoices.getAllUnpaidPage", {customer, search, page, orderBy, order, deliveryLocation, loadType}],
         {
             enabled: shouldRefresh && tabValue === 0,
+            refetchOnWindowFocus: false,
             onSuccess(data) {
-                setUnpaidData(JSON.parse(JSON.stringify(data)));
+                setUnpaidData(JSON.parse(JSON.stringify(data.rows)));
+                setNewCount(data.count);
                 setNewKey(Math.random());
                 setShouldRefresh(false);
             },
@@ -247,11 +245,13 @@ const Invoices = ({
     );
 
     trpc.useQuery(
-        ["invoices.getAllConsolidated", {customer, search, page, orderBy, order}],
+        ["invoices.getAllConsolidatedPage", {customer, search, page, orderBy, order}],
         {
             enabled: shouldRefresh && tabValue === 3,
+            refetchOnWindowFocus: false,
             onSuccess(data) {
-                setConsolidatedData(JSON.parse(JSON.stringify(data)));
+                setConsolidatedData(JSON.parse(JSON.stringify(data.rows)));
+                setNewCount(data.count);
                 setNewKey(Math.random());
                 setShouldRefresh(false);
             },
@@ -274,6 +274,7 @@ const Invoices = ({
         ],
         {
             enabled: consolidatedShouldRefresh,
+            refetchOnWindowFocus: false,
             onSuccess(data) {
                 setConsolidateableInvoices(JSON.parse(JSON.stringify(data)));
                 setNewKey(Math.random());
@@ -287,11 +288,13 @@ const Invoices = ({
     );
 
     trpc.useQuery(
-        ["invoices.getAllPaid", {customer, search, page, orderBy, order, deliveryLocation, loadType}],
+        ["invoices.getAllPaidPage", {customer, search, page, orderBy, order, deliveryLocation, loadType}],
         {
             enabled: shouldRefresh && tabValue === 1,
+            refetchOnWindowFocus: false,
             onSuccess(data) {
-                setPaidData(JSON.parse(JSON.stringify(data)));
+                setPaidData(JSON.parse(JSON.stringify(data.rows)));
+                setNewCount(data.count);
                 setNewKey(Math.random());
                 setShouldRefresh(false);
             },
@@ -303,11 +306,13 @@ const Invoices = ({
     );
 
     trpc.useQuery(
-        ["invoices.getAll", {customer, search, page, orderBy, order, deliveryLocation, loadType}],
+        ["invoices.getAllPage", {customer, search, page, orderBy, order, deliveryLocation, loadType}],
         {
             enabled: shouldRefresh && tabValue === 2,
+            refetchOnWindowFocus: false,
             onSuccess(data) {
-                setData(JSON.parse(JSON.stringify(data)));
+                setData(JSON.parse(JSON.stringify(data.rows)));
+                setNewCount(data.count);
                 setNewKey(Math.random());
                 setShouldRefresh(false);
             },
@@ -317,19 +322,6 @@ const Invoices = ({
             },
         }
     );
-
-    trpc.useQuery(["invoices.getCount", {customer, search, tabValue, deliveryLocation, loadType}], {
-        enabled: shouldRefresh,
-        onSuccess(data) {
-            setNewCount(data);
-            setNewKey(Math.random());
-            setShouldRefresh(false);
-        },
-        onError(error) {
-            console.warn(error.message);
-            setShouldRefresh(false);
-        },
-    });
 
     const filterBody = (
         <div style={{display: "flex", flexDirection: "column"}}>
@@ -441,13 +433,10 @@ const Invoices = ({
             <Tab label="Consolidated" />
           </Tabs>
           <Button
-            type={"button"}
-            variant={"contained"}
-            style={{
-              backgroundColor: "#FFA726",
-              alignSelf: "flex-end",
-              height: 32,
-            }}
+            type="button"
+            variant="contained"
+            color="warning"
+            sx={{alignSelf: "flex-end", height: 32}}
             onClick={() => {
               toggleModal(true);
             }}
@@ -630,7 +619,6 @@ const Invoices = ({
             />
             <Grid2 xs={4}>
                 <Invoice
-                    customers={customers}
                     refreshData={() => {
                         setShouldRefresh(true);
                     }}
@@ -718,9 +706,8 @@ const Invoices = ({
                         }}
                     >
                         <Button
-                            variant={"contained"}
-                            color={"primary"}
-                            style={{backgroundColor: "#1565C0"}}
+                            variant="contained"
+                            color="primary"
                             disabled={consolidateableInvoices.length === 0}
                             onClick={async () => {
                                 await createConsolidated.mutateAsync({
@@ -743,9 +730,8 @@ const Invoices = ({
                             Create
                         </Button>
                         <Button
-                            variant={"contained"}
-                            color={"primary"}
-                            style={{backgroundColor: "#757575"}}
+                            variant="contained"
+                            color="secondary"
                             onClick={() => {
                                 toggleModal(false);
                                 setCustomer(0);
@@ -769,83 +755,78 @@ const Invoices = ({
 export default Invoices;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    const countAll = await prisma.invoices.count();
-    const countUnpaid = await prisma.invoices.count({
-        where: {
-            OR: [{Paid: false}, {Paid: null}],
-            AND: {Consolidated: false},
-        },
-    });
-    const countPaid = await prisma.invoices.count({where: {Paid: true}});
-    const countConsolidated = await prisma.invoices.count({
-        where: {
-            OR: [{Paid: false}, {Paid: null}],
-            AND: {Consolidated: true},
-        },
-    });
+    const invoiceInclude = {Customers: true, Loads: true} as const;
 
-    const lastInvoice = await prisma.invoices.aggregate({
-        _max: {
-            Number: true,
-        },
-    });
-
-    const invoicesAll = await prisma.invoices.findMany({
-        include: {
-            Customers: true,
-            Loads: true,
-        },
-        take: 10,
-        orderBy: {
-            ID: "desc",
-        },
-    });
-
-    const invoicesUnpaid = await prisma.invoices.findMany({
-        where: {
-            OR: [{Paid: false}, {Paid: null}],
-            AND: {Consolidated: false},
-        },
-        include: {
-            Customers: true,
-            Loads: true,
-        },
-        take: 10,
-        orderBy: {
-            ID: "desc",
-        },
-    });
-
-    const invoicesConsolidated = await prisma.invoices.findMany({
-        where: {
-            OR: [{Paid: false}, {Paid: null}],
-            AND: {Consolidated: true},
-        },
-        include: {
-            Customers: true,
-            Loads: true,
-        },
-        take: 10,
-        orderBy: {
-            ID: "desc",
-        },
-    });
-
-    const invoicesPaid = await prisma.invoices.findMany({
-        where: {
-            Paid: true,
-        },
-        include: {
-            Customers: true,
-            Loads: true,
-        },
-        take: 10,
-        orderBy: {
-            ID: "desc",
-        },
-    });
-
-    const customers = await prisma.customers.findMany({take: 10});
+    const [
+        countAll,
+        countUnpaid,
+        countPaid,
+        countConsolidated,
+        lastInvoice,
+        invoicesAll,
+        invoicesUnpaid,
+        invoicesConsolidated,
+        invoicesPaid,
+    ] = await Promise.all([
+        prisma.invoices.count(),
+        prisma.invoices.count({
+            where: {
+                OR: [{Paid: false}, {Paid: null}],
+                AND: {Consolidated: false},
+            },
+        }),
+        prisma.invoices.count({where: {Paid: true}}),
+        prisma.invoices.count({
+            where: {
+                OR: [{Paid: false}, {Paid: null}],
+                AND: {Consolidated: true},
+            },
+        }),
+        prisma.invoices.aggregate({
+            _max: {
+                Number: true,
+            },
+        }),
+        prisma.invoices.findMany({
+            include: invoiceInclude,
+            take: 10,
+            orderBy: {
+                ID: "desc",
+            },
+        }),
+        prisma.invoices.findMany({
+            where: {
+                OR: [{Paid: false}, {Paid: null}],
+                AND: {Consolidated: false},
+            },
+            include: invoiceInclude,
+            take: 10,
+            orderBy: {
+                ID: "desc",
+            },
+        }),
+        prisma.invoices.findMany({
+            where: {
+                OR: [{Paid: false}, {Paid: null}],
+                AND: {Consolidated: true},
+            },
+            include: invoiceInclude,
+            take: 10,
+            orderBy: {
+                ID: "desc",
+            },
+        }),
+        prisma.invoices.findMany({
+            where: {
+                Paid: true,
+            },
+            include: invoiceInclude,
+            take: 10,
+            orderBy: {
+                ID: "desc",
+            },
+        }),
+    ]);
 
     return {
         props: {
@@ -857,7 +838,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             countUnpaid,
             countPaid,
             countConsolidated,
-            customers,
             lastInvoice: (lastInvoice?._max.Number ?? 0) + 1,
         },
     };

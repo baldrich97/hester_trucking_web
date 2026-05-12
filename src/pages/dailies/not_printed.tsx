@@ -15,7 +15,13 @@ import ExpandMore from "@mui/icons-material/ExpandMore";
 import Tooltip from "@mui/material/Tooltip";
 import {z} from "zod";
 import {CompleteJobs, DailiesModel, DriversModel, LoadsModel} from "../../../prisma/zod";
-import {useRouter} from "next/router"
+import {useRouter} from "next/router";
+import {toast} from "react-toastify";
+import {
+    calendarChevronNavSx,
+    calendarNavButtonSx,
+    calendarWeekLabelSx,
+} from "../../theme/muiShared";
 
 type Loads = z.infer<typeof LoadsModel>;
 
@@ -63,6 +69,16 @@ export default function Dailies() {
             setLoading(false);
             setShouldRefresh(false);
         },
+        onError(err) {
+            console.warn(err);
+            toast(err.message ?? "Failed to load dailies", {type: "error", autoClose: 8000});
+            setLoading(false);
+            setShouldRefresh(false);
+        },
+        onSettled() {
+            setLoading(false);
+            setShouldRefresh(false);
+        },
     });
 
 
@@ -91,12 +107,7 @@ export default function Dailies() {
                                 variant="text"
                                 type={"button"}
                                 size="small"
-                                style={{
-                                    minHeight: "30px",
-                                    maxHeight: "30px",
-                                    minWidth: "30px",
-                                    maxWidth: "30px",
-                                }}
+                                sx={calendarNavButtonSx}
                                 color="inherit"
                                 onClick={() => {
                                     setInitialExpand(null)
@@ -119,12 +130,7 @@ export default function Dailies() {
                             variant="text"
                             type={"button"}
                             size="small"
-                            style={{
-                                minHeight: "30px",
-                                maxHeight: "30px",
-                                minWidth: "40px",
-                                maxWidth: "40px",
-                            }}
+                            sx={calendarChevronNavSx}
                             onClick={() => {
                                 setInitialExpand(null)
                                 setPage(1);
@@ -139,12 +145,7 @@ export default function Dailies() {
                             variant="text"
                             type={"button"}
                             size="small"
-                            style={{
-                                minHeight: "30px",
-                                maxHeight: "30px",
-                                minWidth: "40px",
-                                maxWidth: "40px",
-                            }}
+                            sx={calendarChevronNavSx}
                             onClick={() => {
                                 setInitialExpand(null)
                                 setPage(page - 1);
@@ -158,12 +159,7 @@ export default function Dailies() {
                             variant="text"
                             type={"button"}
                             size="small"
-                            style={{
-                                minHeight: "30px",
-                                maxHeight: "30px",
-                                minWidth: "40px",
-                                maxWidth: "40px",
-                            }}
+                            sx={calendarChevronNavSx}
                             onClick={() => {
                                 setInitialExpand(null)
                                 setPage(page + 1);
@@ -177,12 +173,7 @@ export default function Dailies() {
                             variant="text"
                             type={"button"}
                             size="small"
-                            style={{
-                                minHeight: "30px",
-                                maxHeight: "30px",
-                                minWidth: "40px",
-                                maxWidth: "40px",
-                            }}
+                            sx={calendarChevronNavSx}
                             onClick={() => {
                                 setInitialExpand(null)
                                 setPage(Math.floor((grabCount ?? 10) / 10));
@@ -196,12 +187,7 @@ export default function Dailies() {
                             variant="text"
                             type={"button"}
                             size="small"
-                            style={{
-                                minHeight: "30px",
-                                maxHeight: "30px",
-                                minWidth: "250px",
-                                maxWidth: "250px",
-                            }}
+                            sx={calendarWeekLabelSx}
                         >
                             <b style={{fontSize: 18}}>
                                 {`Page ${page}${grabCount ? (` of ${Math.floor((grabCount < 10 ? 10 : grabCount) / 10)}`) : ''}`}

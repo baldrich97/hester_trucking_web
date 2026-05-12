@@ -10,6 +10,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import PaymentsIcon from "@mui/icons-material/Payments";
 import NextLink from "next/link";
 import MapsHomeWorkIcon from "@mui/icons-material/MapsHomeWork";
+import BusinessIcon from "@mui/icons-material/Business";
 import PeopleIcon from "@mui/icons-material/People";
 import EngineeringIcon from "@mui/icons-material/Engineering";
 import CategoryIcon from "@mui/icons-material/Category";
@@ -18,9 +19,12 @@ import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import EventAvailable from "@mui/icons-material/EventAvailable";
 import CalendarMonth from "@mui/icons-material/CalendarMonth";
 import LayersIcon from "@mui/icons-material/Layers";
+import HubIcon from "@mui/icons-material/Hub";
+import AssessmentIcon from "@mui/icons-material/Assessment";
 import * as React from "react";
 import {styled} from "@mui/material/styles";
 import MuiDrawer from "@mui/material/Drawer";
+import Box from "@mui/material/Box";
 import {useRouter} from "next/router";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
@@ -37,6 +41,10 @@ const Drawer = styled(MuiDrawer, {
         position: "relative",
         whiteSpace: "nowrap",
         width: drawerWidth,
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
         transition: theme.transitions.create("width", {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,
@@ -56,20 +64,32 @@ const Drawer = styled(MuiDrawer, {
     },
 }));
 
-function Sidenav(props: any) {
+/** Side nav highlight index; keep driver sub-routes (20–22) disjoint from invoices (50–51). */
+function pathToSideNavIndex(currentPath: string): number {
     let selectedLink = 1;
 
-    const router = useRouter();
-    const currentPath = router.asPath;
-
-    if (currentPath.includes("/customers")) {
+    if (currentPath.includes("/reports/customers")) {
+        selectedLink = 28;
+    } else if (currentPath.includes("/reports")) {
+        selectedLink = 27;
+    } else if (currentPath.includes("/customers")) {
         selectedLink = 2;
     } else if (currentPath.includes("/deliverylocations")) {
         selectedLink = 3;
+    } else if (currentPath.includes("/drivers/owner_forms")) {
+        selectedLink = 22;
+    } else if (currentPath.includes("/drivers/w2_forms")) {
+        selectedLink = 21;
+    } else if (currentPath.includes("/drivers/expiring-soon")) {
+        selectedLink = 23;
+    } else if (currentPath.includes("/drivers/form-options")) {
+        selectedLink = 20;
     } else if (currentPath.includes("/drivers")) {
         selectedLink = 4;
+    } else if (currentPath.includes("/invoices/overdue")) {
+        selectedLink = 51;
     } else if (currentPath.includes("/invoices")) {
-        selectedLink = 5;
+        selectedLink = 50;
     } else if (currentPath.includes("/loads")) {
         selectedLink = 6;
     } else if (currentPath.includes("/loadtypes")) {
@@ -82,22 +102,60 @@ function Sidenav(props: any) {
         selectedLink = 10;
     } else if (currentPath.includes("/paystubs")) {
         selectedLink = 11;
+    } else if (currentPath.includes("/carriers")) {
+        selectedLink = 24;
+    } else if (currentPath.includes("/sources")) {
+        selectedLink = 26;
     }
 
+    return selectedLink;
+}
+
+function Sidenav(props: any) {
+    const router = useRouter();
+    const currentPath = router.asPath;
+    const selectedLink = pathToSideNavIndex(currentPath);
+
+    const {data: compliance} = trpc.useQuery(["compliance.driverFormsSummary"], {
+        staleTime: 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
+    const complianceCount = compliance?.totalIssues ?? 0;
+    const w2ComplianceCount = compliance?.w2Issues ?? 0;
+    const ooComplianceCount = compliance?.ooIssues ?? 0;
+    const expiringSoonCount = compliance?.expiringSoonTotal ?? 0;
+
     const [isDailiesOpen, setDailiesOpen] = React.useState<boolean>(false);
+    const [isCarriersOpen, setCarriersOpen] = React.useState<boolean>(false);
+    const [isDriversOpen, setDriversOpen] = React.useState<boolean>(false);
     const [isWeekliesOpen, setWeekliesOpen] = React.useState<boolean>(false);
     const [isLoadsOpen, setLoadsOpen] = React.useState<boolean>(false);
     const [isInvoicesOpen, setInvoicesOpen] = React.useState<boolean>(false);
+    const [isReportsOpen, setReportsOpen] = React.useState<boolean>(false);
 
-    const {data: overdueCount = 0} = trpc.useQuery(["invoices.getOverdueCount"]);
+    const {data: overdueCount = 0} = trpc.useQuery(["invoices.getOverdueCount"], {
+        staleTime: 60 * 1000,
+        refetchOnWindowFocus: false,
+    });
 
     React.useEffect(() => {
-        if (currentPath.includes("/invoices")) {
+        if (currentPath.includes("/invoices") && overdueCount) {
             setInvoicesOpen(true);
         }
-    }, [currentPath]);
+    }, [currentPath, overdueCount]);
+
+    React.useEffect(() => {
+        if (currentPath.includes("/drivers") && (complianceCount || expiringSoonCount)) {
+            setDriversOpen(true);
+        }
+    }, [currentPath, complianceCount, expiringSoonCount]);
 
     const [selectedIndex, setSelectedIndex] = React.useState(selectedLink);
+
+    React.useEffect(() => {
+        setSelectedIndex(pathToSideNavIndex(currentPath));
+    }, [currentPath]);
+
     return (
         <Drawer variant="permanent" open={props.open}>
             <Toolbar
@@ -117,6 +175,14 @@ function Sidenav(props: any) {
                 </IconButton>
             </Toolbar>
             <Divider />
+            <Box
+                sx={{
+                    flex: 1,
+                    minHeight: 0,
+                    overflowY: "auto",
+                    overflowX: "hidden",
+                }}
+            >
             <List component="nav">
                 <NextLink href="/" passHref>
                     <ListItemButton
@@ -129,6 +195,71 @@ function Sidenav(props: any) {
                         <ListItemText primary="Dashboard" />
                     </ListItemButton>
                 </NextLink>
+
+
+                <ListItemButton
+                    selected={[24, 25].includes(selectedIndex)}
+                >
+                    <NextLink href="/carriers" passHref>
+                        <ListItemIcon>
+                            <BusinessIcon
+                                onClick={() => {
+                                    setSelectedIndex(24);
+                                }}
+                            />
+                        </ListItemIcon>
+                    </NextLink>
+                    <NextLink href="/carriers" passHref>
+                        <ListItemText primary="Carriers" onClick={() => {
+                            setSelectedIndex(24);
+                        }} />
+                    </NextLink>
+                    {isCarriersOpen ? <ExpandLess onClick={() => setCarriersOpen(!isCarriersOpen)} /> :
+                        <ExpandMore onClick={() => setCarriersOpen(!isCarriersOpen)} />}
+                </ListItemButton>
+
+                <Collapse in={isCarriersOpen} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                        <NextLink href="/carriers/compliance" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 25}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(25)}
+                            >
+                                <ListItemText primary="Carrier compliance" />
+                            </ListItemButton>
+                        </NextLink>
+                        {/*<NextLink href="/drivers/w2" passHref>*/}
+                        {/*    <ListItemButton*/}
+                        {/*        selected={selectedIndex === 21}*/}
+                        {/*        sx={{ pl: 4 }}*/}
+                        {/*        onClick={() => setSelectedIndex(21)}*/}
+                        {/*    >*/}
+                        {/*        <ListItemText primary="W2 Forms" />*/}
+                        {/*    </ListItemButton>*/}
+                        {/*</NextLink>*/}
+                        {/*<NextLink href="/drivers/operator" passHref>*/}
+                        {/*    <ListItemButton*/}
+                        {/*        selected={selectedIndex === 22}*/}
+                        {/*        sx={{ pl: 4 }}*/}
+                        {/*        onClick={() => setSelectedIndex(22)}*/}
+                        {/*    >*/}
+                        {/*        <ListItemText primary="Non-W2 Forms" />*/}
+                        {/*    </ListItemButton>*/}
+                        {/*</NextLink>*/}
+                        {/*<NextLink href="/drivers/companies" passHref>*/}
+                        {/*    <ListItemButton*/}
+                        {/*        selected={selectedIndex === 23}*/}
+                        {/*        sx={{ pl: 4 }}*/}
+                        {/*        onClick={() => setSelectedIndex(23)}*/}
+                        {/*    >*/}
+                        {/*        <ListItemText primary="Company Compliance" />*/}
+                        {/*    </ListItemButton>*/}
+                        {/*</NextLink>*/}
+                    </List>
+                </Collapse>
+
+
 
                 <NextLink href="/customers" passHref>
                     <ListItemButton
@@ -189,7 +320,7 @@ function Sidenav(props: any) {
                                 sx={{ pl: 4 }}
                                 onClick={() => setSelectedIndex(14)}
                             >
-                                <ListItemText primary="Non-W2 Missing Pay" />
+                                <ListItemText primary="OO Missing Pay" />
                             </ListItemButton>
                         </NextLink>
                         <NextLink href="/dailies/not_printed" passHref>
@@ -216,28 +347,164 @@ function Sidenav(props: any) {
                     </ListItemButton>
                 </NextLink>
 
-                <NextLink href="/drivers" passHref>
-                    <ListItemButton
-                        selected={selectedIndex === 4}
-                        onClick={() => setSelectedIndex(4)}
-                    >
+                <ListItemButton
+                    selected={[4, 20, 21, 22, 23].includes(selectedIndex)}
+                >
+                    <NextLink href="/drivers" passHref>
                         <ListItemIcon>
-                            <EngineeringIcon />
+                            <Badge
+                                color="error"
+                                badgeContent={complianceCount}
+                                invisible={complianceCount === 0 || isDriversOpen}
+                            >
+                                <EventAvailable
+                                    onClick={() => {
+                                        setSelectedIndex(4);
+                                    }}
+                                />
+                            </Badge>
                         </ListItemIcon>
-                        <ListItemText primary="Drivers" />
-                    </ListItemButton>
-                </NextLink>
+                    </NextLink>
+                    <NextLink href="/drivers" passHref>
+                        <ListItemText
+                            primary="Drivers"
+                            onClick={() => {
+                                setSelectedIndex(4);
+                            }}
+                        />
+                    </NextLink>
+                    {isDriversOpen ? <ExpandLess onClick={() => setDriversOpen(!isDriversOpen)} /> :
+                        <ExpandMore onClick={() => setDriversOpen(!isDriversOpen)} />}
+                </ListItemButton>
+
+                <Collapse in={isDriversOpen} timeout="auto" unmountOnExit>
+                    <List component="div" disablePadding>
+                        <NextLink href="/drivers/form-options" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 20}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(20)}
+                            >
+                                <ListItemText primary="Form Options" />
+                            </ListItemButton>
+                        </NextLink>
+                        <NextLink href="/drivers/expiring-soon" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 23}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(23)}
+                            >
+                                <ListItemText primary="Exp Soon" />
+                                {isDriversOpen && expiringSoonCount > 0 ? (
+                                    <span
+                                        style={{
+                                            marginLeft: "auto",
+                                            minWidth: 22,
+                                            height: 22,
+                                            borderRadius: 11,
+                                            background: "#ed6c02",
+                                            color: "#fff",
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            padding: "0 7px",
+                                        }}
+                                    >
+                                        {expiringSoonCount}
+                                    </span>
+                                ) : null}
+                            </ListItemButton>
+                        </NextLink>
+                        <NextLink href="/drivers/w2_forms" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 21}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(21)}
+                            >
+                                <ListItemText primary="W2 Forms" />
+                                {isDriversOpen && w2ComplianceCount > 0 ? (
+                                    <span
+                                        style={{
+                                            marginLeft: "auto",
+                                            minWidth: 22,
+                                            height: 22,
+                                            borderRadius: 11,
+                                            background: "#d32f2f",
+                                            color: "#fff",
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            padding: "0 7px",
+                                        }}
+                                    >
+                                        {w2ComplianceCount}
+                                    </span>
+                                ) : null}
+                            </ListItemButton>
+                        </NextLink>
+                        <NextLink href="/drivers/owner_forms" passHref>
+                            <ListItemButton
+                                selected={selectedIndex === 22}
+                                sx={{ pl: 4 }}
+                                onClick={() => setSelectedIndex(22)}
+                            >
+                                <ListItemText primary="OO Forms" />
+                                {isDriversOpen && ooComplianceCount > 0 ? (
+                                    <span
+                                        style={{
+                                            marginLeft: "auto",
+                                            minWidth: 22,
+                                            height: 22,
+                                            borderRadius: 11,
+                                            background: "#d32f2f",
+                                            color: "#fff",
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            display: "inline-flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            padding: "0 7px",
+                                        }}
+                                    >
+                                        {ooComplianceCount}
+                                    </span>
+                                ) : null}
+                            </ListItemButton>
+                        </NextLink>
+                        {/*<NextLink href="/drivers/companies" passHref>*/}
+                        {/*    <ListItemButton*/}
+                        {/*        selected={selectedIndex === 23}*/}
+                        {/*        sx={{ pl: 4 }}*/}
+                        {/*        onClick={() => setSelectedIndex(23)}*/}
+                        {/*    >*/}
+                        {/*        <ListItemText primary="Company Compliance" />*/}
+                        {/*    </ListItemButton>*/}
+                        {/*</NextLink>*/}
+                    </List>
+                </Collapse>
+
+
 
                 <ListItemButton
-                    selected={[5, 20, 21].includes(selectedIndex)}
+                    selected={[5, 50, 51].includes(selectedIndex)}
                 >
                     <NextLink href="/invoices" passHref>
                         <ListItemIcon>
-                            <AttachMoneyIcon
-                                onClick={() => {
-                                    setSelectedIndex(5);
-                                }}
-                            />
+                            <Badge
+                                color="error"
+                                badgeContent={overdueCount}
+                                invisible={overdueCount === 0 || isInvoicesOpen}
+                            >
+                                <AttachMoneyIcon
+                                    onClick={() => {
+                                        setSelectedIndex(5);
+                                    }}
+                                />
+                            </Badge>
                         </ListItemIcon>
                     </NextLink>
                     <NextLink href="/invoices" passHref>
@@ -248,15 +515,6 @@ function Sidenav(props: any) {
                             }}
                         />
                     </NextLink>
-                    {!isInvoicesOpen && overdueCount > 0 && (
-                        <Badge
-                            color="error"
-                            badgeContent={overdueCount}
-                            sx={{marginRight: 1}}
-                        >
-                            <span />
-                        </Badge>
-                    )}
                     {isInvoicesOpen ? (
                         <ExpandLess onClick={() => setInvoicesOpen(!isInvoicesOpen)} />
                     ) : (
@@ -268,18 +526,18 @@ function Sidenav(props: any) {
                     <List component="div" disablePadding>
                         <NextLink href="/invoices" passHref>
                             <ListItemButton
-                                selected={selectedIndex === 20}
+                                selected={selectedIndex === 50}
                                 sx={{ pl: 4 }}
-                                onClick={() => setSelectedIndex(20)}
+                                onClick={() => setSelectedIndex(50)}
                             >
                                 <ListItemText primary="By Date" />
                             </ListItemButton>
                         </NextLink>
                         <NextLink href="/invoices/overdue" passHref>
                             <ListItemButton
-                                selected={selectedIndex === 21}
+                                selected={selectedIndex === 51}
                                 sx={{ pl: 4, display: "flex", justifyContent: "space-between" }}
-                                onClick={() => setSelectedIndex(21)}
+                                onClick={() => setSelectedIndex(51)}
                             >
                                 <ListItemText primary="Overdue" />
                                 {isInvoicesOpen && overdueCount > 0 && (
@@ -364,6 +622,61 @@ function Sidenav(props: any) {
                     </ListItemButton>
                 </NextLink>
 
+                {/*<ListItemButton*/}
+                {/*    selected={[27, 28].includes(selectedIndex)}*/}
+                {/*>*/}
+                {/*    <NextLink href="/reports" passHref>*/}
+                {/*        <ListItemIcon>*/}
+                {/*            <AssessmentIcon*/}
+                {/*                onClick={() => {*/}
+                {/*                    setSelectedIndex(27);*/}
+                {/*                }}*/}
+                {/*            />*/}
+                {/*        </ListItemIcon>*/}
+                {/*    </NextLink>*/}
+                {/*    <NextLink href="/reports" passHref>*/}
+                {/*        <ListItemText primary="Reports" onClick={() => {*/}
+                {/*            setSelectedIndex(27);*/}
+                {/*        }} />*/}
+                {/*    </NextLink>*/}
+                {/*    {isReportsOpen ? <ExpandLess onClick={() => setReportsOpen(!isReportsOpen)} /> :*/}
+                {/*        <ExpandMore onClick={() => setReportsOpen(!isReportsOpen)} />}*/}
+                {/*</ListItemButton>*/}
+
+                {/*<Collapse in={isReportsOpen} timeout="auto" unmountOnExit>*/}
+                {/*    <List component="div" disablePadding>*/}
+                {/*        <NextLink href="/reports" passHref>*/}
+                {/*            <ListItemButton*/}
+                {/*                selected={selectedIndex === 27}*/}
+                {/*                sx={{ pl: 4 }}*/}
+                {/*                onClick={() => setSelectedIndex(27)}*/}
+                {/*            >*/}
+                {/*                <ListItemText primary="By Source" />*/}
+                {/*            </ListItemButton>*/}
+                {/*        </NextLink>*/}
+                {/*        <NextLink href="/reports/customers" passHref>*/}
+                {/*            <ListItemButton*/}
+                {/*                selected={selectedIndex === 28}*/}
+                {/*                sx={{ pl: 4 }}*/}
+                {/*                onClick={() => setSelectedIndex(28)}*/}
+                {/*            >*/}
+                {/*                <ListItemText primary="By Customer" />*/}
+                {/*            </ListItemButton>*/}
+                {/*        </NextLink>*/}
+                {/*    </List>*/}
+                {/*</Collapse>*/}
+
+                {/*<NextLink href="/sources" passHref>*/}
+                {/*    <ListItemButton*/}
+                {/*        selected={selectedIndex === 26}*/}
+                {/*        onClick={() => setSelectedIndex(26)}*/}
+                {/*    >*/}
+                {/*        <ListItemIcon>*/}
+                {/*            <HubIcon />*/}
+                {/*        </ListItemIcon>*/}
+                {/*        <ListItemText primary="Sources" />*/}
+                {/*    </ListItemButton>*/}
+                {/*</NextLink>*/}
 
                 <NextLink href="/trucks" passHref>
                     <ListItemButton
@@ -424,6 +737,7 @@ function Sidenav(props: any) {
                 </Collapse>
 
             </List>
+            </Box>
         </Drawer>
 
     );

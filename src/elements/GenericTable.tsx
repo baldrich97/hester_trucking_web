@@ -10,21 +10,26 @@ import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import Button from "@mui/material/Button";
 import Checkbox from "@mui/material/Checkbox";
-import NextLink from "next/link";
 import { styled, useTheme } from "@mui/material/styles";
 import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
+import Tooltip from "@mui/material/Tooltip";
 import FirstPageIcon from "@mui/icons-material/FirstPage";
 import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import LastPageIcon from "@mui/icons-material/LastPage";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import TableSortLabel from "@mui/material/TableSortLabel";
 import { visuallyHidden } from "@mui/utils";
 
+import NextLink from "next/link";
 import { TableColumnsType, TableColumnOverridesType } from "../utils/types";
+import {tableContainedNavButtonSx} from "../theme/muiShared";
 import Modal from "@mui/material/Modal";
+import TableEntityLink from "./TableEntityLink";
 import BasicAutocomplete from "./Autocomplete";
 
 interface TablePaginationActionsProps {
@@ -35,6 +40,8 @@ interface TablePaginationActionsProps {
     event: React.MouseEvent<HTMLButtonElement>,
     newPage: number
   ) => void;
+  onRefresh?: () => void;
+  lastRefreshedAt?: Date | null;
 }
 
 const style = {
@@ -71,7 +78,7 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
 
 function TablePaginationActions(props: TablePaginationActionsProps) {
   const theme = useTheme();
-  const { count, page, rowsPerPage, onPageChange } = props;
+  const { count, page, rowsPerPage, onPageChange, onRefresh, lastRefreshedAt } = props;
 
   const handleFirstPageButtonClick = (
     event: React.MouseEvent<HTMLButtonElement>
@@ -99,6 +106,23 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
 
   return (
     <Box sx={{ flexShrink: 0, ml: 2.5 }}>
+      {onRefresh ? (
+        <Tooltip
+          title={
+            lastRefreshedAt
+              ? `Last refreshed: ${lastRefreshedAt.toLocaleString()}`
+              : "Refresh table data"
+          }
+        >
+          <IconButton
+            onClick={onRefresh}
+            aria-label="refresh table data"
+            sx={{ mr: 1 }}
+          >
+            <RefreshIcon />
+          </IconButton>
+        </Tooltip>
+      ) : null}
       <IconButton
         onClick={handleFirstPageButtonClick}
         disabled={page === 0}
@@ -150,7 +174,8 @@ export default function GenericTable({
   filterBody = null,
   doSearch = null,
   clearFilter = null,
-    searchSet = false,
+  searchSet = false,
+  emptyMessage = "No matching records. Try different filters or clear the search.",
 }: {
   data: any[];
   columns: TableColumnsType;
@@ -163,10 +188,12 @@ export default function GenericTable({
   doSearch?: any;
   clearFilter?: any;
   searchSet?: boolean;
+  emptyMessage?: string;
 }) {
   //console.log(data, columns, overrides);
 
   const [page, setPage] = React.useState(0);
+  const [lastRefreshedAt, setLastRefreshedAt] = React.useState<Date | null>(null);
 
   const [opened, setOpened] = React.useState(false);
 
@@ -175,14 +202,22 @@ export default function GenericTable({
   const [order, setOrder] = React.useState<"asc" | "desc">("desc");
   const [orderBy, setOrderBy] = React.useState("ID");
 
+  const triggerRefresh = React.useCallback(
+    (nextPage: number, nextOrderBy: string, nextOrder: "asc" | "desc") => {
+      if (typeof refreshData === "function") {
+        refreshData(nextPage, nextOrderBy, nextOrder);
+        setLastRefreshedAt(new Date());
+      }
+    },
+    [refreshData]
+  );
+
   const handleChangePage = (
     event: React.MouseEvent<HTMLButtonElement> | null,
     newPage: number
   ) => {
     setPage(newPage);
-    if (typeof refreshData === "function") {
-      refreshData(newPage, orderBy, order);
-    }
+    triggerRefresh(newPage, orderBy, order);
   };
 
   //console.log(columns)
@@ -196,27 +231,43 @@ export default function GenericTable({
                 return (
                   <StyledTableCell align={"right"} key={"lookup-header"}>
                     {opened || searchSet ? (
-                      <Button
-                        style={{ backgroundColor: "red", borderRadius: 20 }}
+                      <IconButton
+                        size="small"
+                        aria-label="clear customer filter"
                         onClick={() => {
                           setPage(0);
-                          clearFilter();
+                          if (typeof clearFilter === "function") clearFilter();
                           setOpened(false);
                         }}
+                        sx={{
+                          bgcolor: "error.main",
+                          color: "common.white",
+                          width: 40,
+                          height: 40,
+                          "&:hover": {bgcolor: "error.dark"},
+                        }}
                       >
-                        <CloseIcon style={{ color: "white" }} />
-                      </Button>
+                        <CloseIcon fontSize="small" />
+                      </IconButton>
                     ) : (
-                      <Button
-                        style={{ backgroundColor: "#1565C0", borderRadius: 20 }}
+                      <IconButton
+                        size="small"
+                        aria-label="filter by customer"
                         onClick={() => {
                           setPage(0);
                           setShowCustomerModal(true);
                           setOpened(true);
                         }}
+                        sx={{
+                          bgcolor: "primary.main",
+                          color: "common.white",
+                          width: 40,
+                          height: 40,
+                          "&:hover": {bgcolor: "primary.dark"},
+                        }}
                       >
-                        <SearchIcon style={{ color: "white" }} />
-                      </Button>
+                        <SearchIcon fontSize="small" />
+                      </IconButton>
                     )}
                   </StyledTableCell>
                 );
@@ -239,18 +290,19 @@ export default function GenericTable({
                           : "asc"
                       }
                       onClick={() => {
+                        const nextOrderBy = column.column ? column.column : column.name;
+                        let nextOrder: "asc" | "desc" = "asc";
                         if (
                           orderBy === column.name ||
                           orderBy === column.column
                         ) {
-                          setOrder(order === "asc" ? "desc" : "asc");
+                          nextOrder = order === "asc" ? "desc" : "asc";
+                          setOrder(nextOrder);
                         } else {
-                          setOrderBy(
-                            column.column ? column.column : column.name
-                          );
+                          setOrderBy(nextOrderBy);
                           setOrder("asc");
                         }
-                        refreshData(page, orderBy, order);
+                        triggerRefresh(page, nextOrderBy, nextOrder);
                       }}
                     >
                       {column.as ?? column.name}
@@ -269,7 +321,20 @@ export default function GenericTable({
           </TableRow>
         </TableHead>
         <TableBody>
-          {data.map((row, rowindex) => {
+          {data.length === 0 ? (
+            <StyledTableRow>
+              <StyledTableCell
+                colSpan={columns.length}
+                align="center"
+                sx={{ py: 5, borderBottom: "none" }}
+              >
+                <Typography variant="body2" color="text.secondary">
+                  {emptyMessage}
+                </Typography>
+              </StyledTableCell>
+            </StyledTableRow>
+          ) : (
+          data.map((row, rowindex) => {
             return (
               <StyledTableRow key={"row-" + rowindex.toString()}>
                 {columns.map((column) => {
@@ -315,15 +380,23 @@ export default function GenericTable({
                           >
                             <NextLink
                               href={
-                                column.navigateTo + row[column.name].toString()
+                                column.navigateTo +
+                                row[column.name].toString()
                               }
                               passHref
+                              legacyBehavior
                             >
-                              <a target={"_blank"}>
-                                  <Button color={"primary"} variant={"contained"} style={{backgroundColor: '#1976d2'}}>
-                                      Edit
-                                  </Button>
-                              </a>
+                              <Button
+                                component="a"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                color="primary"
+                                variant="contained"
+                                size="small"
+                                sx={tableContainedNavButtonSx}
+                              >
+                                Edit
+                              </Button>
                             </NextLink>
                           </StyledTableCell>
                         );
@@ -337,14 +410,10 @@ export default function GenericTable({
                             }
                           >
                             <Button
-                              variant={"contained"}
-                              color={"primary"}
-                              style={{
-                                backgroundColor: "red",
-                                minWidth: "40px",
-                                maxWidth: "40px",
-                              }}
+                              variant="contained"
+                              color="error"
                               size="small"
+                              sx={{minWidth: 40, maxWidth: 40}}
                               onClick={() => {
                                 if (isOverrided[0]) {
                                   isOverrided[0].callback(
@@ -416,14 +485,7 @@ export default function GenericTable({
                               "row-" + rowindex.toString() + "-" + column.name
                             }
                           >
-                            <NextLink href={link} passHref>
-                              <a
-                                target={"_blank"}
-                                style={{ textDecoration: "underline" }}
-                              >
-                                {data}
-                              </a>
-                            </NextLink>
+                            <TableEntityLink href={link}>{data}</TableEntityLink>
                           </StyledTableCell>
                         );
                       case "date":
@@ -462,7 +524,8 @@ export default function GenericTable({
                 })}
               </StyledTableRow>
             );
-          })}
+          })
+          )}
         </TableBody>
         <TableFooter>
           <TableRow>
@@ -472,7 +535,17 @@ export default function GenericTable({
               rowsPerPage={10}
               page={page}
               onPageChange={handleChangePage}
-              ActionsComponent={count ? TablePaginationActions : undefined}
+              ActionsComponent={(subProps) => (
+                <TablePaginationActions
+                  {...subProps}
+                  onRefresh={
+                    typeof refreshData === "function"
+                      ? () => triggerRefresh(page, orderBy, order)
+                      : undefined
+                  }
+                  lastRefreshedAt={lastRefreshedAt}
+                />
+              )}
             />
           </TableRow>
         </TableFooter>
@@ -481,7 +554,7 @@ export default function GenericTable({
         open={showCustomerModal}
         onClose={() => {
           setPage(0);
-          clearFilter();
+          if (typeof clearFilter === "function") clearFilter();
           setShowCustomerModal(false);
           setOpened(false);
         }}
@@ -496,24 +569,22 @@ export default function GenericTable({
             }}
           >
             <Button
-              variant={"contained"}
-              color={"primary"}
-              style={{ backgroundColor: "#1565C0" }}
+              variant="contained"
+              color="primary"
               onClick={() => {
                 setShowCustomerModal(false);
-                doSearch();
+                if (typeof doSearch === "function") doSearch();
               }}
             >
               Search
             </Button>
             <Button
-              variant={"contained"}
-              color={"primary"}
-              style={{ backgroundColor: "#757575" }}
+              variant="contained"
+              color="secondary"
               onClick={() => {
                 setShowCustomerModal(false);
                 setPage(0);
-                clearFilter();
+                if (typeof clearFilter === "function") clearFilter();
                 setOpened(false);
               }}
             >

@@ -98,10 +98,10 @@ const Customer = ({
 }: {
   states: StatesType[];
   initialCustomer: CustomersType;
-  invoices: InvoicesType[];
+  invoices: InvoicesType[] | Record<string, unknown>[];
   icount: number;
   lcount: number;
-  loads: Loads[];
+  loads: Loads[] | Record<string, unknown>[];
   ltcount: number;
   dlcount: number;
 }) => {
@@ -193,10 +193,11 @@ const Customer = ({
     setDeletedItem(null);
   };
 
-  trpc.useQuery(["invoices.getAll", { page, customer: initialCustomer.ID }], {
+  trpc.useQuery(["invoices.getAllPage", { page, customer: initialCustomer.ID }], {
     enabled: shouldRefresh,
+    refetchOnWindowFocus: false,
     onSuccess(data) {
-      setData(JSON.parse(JSON.stringify(data)));
+      setData(JSON.parse(JSON.stringify(data.rows)));
       setShouldRefresh(false);
     },
     onError(error) {
@@ -206,11 +207,12 @@ const Customer = ({
   });
 
   trpc.useQuery(
-    ["loads.getAll", { page: lpage, customer: initialCustomer.ID }],
+    ["loads.getAllPage", { page: lpage, customer: initialCustomer.ID }],
     {
       enabled: lshouldRefresh,
+      refetchOnWindowFocus: false,
       onSuccess(data) {
-        lsetData(JSON.parse(JSON.stringify(data)));
+        lsetData(JSON.parse(JSON.stringify(data.rows)));
         lsetShouldRefresh(false);
       },
       onError(error) {
@@ -227,6 +229,7 @@ const Customer = ({
     ],
     {
       enabled: ltshouldRefresh || (ltcount !== 0 && ltrpcData.length === 0),
+      refetchOnWindowFocus: false,
       onSuccess(data) {
         ltsetData(JSON.parse(JSON.stringify(data)));
         ltsetShouldRefresh(false);
@@ -245,6 +248,7 @@ const Customer = ({
     ],
     {
       enabled: dlshouldRefresh || (dlcount !== 0 && dltrpcData.length === 0),
+      refetchOnWindowFocus: false,
       onSuccess(data) {
         dlsetData(JSON.parse(JSON.stringify(data)));
         dlsetShouldRefresh(false);
@@ -348,11 +352,7 @@ const Customer = ({
         )}
         <Modal open={open} onClose={handleClose}>
           <Box sx={style}>
-            <Box
-              sx={{
-                backgroundColor: "#757575",
-              }}
-            >
+            <Box sx={{ bgcolor: "secondary.main" }}>
               <Typography color="white" variant="h6" style={{ padding: 4 }}>
                 Confirm Deletion
               </Typography>
@@ -365,8 +365,8 @@ const Customer = ({
             <Grid2 container columnSpacing={2} justifyContent={"space-between"}>
               <Grid2 xs={6} style={{ paddingTop: 5 }}>
                 <Button
-                  variant={"contained"}
-                  style={{ backgroundColor: "#757575" }}
+                  variant="contained"
+                  color="secondary"
                   onClick={async () => {
                     handleClose();
                   }}
@@ -384,8 +384,8 @@ const Customer = ({
                 }}
               >
                 <Button
-                  variant={"contained"}
-                  style={{ backgroundColor: "red" }}
+                  variant="contained"
+                  color="error"
                   onClick={async () => {
                     if (deletedItem) {
                       toast("Deleting...", {
@@ -416,14 +416,14 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   let initialCustomer;
 
-  let invoices: (Invoices & { Customers: Customers; Loads: Loads[] })[] = [];
+  let invoices: (Invoices & { Customers: { Name: string }; Loads?: Loads[] })[] = [];
 
   let loads: (Loads & {
-    Customers: Customers | null;
-    DeliveryLocations: DeliveryLocations | null;
-    Drivers: Drivers | null;
-    LoadTypes: LoadTypes | null;
-    Trucks: Trucks | null;
+    Customers: { Name: string } | null;
+    DeliveryLocations: { Description: string } | null;
+    Drivers: { FirstName: string; LastName: string } | null;
+    LoadTypes: { Description: string } | null;
+    Trucks: { Name: string } | null;
   })[] = [];
 
   let lcount = 0;
@@ -442,8 +442,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     });
     invoices = await prisma.invoices.findMany({
       include: {
-        Customers: true,
-        Loads: true,
+        Customers: { select: { Name: true } },
       },
       take: 10,
       orderBy: {
@@ -454,11 +453,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     loads = await prisma.loads.findMany({
       include: {
-        Customers: true,
-        Trucks: true,
-        Drivers: true,
-        LoadTypes: true,
-        DeliveryLocations: true,
+        Customers: { select: { Name: true } },
+        Trucks: { select: { Name: true } },
+        Drivers: { select: { FirstName: true, LastName: true } },
+        LoadTypes: { select: { Description: true } },
+        DeliveryLocations: { select: { Description: true } },
       },
       orderBy: {
         ID: "desc",

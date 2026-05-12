@@ -14,7 +14,14 @@ import Tooltip from "@mui/material/Tooltip";
 import {z} from "zod";
 import {CompleteJobs, DailiesModel, DriversModel, LoadsModel} from "../../../prisma/zod";
 import {formatDateToWeek} from "../../utils/UtilityFunctions";
-import {useRouter} from "next/router"
+import {useRouter} from "next/router";
+import {toast} from "react-toastify";
+import {
+    calendarChevronNavSx,
+    calendarNavButtonSx,
+    calendarTodayButtonSx,
+    calendarWeekLabelSx,
+} from "../../theme/muiShared";
 
 type Loads = z.infer<typeof LoadsModel>;
 
@@ -64,6 +71,16 @@ export default function Dailies() {
             setLoading(false);
             setShouldRefresh(false);
         },
+        onError(err) {
+            console.warn(err);
+            toast(err.message ?? "Failed to load dailies", {type: "error", autoClose: 8000});
+            setLoading(false);
+            setShouldRefresh(false);
+        },
+        onSettled() {
+            setLoading(false);
+            setShouldRefresh(false);
+        },
     });
 
 
@@ -80,12 +97,7 @@ export default function Dailies() {
                                 variant="text"
                                 type={"button"}
                                 size="small"
-                                style={{
-                                    minHeight: "30px",
-                                    maxHeight: "30px",
-                                    minWidth: "30px",
-                                    maxWidth: "30px",
-                                }}
+                                sx={calendarNavButtonSx}
                                 color="inherit"
                                 onClick={() => {
                                     setInitialExpand(null)
@@ -108,12 +120,7 @@ export default function Dailies() {
                             variant="outlined"
                             type={"button"}
                             size="small"
-                            style={{
-                                minHeight: "30px",
-                                maxHeight: "30px",
-                                minWidth: "50px",
-                                maxWidth: "50px",
-                            }}
+                            sx={calendarTodayButtonSx}
                             onClick={() => {
                                 setInitialExpand(null)
                                 setWeek(defaultWeek);
@@ -126,12 +133,7 @@ export default function Dailies() {
                             variant="text"
                             type={"button"}
                             size="small"
-                            style={{
-                                minHeight: "30px",
-                                maxHeight: "30px",
-                                minWidth: "40px",
-                                maxWidth: "40px",
-                            }}
+                            sx={calendarChevronNavSx}
                             onClick={() => {
                                 let [curyear, curweek] = week.split("-W").map(Number);
                                 if (!curyear || !curweek) {
@@ -162,12 +164,7 @@ export default function Dailies() {
                             variant="text"
                             type={"button"}
                             size="small"
-                            style={{
-                                minHeight: "30px",
-                                maxHeight: "30px",
-                                minWidth: "40px",
-                                maxWidth: "40px",
-                            }}
+                            sx={calendarChevronNavSx}
                             onClick={() => {
                                 let [curyear, curweek] = week.split("-W").map(Number);
                                 if (!curyear || !curweek) {
@@ -198,12 +195,7 @@ export default function Dailies() {
                             variant="text"
                             type={"button"}
                             size="small"
-                            style={{
-                                minHeight: "30px",
-                                maxHeight: "30px",
-                                minWidth: "250px",
-                                maxWidth: "250px",
-                            }}
+                            sx={calendarWeekLabelSx}
                         >
                             <b style={{fontSize: 18}}>
                                 {moment(week).format("l")} -{" "}

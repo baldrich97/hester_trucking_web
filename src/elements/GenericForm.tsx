@@ -8,7 +8,6 @@ import Button from "@mui/material/Button";
 import {FormFieldsType, SelectDataType} from "../utils/types";
 import RHCheckbox from "./RHCheckbox";
 import RHAutocomplete from "./RHAutocomplete";
-import TextField from "@mui/material/TextField";
 
 const GenericForm = ({
                          errors = [],
@@ -16,16 +15,30 @@ const GenericForm = ({
                          fields = [],
                          selectData = [],
                          selectedCustomer = 0,
+                         selectedSource = 0,
+                         selectedLoadType = 0,
+                         selectedTruck = 0,
+                         selectedDriver = 0,
                          onDelete = null,
                          onReset = null,
+                         submitDisabled = false,
+                         deleteDisabled = false,
+                         submitLabel = "Submit",
                      }: {
     errors: any;
     control: Control<any>;
     fields: FormFieldsType;
     selectData?: SelectDataType;
     selectedCustomer?: number | null;
+    selectedSource?: number | null;
+    selectedLoadType?: number | null;
+    selectedTruck?: number | null;
+    selectedDriver?: number | null;
     onDelete?: any;
     onReset?: any;
+    submitDisabled?: boolean;
+    deleteDisabled?: boolean;
+    submitLabel?: string;
 }) => {
     return (
         <Grid2 container columnSpacing={2} rowSpacing={2}>
@@ -87,7 +100,50 @@ const GenericForm = ({
                                     searchQuery={field.searchQuery ?? ""}
                                     groupBy={field.groupBy}
                                     groupByNames={field.groupByNames}
+                                    enableOptionGroups={field.enableOptionGroups}
                                     selectedCustomer={selectedCustomer}
+                                    selectedSource={selectedSource}
+                                    selectedLoadType={selectedLoadType}
+                                    selectedTruck={selectedTruck}
+                                    selectedDriver={selectedDriver}
+                                    onlyActive={field.onlyActive}
+                                    newOptionLabel={field.newOptionLabel}
+                                    onNewOptionClick={field.onNewOptionClick}
+                                />
+                            </Grid2>
+                        );
+                    }
+                    case "selectList": {
+                        const foundData = selectData.filter(
+                            (item) => item.key === field.name
+                        )[0];
+                        if (!foundData) {
+                            return null;
+                        }
+
+                        const {data, optionValue, optionLabel, defaultValue} = foundData;
+
+                        return (
+                            <Grid2
+                                xs={field.size}
+                                key={"form-" + index.toString() + "-" + field.name + "-grid"}
+                            >
+                                <RHSelect
+                                    name={field.name}
+                                    control={control}
+                                    data={data}
+                                    optionLabel={optionLabel}
+                                    optionValue={optionValue}
+                                    defaultValue={defaultValue}
+                                    key={"form-" + index.toString() + "-" + field.name + "-field"}
+                                    label={field.label ?? field.name}
+                                    shouldError={field.shouldErrorOn?.includes(
+                                        errors[field.name]?.type
+                                    )}
+                                    errorMessage={field.errorMessage ?? ""}
+                                    required={field.required}
+                                    disabled={!!field.disabled}
+                                    coerceNumberOrNull={!!field.coerceNumberOrNull}
                                 />
                             </Grid2>
                         );
@@ -164,21 +220,23 @@ const GenericForm = ({
 
             <Grid2 xs={3}>
                 <Button
-                    type={"submit"}
-                    variant={"contained"}
-                    color={"primary"}
-                    style={{backgroundColor: "#1565C0"}}
+                    type="submit"
+                    variant="contained"
+                    color="primary"
+                    disabled={submitDisabled}
                 >
-                    Submit
+                    {submitLabel}
                 </Button>
             </Grid2>
             {(onDelete || onReset) && <Grid2 xs={6}></Grid2>}
             {onDelete && (
-                <Grid2 xs={3} style={{display: "grid"}}>
+                <Grid2 xs={3} sx={{display: "grid"}}>
                     <Button
-                        type={"button"}
-                        variant={"contained"}
-                        style={{backgroundColor: "#EF463B", justifySelf: "flex-end"}}
+                        type="button"
+                        variant="contained"
+                        color="error"
+                        sx={{justifySelf: "flex-end"}}
+                        disabled={deleteDisabled}
                         onClick={onDelete}
                     >
                         Delete

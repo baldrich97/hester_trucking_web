@@ -3,21 +3,13 @@ import Grid2 from "@mui/material/Unstable_Grid2";
 import Load from "../../components/objects/Load";
 import { GetServerSideProps } from "next";
 import { prisma } from "server/db/client";
-import {
-  CustomersModel,
-  DeliveryLocationsModel,
-  DriversModel,
-  LoadsModel,
-  LoadTypesModel,
-  TrucksModel,
-} from "../../../prisma/zod";
+import {LoadsModel} from "../../../prisma/zod";
 import { z } from "zod";
 import GenericTable from "../../elements/GenericTable";
 import SearchBar from "../../elements/SearchBar";
 import Divider from "@mui/material/Divider";
 import { TableColumnsType, TableColumnOverridesType } from "../../utils/types";
 import { trpc } from "../../utils/trpc";
-import deliverylocations from "../deliverylocations";
 import BasicAutocomplete from "elements/Autocomplete";
 import TextField from "@mui/material/TextField";
 import Tabs from "@mui/material/Tabs";
@@ -26,11 +18,6 @@ import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 
 type LoadsType = z.infer<typeof LoadsModel>;
-type CustomersType = z.infer<typeof CustomersModel>;
-type LoadTypesType = z.infer<typeof LoadTypesModel>;
-type DeliveryLocationsType = z.infer<typeof DeliveryLocationsModel>;
-type TrucksType = z.infer<typeof TrucksModel>;
-type DriversType = z.infer<typeof DriversModel>;
 
 const columns: TableColumnsType = [
   { name: "Customers.Name", as: "Customer", navigateTo: "customers/[ID]", column: 'CustomerID' },
@@ -70,22 +57,12 @@ const Loads = ({
   loads,
     uninvLoads,
   count,
-  customers,
-  loadTypes,
-  deliveryLocations,
-  trucks,
-  drivers,
     uninvCount
 }: {
   loads: LoadsType[];
   uninvLoads: LoadsType[];
-  loadTypes: LoadTypesType[];
-  deliveryLocations: DeliveryLocationsType[];
-  trucks: TrucksType[];
-  drivers: DriversType[];
   count: number;
   uninvCount: number;
-  customers: CustomersType[];
 }) => {
   const [search, setSearch] = useState<number | null>(null);
 
@@ -145,45 +122,15 @@ const Loads = ({
 
   trpc.useQuery(
       [
-        "loads.getAll",
+        "loads.getAllPage",
         {page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search},
       ],
       {
         enabled: shouldRefresh,
+        refetchOnWindowFocus: false,
         onSuccess(data) {
-          setNewData(JSON.parse(JSON.stringify(data)));
-          setShouldRefresh(false);
-        },
-        onError(error) {
-          console.warn(error.message);
-          setShouldRefresh(false);
-        },
-      }
-  );
-
-  trpc.useQuery(
-      ["loads.getCount", {customer, driver, truck, loadType, deliveryLocation, search}],
-      {
-        enabled: shouldRefresh,
-        onSuccess(data) {
-          setNewCount(data);
-          setShouldRefresh(false);
-        },
-        onError(error) {
-          console.warn(error.message);
-          setShouldRefresh(false);
-        },
-      }
-  );
-
-
-
-  trpc.useQuery(
-      ["loads.getUninvCount", {customer, driver, truck, loadType, deliveryLocation, search}],
-      {
-        enabled: shouldRefresh,
-        onSuccess(data) {
-          setNewUninvCount(data);
+          setNewData(JSON.parse(JSON.stringify(data.rows)));
+          setNewCount(data.count);
           setShouldRefresh(false);
         },
         onError(error) {
@@ -195,13 +142,15 @@ const Loads = ({
 
   trpc.useQuery(
       [
-        "loads.getUninv",
+        "loads.getUninvPage",
         {page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search},
       ],
       {
         enabled: shouldRefresh,
+        refetchOnWindowFocus: false,
         onSuccess(data) {
-          setNewUninvData(JSON.parse(JSON.stringify(data)));
+          setNewUninvData(JSON.parse(JSON.stringify(data.rows)));
+          setNewUninvCount(data.count);
           setShouldRefresh(false);
         },
         onError(error) {
@@ -210,6 +159,24 @@ const Loads = ({
         },
       }
   );
+
+  const sortsApplied = order !== "desc" || orderBy !== "ID";
+  const ticketFilterActive =
+    search !== null &&
+    search !== undefined &&
+    Number.isFinite(search);
+  const filtersActive =
+    customer !== 0 ||
+    driver !== 0 ||
+    truck !== 0 ||
+    loadType !== 0 ||
+    deliveryLocation !== 0 ||
+    ticketFilterActive;
+
+  const useAllFetched =
+    newData.length >= 1 || sortsApplied || filtersActive;
+  const useUninvFetched =
+    newUninvData.length >= 1 || sortsApplied || filtersActive;
 
   const filterBody = <div style={{display: "flex", flexDirection: "column"}}>
     <b style={{textAlign: "center"}}>Specify Search Terms</b>
@@ -324,10 +291,10 @@ const Loads = ({
 
           </Box>
           {tabValue === 0 && (<GenericTable
-              data={newData.length >= 1 || (order !== 'desc' || orderBy !== 'ID') ? newData : loads}
+              data={useAllFetched ? newData : loads}
               columns={columns}
               overrides={overrides}
-              count={newCount > 0 ? newCount : count}
+              count={useAllFetched ? newCount : count}
               refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc' | 'desc') => {
                 setPage(page);
                 setOrderBy(orderBy);
@@ -352,10 +319,10 @@ const Loads = ({
           />)}
 
           {tabValue === 1 && (<GenericTable
-              data={newUninvData.length >= 1 || (order !== 'desc' || orderBy !== 'ID') ? newUninvData : uninvLoads}
+              data={useUninvFetched ? newUninvData : uninvLoads}
               columns={uninvColumns}
               overrides={uninvOverrides}
-              count={newUninvCount > 0 ? newUninvCount : uninvCount}
+              count={useUninvFetched ? newUninvCount : uninvCount}
               refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc' | 'desc') => {
                 setPage(page);
                 setOrderBy(orderBy);
@@ -388,11 +355,6 @@ const Loads = ({
         />
         <Grid2 xs={4}>
           <Load
-              customers={customers}
-              loadTypes={loadTypes}
-              deliveryLocations={deliveryLocations}
-              trucks={trucks}
-              drivers={drivers}
               refreshData={() => {
                 setShouldRefresh(true);
               }}
@@ -405,78 +367,43 @@ const Loads = ({
 export default Loads;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  const count = await prisma.loads.count();
+  const loadInclude = {
+    Customers: true,
+    Trucks: true,
+    Drivers: true,
+    LoadTypes: true,
+    DeliveryLocations: true,
+  } as const;
 
-  const uninvCount = await prisma.loads.count({
-    where: {
-      Invoiced: {
-        not: true
-      }
-    }
-  })
-
-  const loads = await prisma.loads.findMany({
-    include: {
-      Customers: true,
-      Trucks: true,
-      Drivers: true,
-      LoadTypes: true,
-      DeliveryLocations: true,
-    },
-    take: 10,
-    orderBy: {
-      ID: "desc",
-    },
-  });
-
-  const uninvLoads = await prisma.loads.findMany({
-    include: {
-      Customers: true,
-      Trucks: true,
-      Drivers: true,
-      LoadTypes: true,
-      DeliveryLocations: true,
-    },
-    where: {
-      Invoiced: {
-        not: true
-      }
-    },
-    take: 10,
-    orderBy: {
-      StartDate: "asc",
-    },
-  });
-
-  const customers = await prisma.customers.findMany({take: 10});
-
-  const loadTypes = await prisma.loadTypes.findMany({
-    orderBy: {
-      Description: "asc",
-    },
-    take: 10,
-  });
-
-  const trucks = await prisma.trucks.findMany({
-    orderBy: {
-      Name: "asc",
-    },
-    take: 10,
-  });
-
-  const drivers = await prisma.drivers.findMany({
-    orderBy: {
-      LastName: "asc",
-    },
-    take: 10,
-  });
-
-  const deliveryLocations = await prisma.deliveryLocations.findMany({
-    orderBy: {
-      Description: "asc",
-    },
-    take: 10,
-  });
+  const [count, uninvCount, loads, uninvLoads] = await Promise.all([
+    prisma.loads.count(),
+    prisma.loads.count({
+      where: {
+        Invoiced: {
+          not: true,
+        },
+      },
+    }),
+    prisma.loads.findMany({
+      include: loadInclude,
+      take: 10,
+      orderBy: {
+        ID: "desc",
+      },
+    }),
+    prisma.loads.findMany({
+      include: loadInclude,
+      where: {
+        Invoiced: {
+          not: true,
+        },
+      },
+      take: 10,
+      orderBy: {
+        StartDate: "asc",
+      },
+    }),
+  ]);
 
   return {
     props: {
@@ -484,11 +411,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       uninvLoads: JSON.parse(JSON.stringify(uninvLoads)),
       count,
       uninvCount,
-      customers,
-      trucks,
-      drivers: JSON.parse(JSON.stringify(drivers)),
-      deliveryLocations,
-      loadTypes,
     },
   };
 };

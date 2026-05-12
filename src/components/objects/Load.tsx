@@ -1,5 +1,7 @@
-import React, {useState} from "react";
+import React, {useRef, useState} from "react";
 import Box from "@mui/material/Box";
+import Modal from "@mui/material/Modal";
+import Typography from "@mui/material/Typography";
 import {useForm} from "react-hook-form";
 import {z} from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
@@ -11,14 +13,14 @@ import {
     LoadTypesModel,
     DeliveryLocationsModel,
     DriversModel,
+    SourcesModel,
     CompleteTrucksDriven,
 } from "../../../prisma/zod";
 import {trpc} from "../../utils/trpc";
 import {useRouter} from "next/router";
 import GenericForm from "../../elements/GenericForm";
 import {toast} from "react-toastify";
-import {confirmAlert} from "react-confirm-alert";
-import "react-confirm-alert/src/react-confirm-alert.css";
+import {confirmDestructive} from "../../utils/appConfirm";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
@@ -27,6 +29,7 @@ type LoadTypesType = z.infer<typeof LoadTypesModel>;
 type DeliveryLocationsType = z.infer<typeof DeliveryLocationsModel>;
 type TrucksType = z.infer<typeof TrucksModel>;
 type DriversType = z.infer<typeof DriversModel>;
+type SourcesType = z.infer<typeof SourcesModel>;
 import {FormFieldsType, SelectDataType} from "../../utils/types";
 import {
     CustomerDeliveryLocations,
@@ -37,6 +40,12 @@ import {formatDateToWeek} from "../../utils/UtilityFunctions";
 import $ from "jquery";
 import Button from "@mui/material/Button";
 import NextLink from "next/link";
+import Customer from "./Customer";
+import Driver from "./Driver";
+import Truck from "./Truck";
+import LoadType from "./LoadType";
+import DeliveryLocation from "./DeliveryLocation";
+import Source from "./Source";
 
 const today = new Date();
 const defaultWeek = formatDateToWeek(new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000));
@@ -50,6 +59,7 @@ const defaultValues = {
     DeliveryDescriptionID: null,
     DriverID: null,
     TruckID: null,
+    SourceID: null,
     Hours: undefined,
     TotalAmount: undefined,
     TotalRate: undefined,
@@ -61,21 +71,39 @@ const defaultValues = {
     onReset: false,
 };
 
+type InlineCreatableField =
+    | "CustomerID"
+    | "DriverID"
+    | "TruckID"
+    | "LoadTypeID"
+    | "DeliveryLocationID"
+    | "SourceID";
+
+const createModalStyle = {
+    position: "absolute" as const,
+    top: "50%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    width: {xs: "95vw", md: 900},
+    maxHeight: "90vh",
+    overflowY: "auto",
+    bgcolor: "background.paper",
+    borderRadius: 1,
+    boxShadow: 24,
+    p: 2,
+};
+
 function Load({
-                  customers,
-                  loadTypes,
-                  deliveryLocations,
-                  trucks,
-                  drivers,
                   initialLoad = null,
                   refreshData,
                   resetButton = false,
               }: {
-    customers: CustomersType[];
-    loadTypes: LoadTypesType[];
-    deliveryLocations: DeliveryLocationsType[];
-    trucks: TrucksType[];
-    drivers: DriversType[];
+    customers?: CustomersType[];
+    loadTypes?: LoadTypesType[];
+    deliveryLocations?: DeliveryLocationsType[];
+    trucks?: TrucksType[];
+    drivers?: DriversType[];
+    sources?: SourcesType[];
     initialLoad?: null | LoadsType;
     refreshData?: any;
     resetButton?: any;
@@ -89,15 +117,16 @@ function Load({
 
     const router = useRouter();
 
-    const validationSchema = initialLoad
+    const validationSchema = (initialLoad
         ? LoadsModel
-        : LoadsModel.omit({ID: true});
+        : LoadsModel.omit({ID: true})
+    ).extend({SourceID: z.number().int().nullish()});
 
     type ValidationSchema = z.infer<typeof validationSchema>;
 
     const {
         handleSubmit,
-        formState: {errors},
+        formState: {errors, isSubmitting},
         control,
         resetField,
         reset,
@@ -213,8 +242,46 @@ function Load({
     });
 
     const [overrideWarning, toggleOverride] = useState(false);
+    const [newObjectModalTarget, setNewObjectModalTarget] =
+        useState<InlineCreatableField | null>(null);
+    const [inlineDefaultIds, setInlineDefaultIds] = useState<Record<InlineCreatableField, number | null>>({
+        CustomerID: initialLoad?.CustomerID ?? null,
+        DriverID: initialLoad?.DriverID ?? null,
+        TruckID: initialLoad?.TruckID ?? null,
+        LoadTypeID: initialLoad?.LoadTypeID ?? null,
+        DeliveryLocationID: initialLoad?.DeliveryLocationID ?? null,
+        SourceID:
+            initialLoad && "SourceID" in initialLoad
+                ? ((initialLoad as LoadsType & {SourceID?: number | null}).SourceID ?? null)
+                : null,
+    });
+    /** Prevents double submits while duplicate check or save is in flight. */
+    const submitLockRef = useRef(false);
+    const {data: states = []} = trpc.useQuery(["states.getAll"]);
+
+    const closeNewObjectModal = () => setNewObjectModalTarget(null);
+
+    const onInlineObjectCreated = (fieldName: InlineCreatableField, id: number) => {
+        setInlineDefaultIds((prev) => ({...prev, [fieldName]: id}));
+        setValue(fieldName, id, {shouldValidate: true, shouldDirty: true, shouldTouch: true});
+        if (fieldName === "DeliveryLocationID") {
+            dlsetShouldRefresh(true);
+        } else if (fieldName === "LoadTypeID") {
+            ltsetShouldRefresh(true);
+        } else if (fieldName === "DriverID" || fieldName === "TruckID") {
+            tdsetShouldRefresh(true);
+        } else if (fieldName === "SourceID") {
+            srcsetShouldRefresh(true);
+        }
+        closeNewObjectModal();
+    };
 
     const onSubmit = async (data: ValidationSchema) => {
+        if (submitLockRef.current) {
+            return;
+        }
+        submitLockRef.current = true;
+        try {
         const duplicate = await checkDuplicate.mutateAsync(data);
 
         if (duplicate !== false && !overrideWarning) {
@@ -242,6 +309,9 @@ function Load({
                 }
             }
         }
+        } finally {
+            submitLockRef.current = false;
+        }
     };
 
     const [customer, setCustomer] = useState(
@@ -256,15 +326,25 @@ function Load({
         initialLoad ? (initialLoad.TruckID ? initialLoad.TruckID : 0) : 0
     );
 
-    const [lttrpcData, ltsetData] = useState<CustomerLoadTypes[]>([]);
+    const [source, setSource] = useState(0);
+
+    const [loadTypeSelected, setLoadTypeSelected] = useState(
+        initialLoad ? (initialLoad.LoadTypeID ? initialLoad.LoadTypeID : 0) : 0
+    );
+
+    const [lttrpcData, ltsetData] = useState<any[]>([]);
 
     const [dltrpcData, dlsetData] = useState<CustomerDeliveryLocations[]>([]);
+
+    const [srctrpcData, srcsetData] = useState<any[]>([]);
 
     const [tdtrpcData, tdsetData] = useState<CompleteTrucksDriven[]>([]);
 
     const [ltshouldRefresh, ltsetShouldRefresh] = useState(false);
 
     const [dlshouldRefresh, dlsetShouldRefresh] = useState(false);
+
+    const [srcshouldRefresh, srcsetShouldRefresh] = useState(false);
 
     const [tdshouldRefresh, tdsetShouldRefresh] = useState(false);
 
@@ -281,18 +361,46 @@ function Load({
         await router.replace("/loads");
     };
 
-    trpc.useQuery(["loadtypes.search", {CustomerID: customer}], {
-        enabled: ltshouldRefresh,
-        onSuccess(data) {
-            ltsetData(JSON.parse(JSON.stringify(data)));
-            ltsetShouldRefresh(false);
-            //forceUpdate;
+    trpc.useQuery(
+        [
+            "loadtypes.search",
+            {
+                CustomerID: customer || undefined,
+                SourceID: source || undefined,
+            },
+        ],
+        {
+            enabled: ltshouldRefresh,
+            onSuccess(data) {
+                ltsetData(JSON.parse(JSON.stringify(data)));
+                ltsetShouldRefresh(false);
+            },
+            onError(error) {
+                console.warn(error.message);
+                ltsetShouldRefresh(false);
+            },
         },
-        onError(error) {
-            console.warn(error.message);
-            ltsetShouldRefresh(false);
+    );
+
+    trpc.useQuery(
+        [
+            "sources.search",
+            {
+                LoadTypeID: loadTypeSelected || undefined,
+            },
+        ],
+        {
+            enabled: srcshouldRefresh,
+            onSuccess(data) {
+                srcsetData(JSON.parse(JSON.stringify(data)));
+                srcsetShouldRefresh(false);
+            },
+            onError(error) {
+                console.warn(error.message);
+                srcsetShouldRefresh(false);
+            },
         },
-    });
+    );
 
     trpc.useQuery(["deliverylocations.search", {CustomerID: customer}], {
         enabled: dlshouldRefresh,
@@ -372,6 +480,16 @@ function Load({
                 dlsetShouldRefresh(true);
                 ltsetShouldRefresh(true);
             }
+            if (name === "SourceID" && type === "change") {
+                setSource(value.SourceID ?? 0);
+                ltsetShouldRefresh(true);
+            }
+            if (name === "LoadTypeID" && type === "change") {
+                setLoadTypeSelected(value.LoadTypeID ?? 0);
+                if (!value.SourceID) {
+                    srcsetShouldRefresh(true);
+                }
+            }
             if ((name === "TruckID" || name === "DriverID") && type === "change") {
                 if (name === "TruckID") {
                     //setValue("DriverID", 0)
@@ -421,6 +539,8 @@ function Load({
             type: "select",
             label: "Customer",
             searchQuery: "customers",
+            newOptionLabel: "New Customer",
+            onNewOptionClick: () => setNewObjectModalTarget("CustomerID"),
         },
         {
             name: "DriverID",
@@ -429,8 +549,12 @@ function Load({
             type: "select",
             label: "Driver",
             searchQuery: "drivers",
+            onlyActive: true,
             groupBy: "Recommend",
             groupByNames: "Has Driven Truck|New for Driver",
+            enableOptionGroups: truck > 0,
+            newOptionLabel: "New Driver",
+            onNewOptionClick: () => setNewObjectModalTarget("DriverID"),
         },
         {
             name: "TruckID",
@@ -439,8 +563,12 @@ function Load({
             type: "select",
             label: "Truck",
             searchQuery: "trucks",
+            onlyActive: true,
             groupBy: "Recommend",
             groupByNames: "Driven Before|New for Driver",
+            enableOptionGroups: driver > 0,
+            newOptionLabel: "New Truck",
+            onNewOptionClick: () => setNewObjectModalTarget("TruckID"),
         },
         {
             name: "LoadTypeID",
@@ -452,8 +580,26 @@ function Load({
             label: "Load Type",
             searchQuery: "loadtypes",
             groupBy: "Recommend",
-            groupByNames: "Used by Customer|New for Customer",
+            groupByNames: "Customer=Used by Customer|Source=Linked to Source|Other",
+            enableOptionGroups: customer > 0,
+            newOptionLabel: "New Load Type",
+            onNewOptionClick: () => setNewObjectModalTarget("LoadTypeID"),
         },
+        // Uncomment Source select and keep `newOptionLabel` / `onNewOptionClick` for inline "New Source" creation:
+        // {
+        //     name: "SourceID",
+        //     size: 6,
+        //     required: false,
+        //     type: "select",
+        //     label: "Source (optional)",
+        //     searchQuery: "sources",
+        //     groupBy: "Recommend",
+        //     groupByNames: "Linked=Linked to Load Type|Other",
+        //     enableOptionGroups: loadTypeSelected > 0,
+        //     newOptionLabel: "New Source",
+        //     onNewOptionClick: () => setNewObjectModalTarget("SourceID"),
+        // },
+        // TODO when above is uncommented need to turn below into size 6
         {
             name: "DeliveryLocationID",
             size: 6,
@@ -463,6 +609,9 @@ function Load({
             searchQuery: "deliverylocations",
             groupBy: "Recommend",
             groupByNames: "Used by Customer|New for Customer",
+            enableOptionGroups: customer > 0,
+            newOptionLabel: "New Delivery Location",
+            onNewOptionClick: () => setNewObjectModalTarget("DeliveryLocationID"),
         },
         {
             name: "StartDate",
@@ -568,24 +717,31 @@ function Load({
     const selectData: SelectDataType = [
         {
             key: "CustomerID",
-            data: customers,
+            data: [],
             optionValue: "ID",
             optionLabel: "Name+|+Street+,+City",
-            defaultValue: initialLoad ? initialLoad.CustomerID : null,
+            defaultValue: inlineDefaultIds.CustomerID,
+        },
+        {
+            key: "SourceID",
+            data: srctrpcData.length > 0 ? srctrpcData : [],
+            optionValue: "ID",
+            optionLabel: "Name",
+            defaultValue: inlineDefaultIds.SourceID,
         },
         {
             key: "LoadTypeID",
-            data: lttrpcData.length > 0 ? lttrpcData : loadTypes,
+            data: lttrpcData.length > 0 ? lttrpcData : [],
             optionValue: "ID",
-            optionLabel: "Description",
-            defaultValue: initialLoad ? initialLoad.LoadTypeID : null,
+            optionLabel: lttrpcData.length > 0 ? "DisplayName" : "Description",
+            defaultValue: inlineDefaultIds.LoadTypeID,
         },
         {
             key: "DeliveryLocationID",
-            data: dltrpcData.length > 0 ? dltrpcData : deliveryLocations,
+            data: dltrpcData.length > 0 ? dltrpcData : [],
             optionValue: "ID",
             optionLabel: "Description",
-            defaultValue: initialLoad ? initialLoad.DeliveryLocationID : null,
+            defaultValue: inlineDefaultIds.DeliveryLocationID,
         },
         {
             key: "TruckID",
@@ -597,10 +753,10 @@ function Load({
                         .filter((value, index, self) => {
                             return index === self.findIndex((t) => t.ID === value.ID);
                         })
-                    : trucks,
+                    : [],
             optionValue: "ID",
             optionLabel: "Name+|+Notes",
-            defaultValue: initialLoad ? initialLoad.TruckID : null,
+            defaultValue: inlineDefaultIds.TruckID,
         },
         {
             key: "DriverID",
@@ -612,10 +768,10 @@ function Load({
                         .filter((value, index, self) => {
                             return index === self.findIndex((t) => t.ID === value.ID);
                         })
-                    : drivers,
+                    : [],
             optionValue: "ID",
             optionLabel: "FirstName+LastName",
-            defaultValue: initialLoad ? initialLoad.DriverID : null,
+            defaultValue: inlineDefaultIds.DriverID,
         },
     ];
 
@@ -626,7 +782,16 @@ function Load({
                 component="form"
                 autoComplete="off"
                 noValidate
-                onSubmit={handleSubmit(onSubmit)}
+                onSubmit={(e) => {
+                    // Portaled inline-create forms are still React descendants; in some environments
+                    // their submit can surface here. Only run the Load handler for this form's own submit.
+                    if (e.target !== e.currentTarget) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                    }
+                    void handleSubmit(onSubmit)(e);
+                }}
                 sx={{
                     paddingLeft: 2.5,
                 }}
@@ -637,6 +802,16 @@ function Load({
                     fields={fields}
                     selectData={selectData}
                     selectedCustomer={customer}
+                    selectedSource={source}
+                    selectedLoadType={loadTypeSelected}
+                    selectedTruck={truck}
+                    selectedDriver={driver}
+                    submitDisabled={
+                        isSubmitting ||
+                        addOrUpdateLoad.isLoading ||
+                        checkDuplicate.isLoading
+                    }
+                    deleteDisabled={deleteLoad.isLoading}
                     onReset={
                         resetButton
                             ? () => {
@@ -647,27 +822,77 @@ function Load({
                     onDelete={
                         initialLoad
                             ? () => {
-                                confirmAlert({
-                                    title: "Confirm Deletion",
+                                confirmDestructive({
+                                    title: "Confirm deletion",
                                     message: "Are you sure you want to delete this load?",
-                                    buttons: [
-                                        {
-                                            label: "Yes",
-                                            onClick: async () => {
-                                                onDelete(initialLoad).then();
-                                            },
-                                        },
-                                        {
-                                            label: "No",
-                                            //onClick: () => {}
-                                        },
-                                    ],
+                                    confirmLabel: "Delete",
+                                    onConfirm: () => {
+                                        void onDelete(initialLoad);
+                                    },
                                 });
                             }
                             : null
                     }
                 />
             </Box>
+            <Modal open={newObjectModalTarget !== null} onClose={closeNewObjectModal}>
+                <Box sx={createModalStyle} onClick={(e) => e.stopPropagation()}>
+                    <Typography variant="h6" sx={{mb: 1}}>
+                        {newObjectModalTarget ? `Create ${newObjectModalTarget.replace("ID", "").replace(/([A-Z])/g, " $1").trim()}` : ""}
+                    </Typography>
+                    {newObjectModalTarget === "CustomerID" && (
+                        <Customer
+                            states={states}
+                            submitLabel="Create"
+                            skipRouteRefresh
+                            onCreated={(customer) => onInlineObjectCreated("CustomerID", customer.ID)}
+                        />
+                    )}
+                    {newObjectModalTarget === "DriverID" && (
+                        <Driver
+                            states={states}
+                            submitLabel="Create"
+                            skipRouteRefresh
+                            onCreated={(driverRecord) => onInlineObjectCreated("DriverID", driverRecord.ID)}
+                        />
+                    )}
+                    {newObjectModalTarget === "TruckID" && (
+                        <Truck
+                            submitLabel="Create"
+                            skipRouteRefresh
+                            onCreated={(truckRecord) => onInlineObjectCreated("TruckID", truckRecord.ID)}
+                        />
+                    )}
+                    {newObjectModalTarget === "LoadTypeID" && (
+                        <LoadType
+                            submitLabel="Create"
+                            skipRouteRefresh
+                            onCreated={(loadTypeRecord) => onInlineObjectCreated("LoadTypeID", loadTypeRecord.ID)}
+                        />
+                    )}
+                    {newObjectModalTarget === "DeliveryLocationID" && (
+                        <DeliveryLocation
+                            submitLabel="Create"
+                            skipRouteRefresh
+                            onCreated={(deliveryLocation) =>
+                                onInlineObjectCreated("DeliveryLocationID", deliveryLocation.ID)
+                            }
+                        />
+                    )}
+                    {newObjectModalTarget === "SourceID" && (
+                        <Source
+                            submitLabel="Create"
+                            skipRouteRefresh
+                            onCreated={(sourceRecord) => onInlineObjectCreated("SourceID", sourceRecord.ID)}
+                        />
+                    )}
+                    <Box sx={{display: "flex", justifyContent: "flex-end", mt: 1}}>
+                        <Button type="button" variant="outlined" onClick={closeNewObjectModal}>
+                            Cancel
+                        </Button>
+                    </Box>
+                </Box>
+            </Modal>
         </>
     );
 }

@@ -4,6 +4,48 @@ import {InvoicesModel, LoadsModel} from '../../../prisma/zod';
 import {prisma} from "../db/client";
 import {TRPCError} from "@trpc/server";
 
+const invoiceListInput = z.object({
+    customer: z.number().optional(),
+    loadType: z.number().optional(),
+    deliveryLocation: z.number().optional(),
+    page: z.number().optional(),
+    search: z.number().nullish().optional(),
+    orderBy: z.string().optional(),
+    order: z.string().optional(),
+});
+
+function buildInvoiceListFilters(input: z.infer<typeof invoiceListInput>) {
+    const {search, customer, loadType, deliveryLocation} = input;
+    return {
+        ...(search && search?.toString().length > 0 && {
+            OR: [
+                {TotalAmount: search},
+                ...(!search.toString().includes('.') ? [{Number: search}] : []),
+            ],
+        }),
+        ...(customer !== 0 && {CustomerID: customer}),
+        ...(deliveryLocation && {
+            Loads: {some: {DeliveryLocationID: deliveryLocation}},
+        }),
+        ...(loadType && {
+            Loads: {some: {LoadTypeID: loadType}},
+        }),
+    };
+}
+
+function buildInvoiceOrder(orderBy: string | undefined, order: string | undefined) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    const orderObj = {};
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    orderObj[orderBy] = order;
+    return orderObj;
+}
+
+const invoiceListInclude = {
+    Customers: {select: {Name: true}},
+};
 
 export const invoicesRouter = createRouter()
     .query("getAllOverdue", {
@@ -133,48 +175,12 @@ export const invoicesRouter = createRouter()
         },
     })
     .query("getAll", {
-        input: z.object({
-            customer: z.number().optional(),
-            loadType: z.number().optional(),
-            deliveryLocation: z.number().optional(),
-            page: z.number().optional(),
-            search: z.number().nullish().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional()
-        }),
+        input: invoiceListInput,
         async resolve({ctx, input}) {
             const {search, customer, order, loadType, deliveryLocation, orderBy} = input;
 
-            const extra = {
-                ...(search && search?.toString().length > 0 && {
-                    OR: [
-                        {TotalAmount: search},
-                        ...(!search.toString().includes('.') ? [{Number: search}] : [])
-                    ]
-                }),
-                ...(customer !== 0 && {CustomerID: customer}),
-                ...(deliveryLocation && {
-                    Loads: {
-                        some: {
-                            DeliveryLocationID: deliveryLocation
-                        }
-                    }
-                }),
-                ...(loadType && {
-                    Loads: {
-                        some: {
-                            LoadTypeID: loadType
-                        }
-                    }
-                }),
-            };
-
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            orderObj[orderBy] = order;
+            const extra = buildInvoiceListFilters(input);
+            const orderObj = buildInvoiceOrder(orderBy, order);
 
 
             return ctx.prisma.invoices.findMany({
@@ -182,60 +188,19 @@ export const invoicesRouter = createRouter()
                     ...extra
                 },
                 take: 10,
-                include: {
-                    Customers: true,
-                    Loads: true
-                },
+                include: invoiceListInclude,
                 orderBy: orderObj,
                 skip: input.page ? input.page * 10 : 0
             });
         },
     })
     .query("getAllPaid", {
-        input: z.object({
-            customer: z.number().optional(),
-            loadType: z.number().optional(),
-            deliveryLocation: z.number().optional(),
-            page: z.number().optional(),
-            search: z.number().nullish().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional()
-        }),
+        input: invoiceListInput,
         async resolve({ctx, input}) {
             const {search, customer, order, loadType, deliveryLocation, orderBy} = input;
 
-            const extra = {
-                ...(search && search?.toString().length > 0 && {
-                    OR: [
-                        {TotalAmount: search},
-                        ...(!search.toString().includes('.') ? [{Number: search}] : [])
-                    ]
-                }),
-                ...(customer !== 0 && {CustomerID: customer}),
-                ...(deliveryLocation && {
-                    Loads: {
-                        some: {
-                            DeliveryLocationID: deliveryLocation
-                        }
-                    }
-                }),
-                ...(loadType && {
-                    Loads: {
-                        some: {
-                            LoadTypeID: loadType
-                        }
-                    }
-                }),
-            };
-
-            console.log('HERE', extra)
-
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            orderObj[orderBy] = order;
+            const extra = buildInvoiceListFilters(input);
+            const orderObj = buildInvoiceOrder(orderBy, order);
 
             return ctx.prisma.invoices.findMany({
                 where: {
@@ -243,10 +208,7 @@ export const invoicesRouter = createRouter()
                     Consolidated: false,
                     ...extra
                 },
-                include: {
-                    Customers: true,
-                    Loads: true
-                },
+                include: invoiceListInclude,
                 take: 10,
                 orderBy: orderObj,
                 skip: input.page ? 10 * input.page : 0
@@ -254,49 +216,12 @@ export const invoicesRouter = createRouter()
         },
     })
     .query("getAllUnpaid", {
-        input: z.object({
-            customer: z.number().optional(),
-            loadType: z.number().optional(),
-            deliveryLocation: z.number().optional(),
-            page: z.number().optional(),
-            search: z.number().nullish().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional(),
-            showAll: z.boolean().optional()
-        }),
+        input: invoiceListInput.extend({showAll: z.boolean().optional()}),
         async resolve({ctx, input}) {
             const {search, customer, order, loadType, deliveryLocation, orderBy} = input;
 
-            const extra = {
-                ...(search && search?.toString().length > 0 && {
-                    OR: [
-                        {TotalAmount: search},
-                        ...(!search.toString().includes('.') ? [{Number: search}] : [])
-                    ]
-                }),
-                ...(customer !== 0 && {CustomerID: customer}),
-                ...(deliveryLocation && {
-                    Loads: {
-                        some: {
-                            DeliveryLocationID: deliveryLocation
-                        }
-                    }
-                }),
-                ...(loadType && {
-                    Loads: {
-                        some: {
-                            LoadTypeID: loadType
-                        }
-                    }
-                }),
-            };
-
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            orderObj[orderBy] = order;
+            const extra = buildInvoiceListFilters(input);
+            const orderObj = buildInvoiceOrder(orderBy, order);
 
             return ctx.prisma.invoices.findMany({
                 where: {
@@ -305,10 +230,7 @@ export const invoicesRouter = createRouter()
                     ...extra
 
                 },
-                include: {
-                    Customers: true,
-                    Loads: true
-                },
+                include: invoiceListInclude,
                 take: 10,
                 orderBy: orderObj,
                 skip: input.page ? 10 * input.page : 0
@@ -317,47 +239,12 @@ export const invoicesRouter = createRouter()
     })
 
     .query("getAllConsolidated", {
-        input: z.object({
-            customer: z.number().optional(),
-            loadType: z.number().optional(),
-            deliveryLocation: z.number().optional(),
-            page: z.number().optional(),
-            search: z.number().nullish().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional(),
-            showAll: z.boolean().optional()
-        }),
+        input: invoiceListInput.extend({showAll: z.boolean().optional()}),
         async resolve({ctx, input}) {
             const {search, customer, order, loadType, deliveryLocation, orderBy} = input;
 
-            const extra = {
-                ...(search && search?.toString().length > 0 && {
-                    TotalAmount: search,
-                    ...(!search.toString().includes('.') && {Number: search})
-                }),
-                ...(customer !== 0 && {CustomerID: customer}),
-                ...(deliveryLocation && {
-                    Loads: {
-                        some: {
-                            DeliveryLocationID: deliveryLocation
-                        }
-                    }
-                }),
-                ...(loadType && {
-                    Loads: {
-                        some: {
-                            LoadTypeID: loadType
-                        }
-                    }
-                }),
-            };
-
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            orderObj[orderBy] = order;
+            const extra = buildInvoiceListFilters(input);
+            const orderObj = buildInvoiceOrder(orderBy, order);
 
 
             return ctx.prisma.invoices.findMany({
@@ -366,14 +253,87 @@ export const invoicesRouter = createRouter()
                     Consolidated: true,
                     ...extra
                 },
-                include: {
-                    Customers: true,
-                    Loads: true
-                },
+                include: invoiceListInclude,
                 take: 10,
                 orderBy: orderObj,
                 skip: input.page ? 10 * input.page : 0
             });
+        },
+    })
+    .query("getAllPage", {
+        input: invoiceListInput,
+        async resolve({ctx, input}) {
+            const {page, orderBy, order} = input;
+            const where = {...buildInvoiceListFilters(input)};
+            const orderObj = buildInvoiceOrder(orderBy, order);
+            const [rows, count] = await Promise.all([
+                ctx.prisma.invoices.findMany({
+                    where,
+                    include: invoiceListInclude,
+                    take: 10,
+                    orderBy: orderObj,
+                    skip: page ? page * 10 : 0,
+                }),
+                ctx.prisma.invoices.count({where}),
+            ]);
+            return {rows, count};
+        },
+    })
+    .query("getAllUnpaidPage", {
+        input: invoiceListInput,
+        async resolve({ctx, input}) {
+            const {page, orderBy, order} = input;
+            const where = {Paid: {not: true}, Consolidated: false, ...buildInvoiceListFilters(input)};
+            const orderObj = buildInvoiceOrder(orderBy, order);
+            const [rows, count] = await Promise.all([
+                ctx.prisma.invoices.findMany({
+                    where,
+                    include: invoiceListInclude,
+                    take: 10,
+                    orderBy: orderObj,
+                    skip: page ? page * 10 : 0,
+                }),
+                ctx.prisma.invoices.count({where}),
+            ]);
+            return {rows, count};
+        },
+    })
+    .query("getAllPaidPage", {
+        input: invoiceListInput,
+        async resolve({ctx, input}) {
+            const {page, orderBy, order} = input;
+            const where = {Paid: true, Consolidated: false, ...buildInvoiceListFilters(input)};
+            const orderObj = buildInvoiceOrder(orderBy, order);
+            const [rows, count] = await Promise.all([
+                ctx.prisma.invoices.findMany({
+                    where,
+                    include: invoiceListInclude,
+                    take: 10,
+                    orderBy: orderObj,
+                    skip: page ? page * 10 : 0,
+                }),
+                ctx.prisma.invoices.count({where}),
+            ]);
+            return {rows, count};
+        },
+    })
+    .query("getAllConsolidatedPage", {
+        input: invoiceListInput,
+        async resolve({ctx, input}) {
+            const {page, orderBy, order} = input;
+            const where = {Paid: {not: true}, Consolidated: true, ...buildInvoiceListFilters(input)};
+            const orderObj = buildInvoiceOrder(orderBy, order);
+            const [rows, count] = await Promise.all([
+                ctx.prisma.invoices.findMany({
+                    where,
+                    include: invoiceListInclude,
+                    take: 10,
+                    orderBy: orderObj,
+                    skip: page ? page * 10 : 0,
+                }),
+                ctx.prisma.invoices.count({where}),
+            ]);
+            return {rows, count};
         },
     })
     .query("getAllConsolidateable", {

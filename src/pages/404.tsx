@@ -1,11 +1,15 @@
 import {useRouter} from "next/router";
+import {useEffect} from "react";
 
 const PageNotFound = () => {
     const router = useRouter();
 
-    setTimeout(async () => {
-        await router.replace('/');
-    }, 3000)
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            void router.replace("/");
+        }, 3000);
+        return () => clearTimeout(timeoutId);
+    }, [router]);
 
     return (
         <>

@@ -24,8 +24,7 @@ import InvoiceLoads from "../collections/InvoiceLoads";
 import InvoiceWeeklies from "../collections/InvoiceWeeklies";
 import { toast } from "react-toastify";
 import RHAutocomplete from "elements/RHAutocomplete";
-import { confirmAlert } from "react-confirm-alert";
-import "react-confirm-alert/src/react-confirm-alert.css";
+import {confirmDestructive} from "../../utils/appConfirm";
 import ConsolidatedInvoices from "components/collections/ConsolidatedInvoices";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
@@ -43,17 +42,17 @@ const defaultValues = {
   Paid: false,
   Printed: false,
   PaymentType: "N/A",
+  selected: [] as string[],
 };
 
 const Invoice = ({
-  customers,
   loads = [],
   initialInvoice = null,
   lastInvoice = 0,
   invoices = [],
     weeklies = []
 }: {
-  customers: CustomersType[];
+  customers?: CustomersType[];
   loads?: LoadsType[];
   initialInvoice?: null | InvoicesType;
   refreshData?: any;
@@ -72,6 +71,12 @@ const Invoice = ({
   //const [customerLoads, setCustomerLoads] = useState<any>([]);
 
   const [customerWeeklies, setCustomerWeeklies] = useState<any>([]);
+
+  /** Bumped after a successful **new** invoice submit so InvoiceLoads clears its internal selection state. */
+  const [loadsSelectionClearNonce, setLoadsSelectionClearNonce] = useState(0);
+
+  /** Bumped after a successful **new** invoice submit so InvoiceWeeklies clears its internal selection state. */
+  const [weeklySelectionClearNonce, setWeeklySelectionClearNonce] = useState(0);
 
   const [selected, setSelected] = useState<any>(
     !initialInvoice ? [] : loads?.map((load) => load.ID.toString())
@@ -109,24 +114,40 @@ const Invoice = ({
     setValue,
   } = useForm<ValidationSchema>({
     resolver: zodResolver(validationSchema),
-    defaultValues: initialInvoice ?? defaultValues,
+    defaultValues: (initialInvoice
+      ? initialInvoice
+      : {...defaultValues, selected: []}) as ValidationSchema,
   });
 
-  if (initialInvoice) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    setValue("selected", selected);
-  } else {
-    setValue("Number", lastInvoice);
-  }
+  React.useEffect(() => {
+    if (initialInvoice) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      setValue("selected", selected);
+    }
+  }, [initialInvoice, selected, setValue]);
+
+  React.useEffect(() => {
+    if (!initialInvoice) {
+      setValue("Number", lastInvoice);
+    }
+  }, [initialInvoice, lastInvoice, setValue]);
 
   const key = initialInvoice ? "invoices.post" : "invoices.put";
 
   const addOrUpdateInvoice = trpc.useMutation(key, {
     async onSuccess(data) {
+      if (!initialInvoice) {
+        setSelected([]);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore extended field
+        setValue("selected", []);
+        setWeeklySelectionClearNonce((n) => n + 1);
+        setLoadsSelectionClearNonce((n) => n + 1);
+      }
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      reset(initialInvoice ? data : defaultValues);
+      reset(initialInvoice ? data : { ...defaultValues, ...(data ?? {}), selected: [] });
       toast("Successfully Submitted!", { autoClose: 2000, type: "success" });
     },
     async onError(error) {
@@ -320,7 +341,7 @@ const Invoice = ({
   const selectData: SelectDataType = [
     {
       key: "CustomerID",
-      data: customers,
+      data: [],
       optionValue: "ID",
       optionLabel: "Name+|+Street+,+City",
       defaultValue: initialInvoice ? initialInvoice.CustomerID : null,
@@ -518,9 +539,9 @@ const Invoice = ({
                             </Grid2>*/}
               <Grid2 xs={6} style={{ paddingTop: 5 }}>
                 <Button
-                  variant={"contained"}
-                  color={"success"}
-                  style={{ backgroundColor: "#66bb6a" }}
+                  variant="contained"
+                  color="success"
+                  disabled={payInvoice.isLoading}
                   onClick={async () => {
                     if (
                       !["Cash", "Check", "Credit Card"].includes(paymentType)
@@ -563,6 +584,7 @@ const Invoice = ({
               <InvoiceLoads
                   readOnly={!!initialInvoice}
                   rows={loads.length > 0 ? loads : []}
+                  selectionClearNonce={loadsSelectionClearNonce}
                   updateTotal={(newTotal: number) => {
                     setValue("TotalAmount", newTotal);
                   }}
@@ -578,6 +600,7 @@ const Invoice = ({
                   key={initialInvoice ? initialInvoice.Paid ? 'paid-true' : 'paid-false' : 'invweeks'}
                   readOnly={!!initialInvoice}
                   isPaid={initialInvoice ? initialInvoice.Paid : false}
+                  selectionClearNonce={weeklySelectionClearNonce}
                   rows={weeklies.length > 0 ? weeklies : customerWeeklies ?? []}
                   updateTotal={(newTotal: number) => {
                     setValue("TotalAmount", newTotal);
@@ -597,11 +620,10 @@ const Invoice = ({
         {!initialInvoice && (
           <Grid2 xs={3}>
             <Button
-              type={"submit"}
-              variant={"contained"}
-              color={"primary"}
-              style={{ backgroundColor: "#1565C0" }}
-              disabled={selected.length === 0}
+              type="submit"
+              variant="contained"
+              color="primary"
+              disabled={selected.length === 0 || addOrUpdateInvoice.isLoading}
             >
               Submit
             </Button>
@@ -612,26 +634,19 @@ const Invoice = ({
           <>
             <Grid2 xs={1}>
               <Button
-                type={"button"}
-                variant={"contained"}
-                style={{ backgroundColor: "#EF463B" }}
+                type="button"
+                variant="contained"
+                color="error"
+                disabled={deleteInvoice.isLoading}
                 onClick={() => {
-                  confirmAlert({
-                    title: "Confirm Deletion",
+                  confirmDestructive({
+                    title: "Confirm deletion",
                     message:
                       "Are you sure you want to delete this invoice? It will make any loads associated available again.",
-                    buttons: [
-                      {
-                        label: "Yes",
-                        onClick: async () => {
-                          onDelete(initialInvoice).then();
-                        },
-                      },
-                      {
-                        label: "No",
-                        //onClick: () => {}
-                      },
-                    ],
+                    confirmLabel: "Delete",
+                    onConfirm: () => {
+                      void onDelete(initialInvoice);
+                    },
                   });
                 }}
               >
@@ -640,9 +655,9 @@ const Invoice = ({
             </Grid2>
             <Grid2 xs={1}>
               <Button
-                variant={"contained"}
-                color={"warning"}
-                style={{ backgroundColor: "#ffa726" }}
+                variant="contained"
+                color="warning"
+                disabled={printInvoice.isLoading}
                 onClick={async () => {
                   toast("Generating PDF...", { autoClose: 2000, type: "info" });
                   const element = document.createElement("a");
@@ -662,9 +677,8 @@ const Invoice = ({
             </Grid2>
             <Grid2 xs={1}>
               <Button
-                variant={"contained"}
-                color={"success"}
-                style={{ backgroundColor: "#66bb6a" }}
+                variant="contained"
+                color="success"
                 disabled={!!initialInvoice.Paid || paid}
                 onClick={handleOpen}
               >
@@ -673,10 +687,10 @@ const Invoice = ({
             </Grid2>
             <Grid2 xs={1}>
               <Button
-                type={"submit"}
-                variant={"contained"}
-                color={"primary"}
-                style={{ backgroundColor: "#1565C0" }}
+                type="submit"
+                variant="contained"
+                color="primary"
+                disabled={addOrUpdateInvoice.isLoading}
               >
                 Submit
               </Button>

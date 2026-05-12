@@ -26,7 +26,19 @@ const defaultValues = {
 };
 
 
-const Customer = ({states, initialCustomer = null}: {states: StatesType[], initialCustomer?: null | CustomersType}) => {
+const Customer = ({
+    states,
+    initialCustomer = null,
+    onCreated,
+    submitLabel = "Submit",
+    skipRouteRefresh = false,
+}: {
+    states: StatesType[];
+    initialCustomer?: null | CustomersType;
+    onCreated?: (customer: CustomersType) => void;
+    submitLabel?: string;
+    skipRouteRefresh?: boolean;
+}) => {
 
     const router = useRouter();
 
@@ -43,6 +55,9 @@ const Customer = ({states, initialCustomer = null}: {states: StatesType[], initi
     const addOrUpdateCustomer = trpc.useMutation(key, {
         async onSuccess(data) {
             toast('Successfully Submitted!', {autoClose: 2000, type: 'success'})
+            if (!initialCustomer) {
+                onCreated?.(data as CustomersType);
+            }
             reset(initialCustomer ? data : defaultValues)
         }
     })
@@ -50,7 +65,7 @@ const Customer = ({states, initialCustomer = null}: {states: StatesType[], initi
    const onSubmit = async (data: ValidationSchema) => {
         toast('Submitting...', {autoClose: 2000, type: 'info'})
         await addOrUpdateCustomer.mutateAsync(data)
-        if (key === 'customers.put') {
+        if (initialCustomer && !skipRouteRefresh) {
             await router.replace(router.asPath);
         }
     }
@@ -76,12 +91,23 @@ const Customer = ({states, initialCustomer = null}: {states: StatesType[], initi
             component='form'
             autoComplete='off'
             noValidate
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                void handleSubmit(onSubmit)(e);
+            }}
             sx={{
                 paddingLeft: 2.5
             }}
         >
-            <GenericForm errors={errors} control={control} fields={fields} selectData={selectData}/>
+            <GenericForm
+                errors={errors}
+                control={control}
+                fields={fields}
+                selectData={selectData}
+                submitDisabled={addOrUpdateCustomer.isLoading}
+                submitLabel={submitLabel}
+            />
         </Box>
     )
 }

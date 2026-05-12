@@ -103,13 +103,22 @@ model Drivers {
   Deleted       Boolean?
   HireDate      String?        @db.VarChar(255)
   OwnerOperator Boolean
+  TIN           String?        @db.VarChar(255)
+  /// @zod.custom(z.coerce.date())
+  LicenseExpiration           DateTime?      @db.Date
+  CarrierID     Int?
+  PayMethod     String?        @db.VarChar(50)
+  Active        Boolean        @default(true)
   Dailies       Dailies[]
+  DriverForms   DriverForms[]
+  Carriers      Carriers?      @relation(fields: [CarrierID], references: [ID], onUpdate: Restrict, map: "FK_Drivers_Carriers")
   States        States?        @relation(fields: [State], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Drivers_States")
   Jobs          Jobs[]
   Loads         Loads[]
   PayStubs      PayStubs[]
   TrucksDriven  TrucksDriven[]
 
+  @@index([CarrierID], map: "FK_Drivers_Carriers")
   @@index([State], map: "FK_Drivers_States")
   @@fulltext([FirstName, MiddleName, LastName, Street, City, ZIP, License, Email, Phone, Notes, HireDate])
 }
@@ -144,35 +153,54 @@ model LoadTypes {
   /// @zod.min(1)
   Description       String              @db.VarChar(255)
   Deleted           Boolean?
-  SourceID          Int?
   Notes             String?             @db.VarChar(255)
   CustomerLoadTypes CustomerLoadTypes[]
   Jobs              Jobs[]
   Loads             Loads[]
+  SourceLoadTypes   SourceLoadTypes[]
   Weeklies          Weeklies[]
 
   @@fulltext([Description, Notes])
 }
 
+model Sources {
+  ID              Int               @id @default(autoincrement())
+  Name            String            @db.VarChar(255)
+  ShortName       String?           @db.VarChar(255)
+  SourceLoadTypes SourceLoadTypes[]
+}
+
 model States {
-  ID           Int         @id @default(autoincrement())
-  Name         String      @db.VarChar(15)
-  Abbreviation String      @db.VarChar(2)
-  Customers    Customers[]
-  Drivers      Drivers[]
+  ID               Int         @id @default(autoincrement())
+  Name             String      @db.VarChar(15)
+  Abbreviation     String      @db.VarChar(2)
+  Carriers         Carriers[]
+  Customers        Customers[]
+  Drivers          Drivers[]
+  TrucksLicensedIn Trucks[]    @relation("TruckLicensedState")
 }
 
 model Trucks {
-  ID           Int            @id @default(autoincrement())
+  ID            Int            @id @default(autoincrement())
   /// @zod.min(1)
-  Name         String         @db.VarChar(255)
-  VIN          String?        @db.VarChar(255)
-  Deleted      Boolean?
-  Notes        String?        @db.VarChar(255)
-  Loads        Loads[]
-  TrucksDriven TrucksDriven[]
+  Name          String         @db.VarChar(255)
+  VIN           String?        @db.VarChar(255)
+  Deleted       Boolean?
+  Notes         String?        @db.VarChar(255)
+  Make          String?        @db.VarChar(255)
+  LicensePlate  String?        @db.VarChar(255)
+  Model         String?        @db.VarChar(255)
+  TruckNumber   String?        @db.VarChar(255)
+  LicensedState Int?
+  /// Model year (required for OO compliance when truck is on file).
+  ModelYear     Int?
+  Active        Boolean        @default(true)
+  Loads         Loads[]
+  LicensedIn    States?        @relation("TruckLicensedState", fields: [LicensedState], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Trucks_LicensedState")
+  TrucksDriven  TrucksDriven[]
 
-  @@fulltext([Name, VIN, Notes])
+  @@index([LicensedState], map: "FK_Trucks_LicensedState")
+  @@fulltext([Name, VIN, Notes, Make, LicensePlate, TruckNumber, Model])
 }
 
 model TrucksDriven {
@@ -324,7 +352,7 @@ model Weeklies {
 model PayStubs {
   ID          Int       @id @default(autoincrement())
   /// @zod.custom(z.coerce.date())
-  Created     DateTime  @default(now()) @db.DateTime(0)
+  Created     DateTime  @db.DateTime(0)
   DriverID    Int
   CheckNumber String    @db.VarChar(50)
   /// @zod.custom(z.coerce.number())
@@ -346,4 +374,95 @@ model PayStubs {
   Drivers     Drivers   @relation(fields: [DriverID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_PayStubs_Driver")
 
   @@index([DriverID], map: "FK_PayStubs_Driver")
+}
+
+/// External motor carrier / subcontractor a driver is associated with (not the future multi-tenant “company”).
+model Carriers {
+  ID          Int           @id @default(autoincrement())
+  Name        String        @db.VarChar(255)
+  City        String?       @db.VarChar(255)
+  ContactName String?       @db.VarChar(255)
+  Phone       String?       @db.VarChar(20)
+  State       Int?
+  Street      String?       @db.VarChar(255)
+  ZIP         String?       @db.VarChar(10)
+  States      States?       @relation(fields: [State], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Carriers_States")
+  DriverForms DriverForms[]
+  Drivers     Drivers[]
+
+  @@index([State], map: "FK_Carriers_States")
+}
+
+model DriverForms {
+  ID         Int       @id @default(autoincrement())
+  Driver     Int
+  Form       Int
+  /// @zod.custom(z.coerce.date())
+  Expiration DateTime? @db.Date
+  /// @zod.custom(z.coerce.date())
+  Created    DateTime  @default(now()) @db.DateTime(0)
+  /// When set, this filing is scoped to the carrier (OO entity) rather than only the driver row.
+  CarrierID  Int?
+  /// Optional display of who physically submitted the paperwork.
+  Filer      String?   @db.VarChar(255)
+  Drivers    Drivers   @relation(fields: [Driver], references: [ID], onUpdate: Restrict, map: "DriverForms_Drivers_ID_fk")
+  Forms      Forms     @relation(fields: [Form], references: [ID], onUpdate: Restrict, map: "DriverForms_Forms_ID_fk")
+  Carriers   Carriers? @relation(fields: [CarrierID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_DriverForms_Carriers")
+
+  @@unique([Driver, Form])
+  @@index([Driver], map: "DriverForms_Drivers_ID_fk")
+  @@index([Form], map: "DriverForms_Forms_ID_fk")
+  @@index([CarrierID], map: "FK_DriverForms_Carriers")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model FormOptions {
+  ID             Int               @id @default(autoincrement())
+  Form           Int
+  W2Visible      Boolean           @default(true)
+  OOVisible      Boolean           @default(true)
+  W2Required     Boolean           @default(true)
+  OORequired     Boolean           @default(true)
+  ExpiryCadence  FormExpiryCadence @default(EXPIRATION_DATE)
+  IncludeInPdf   Boolean           @default(true)
+  PdfColumnLabel String?           @db.VarChar(75)
+  PdfOrder       Int               @default(0)
+  /// For `ROLLING_MONTHS`: number of months the filing stays valid from `Created`.
+  ValidityMonths Int?
+  /// When true, this form is only required for OO entities with more than one truck on file.
+  FleetWide      Boolean           @default(false)
+  Forms          Forms             @relation(fields: [Form], references: [ID], onUpdate: Restrict, map: "FormOptions_Forms_ID_fk")
+
+  @@index([Form], map: "FormOptions_Forms_ID_fk")
+}
+
+model Forms {
+  ID          Int           @id @default(autoincrement())
+  Name        String        @db.VarChar(75)
+  DisplayName String        @default(dbgenerated("(`Name`)")) @db.VarChar(75)
+  DriverForms DriverForms[]
+  FormOptions FormOptions[]
+}
+
+model SourceLoadTypes {
+  ID         Int       @id @default(autoincrement())
+  SourceID   Int
+  LoadTypeID Int
+  UseCount   Int       @default(1)
+  Created    DateTime  @default(now()) @db.DateTime(0)
+  LoadTypes  LoadTypes @relation(fields: [LoadTypeID], references: [ID], onDelete: Cascade, onUpdate: Restrict, map: "FK_SourceLoadTypes_LoadTypes")
+  Sources    Sources   @relation(fields: [SourceID], references: [ID], onDelete: Cascade, onUpdate: Restrict, map: "FK_SourceLoadTypes_Sources")
+
+  @@unique([SourceID, LoadTypeID], map: "UQ_SourceLoadTypes_Source_LoadType")
+  @@index([LoadTypeID], map: "FK_SourceLoadTypes_LoadTypes")
+  @@index([SourceID], map: "FK_SourceLoadTypes_Sources")
+}
+
+/// How a signed form’s dates are evaluated for compliance (see `driverFormCompliance` util).
+enum FormExpiryCadence {
+  NONE
+  EXPIRATION_DATE
+  CALENDAR_YEAR
+  CALENDAR_MONTH
+  ROLLING_MONTHS
 }

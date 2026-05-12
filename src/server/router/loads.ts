@@ -5,6 +5,66 @@ import {TRPCError} from "@trpc/server";
 
 type loadType = z.infer<typeof LoadsModel>;
 
+const loadsListInput = z.object({
+    page: z.number().optional(),
+    customer: z.number().optional(),
+    truck: z.number().optional(),
+    driver: z.number().optional(),
+    loadType: z.number().optional(),
+    deliveryLocation: z.number().optional(),
+    orderBy: z.string().optional(),
+    order: z.string().optional(),
+    search: z.number().nullish().optional(),
+    chosenLoad: z.any().optional(),
+});
+
+function buildLoadFilters(input: z.infer<typeof loadsListInput>) {
+    const {customer, driver, truck, loadType, deliveryLocation, search, chosenLoad} = input;
+    const epsilon = 0.001;
+    return {
+        ...(customer && {CustomerID: customer}),
+        ...(driver && {DriverID: driver}),
+        ...(truck && {TruckID: truck}),
+        ...(loadType && {LoadTypeID: loadType}),
+        ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
+        ...(search && {TicketNumber: search}),
+        ...(chosenLoad?.MaterialRate && {
+            MaterialRate: {gte: chosenLoad.MaterialRate - epsilon, lte: chosenLoad.MaterialRate + epsilon},
+        }),
+        ...(chosenLoad?.TruckRate && {
+            TruckRate: {gte: chosenLoad.TruckRate - epsilon, lte: chosenLoad.TruckRate + epsilon},
+        }),
+        ...(chosenLoad?.DriverRate && {
+            DriverRate: {gte: chosenLoad.DriverRate - epsilon, lte: chosenLoad.DriverRate + epsilon},
+        }),
+        ...(chosenLoad?.TotalRate && {
+            TotalRate: {gte: chosenLoad.TotalRate - epsilon, lte: chosenLoad.TotalRate + epsilon},
+        }),
+        ...(chosenLoad?.StartDate && {StartDate: chosenLoad.StartDate}),
+        ...(chosenLoad?.Week && {Week: chosenLoad.Week}),
+    };
+}
+
+const loadListInclude = {
+    Customers: {select: {Name: true}},
+    Trucks: {select: {Name: true, Active: true}},
+    Drivers: {select: {FirstName: true, LastName: true, Active: true}},
+    LoadTypes: {select: {Description: true}},
+    DeliveryLocations: {select: {Description: true}},
+};
+
+const activeLoadWhere = {
+    OR: [{Deleted: false}, {Deleted: null}],
+};
+
+
+async function upsertSourceLoadType(ctx: any, SourceID: number, LoadTypeID: number) {
+    await ctx.prisma.sourceLoadTypes.upsert({
+        where: {SourceID_LoadTypeID: {SourceID, LoadTypeID}},
+        create: {SourceID, LoadTypeID, UseCount: 1},
+        update: {UseCount: {increment: 1}},
+    });
+}
 
 async function updateLoadAndRelations(
     input: any,
@@ -12,7 +72,8 @@ async function updateLoadAndRelations(
     mass_edit_ids: any = null
 ): Promise<void> {
 
-    const {ID, ...data} = input;
+    const {ID, SourceID, ...rest} = input;
+    const data = rest;
 
     const {
         DriverID,
@@ -185,12 +246,15 @@ async function updateLoadAndRelations(
         data.JobID = newJob.ID;
     }
     if (!mass_edit_ids) {
-        // use your ORM of choice
-        return ctx.prisma.loads.update({
+        const result = await ctx.prisma.loads.update({
             where: {
                 ID: ID
             }, data: data
-        })
+        });
+        if (SourceID && LoadTypeID) {
+            await upsertSourceLoadType(ctx, SourceID, LoadTypeID);
+        }
+        return result;
     } else {
         await ctx.prisma.loads.updateMany({
             where: {
@@ -211,23 +275,59 @@ async function updateLoadAndRelations(
                 JobID: data.JobID
             },
         });
+        if (SourceID && LoadTypeID) {
+            await upsertSourceLoadType(ctx, SourceID, LoadTypeID);
+        }
     }
 }
 
 export const loadsRouter = createRouter()
+    .query("getAllPage", {
+        input: loadsListInput,
+        async resolve({ctx, input}) {
+            const {order, orderBy, page} = input;
+            const extra = buildLoadFilters(input);
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            const orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            orderObj[orderBy] = order;
+            const where = {...activeLoadWhere, ...extra};
+            const [rows, count] = await Promise.all([
+                ctx.prisma.loads.findMany({
+                    include: loadListInclude,
+                    orderBy: orderObj,
+                    where,
+                    take: 10,
+                    skip: page ? 10 * page : 0,
+                }),
+                ctx.prisma.loads.count({where}),
+            ]);
+            return {rows, count};
+        },
+    })
+    .query("getUninvPage", {
+        input: loadsListInput.omit({chosenLoad: true}),
+        async resolve({ctx, input}) {
+            const {page} = input;
+            const extra = buildLoadFilters(input);
+            const where = {...activeLoadWhere, Invoiced: null, ...extra};
+            const [rows, count] = await Promise.all([
+                ctx.prisma.loads.findMany({
+                    include: loadListInclude,
+                    orderBy: {StartDate: "asc"},
+                    where,
+                    take: 10,
+                    skip: page ? 10 * page : 0,
+                }),
+                ctx.prisma.loads.count({where}),
+            ]);
+            return {rows, count};
+        },
+    })
     .query("getAll", {
-        input: z.object({
-            page: z.number().optional(),
-            customer: z.number().optional(),
-            truck: z.number().optional(),
-            driver: z.number().optional(),
-            loadType: z.number().optional(),
-            deliveryLocation: z.number().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional(),
-            search: z.number().nullish().optional(),
-            chosenLoad: z.any().optional()
-        }),
+        input: loadsListInput,
         async resolve({ctx, input}) {
             const {
                 customer,
@@ -241,45 +341,7 @@ export const loadsRouter = createRouter()
                 page,
                 chosenLoad
             } = input;
-            const epsilon = 0.001;
-            const extra = {
-                ...(customer && {CustomerID: customer}),
-                ...(driver && {DriverID: driver}),
-                ...(truck && {TruckID: truck}),
-                ...(loadType && {LoadTypeID: loadType}),
-                ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
-                ...(search && {TicketNumber: search}),
-                ...(chosenLoad?.MaterialRate && {
-                    MaterialRate: {
-                        gte: chosenLoad.MaterialRate - epsilon,
-                        lte: chosenLoad.MaterialRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.TruckRate && {
-                    TruckRate: {
-                        gte: chosenLoad.TruckRate - epsilon,
-                        lte: chosenLoad.TruckRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.DriverRate && {
-                    DriverRate: {
-                        gte: chosenLoad.DriverRate - epsilon,
-                        lte: chosenLoad.DriverRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.TotalRate && {
-                    TotalRate: {
-                        gte: chosenLoad.TotalRate - epsilon,
-                        lte: chosenLoad.TotalRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.StartDate && {
-                    StartDate: chosenLoad.StartDate
-                }),
-                ...(chosenLoad?.Week && {
-                    Week: chosenLoad.Week
-                }),
-            };
+            const extra = buildLoadFilters(input);
 
 
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -292,15 +354,15 @@ export const loadsRouter = createRouter()
             //const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
             return ctx.prisma.loads.findMany({
                 include: {
-                    Customers: true,
-                    Trucks: true,
-                    Drivers: true,
-                    LoadTypes: true,
-                    DeliveryLocations: true
+                    Customers: {select: {Name: true}},
+                    Trucks: {select: {Name: true, Active: true}},
+                    Drivers: {select: {FirstName: true, LastName: true, Active: true}},
+                    LoadTypes: {select: {Description: true}},
+                    DeliveryLocations: {select: {Description: true}},
                 },
                 orderBy: orderObj,
                 where: {
-                    Deleted: null,
+                    ...activeLoadWhere,
                     ...extra
                 },
                 take: 10,
@@ -309,17 +371,7 @@ export const loadsRouter = createRouter()
         },
     })
     .query("getUninv", {
-        input: z.object({
-            page: z.number().optional(),
-            customer: z.number().optional(),
-            truck: z.number().optional(),
-            driver: z.number().optional(),
-            loadType: z.number().optional(),
-            deliveryLocation: z.number().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional(),
-            search: z.number().nullish().optional()
-        }),
+        input: loadsListInput.omit({chosenLoad: true}),
         async resolve({ctx, input}) {
             const {
                 customer,
@@ -332,31 +384,23 @@ export const loadsRouter = createRouter()
                 orderBy,
                 page
             } = input;
-            const epsilon = 0.001;
-            const extra = {
-                ...(customer && {CustomerID: customer}),
-                ...(driver && {DriverID: driver}),
-                ...(truck && {TruckID: truck}),
-                ...(loadType && {LoadTypeID: loadType}),
-                ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
-                ...(search && {TicketNumber: search}),
-            };
+            const extra = buildLoadFilters(input);
 
 
             //const extra = input.customer !== 0 ? {AND: {CustomerID: input.customer}} : {};
             return ctx.prisma.loads.findMany({
                 include: {
-                    Customers: true,
-                    Trucks: true,
-                    Drivers: true,
-                    LoadTypes: true,
-                    DeliveryLocations: true
+                    Customers: {select: {Name: true}},
+                    Trucks: {select: {Name: true, Active: true}},
+                    Drivers: {select: {FirstName: true, LastName: true, Active: true}},
+                    LoadTypes: {select: {Description: true}},
+                    DeliveryLocations: {select: {Description: true}},
                 },
                 orderBy: {
                     StartDate: 'asc'
                 },
                 where: {
-                    Deleted: null,
+                    ...activeLoadWhere,
                     Invoiced: null,
                     ...extra
                 },
@@ -522,7 +566,7 @@ export const loadsRouter = createRouter()
 
             return ctx.prisma.loads.count({
                 where: {
-                    Deleted: null,
+                    ...activeLoadWhere,
                     ...extra
                 }
             });
@@ -553,7 +597,7 @@ export const loadsRouter = createRouter()
 
             return ctx.prisma.loads.count({
                 where: {
-                    Deleted: null,
+                    ...activeLoadWhere,
                     Invoiced: null,
                     ...extra
                 }
@@ -562,7 +606,7 @@ export const loadsRouter = createRouter()
         }
     })
     .mutation('put_duplicate_checker', {
-        input: LoadsModel.omit({ID: true, Deleted: true}),
+        input: LoadsModel.omit({ID: true, Deleted: true}).extend({SourceID: z.number().int().nullish()}),
         async resolve({ctx, input}) {
             const {TicketNumber} = input;
             const existing = await ctx.prisma.loads.findFirst({where: {TicketNumber: TicketNumber}});
@@ -576,7 +620,7 @@ export const loadsRouter = createRouter()
     .mutation('post_mass_edit', {
         input: z.object({
             selectedLoads: z.array(z.number()).optional(),
-            data: LoadsModel.omit({ID: true, Deleted: true}).optional()
+            data: LoadsModel.omit({ID: true, Deleted: true}).extend({SourceID: z.number().int().nullish()}).optional()
         }),
         async resolve({ctx, input}) {
             if (!input.data) {
@@ -608,7 +652,7 @@ export const loadsRouter = createRouter()
         }
     })
     .mutation('post_duplicate_checker', {
-        input: LoadsModel,
+        input: LoadsModel.extend({SourceID: z.number().int().nullish()}),
         async resolve({ctx, input}) {
             const {TicketNumber, ID} = input;
             const existing = await ctx.prisma.loads.findFirst({where: {TicketNumber: TicketNumber}});
@@ -620,12 +664,12 @@ export const loadsRouter = createRouter()
         }
     })
     .mutation('put', {
-        input: LoadsModel.omit({ID: true, Deleted: true}),
+        input: LoadsModel.omit({ID: true, Deleted: true}).extend({SourceID: z.number().int().nullish()}),
         async resolve({ctx, input}) {
             const {
                 DriverID, TruckID, StartDate, CustomerID, LoadTypeID,
                 DeliveryLocationID, TruckRate, MaterialRate, Week,
-                TotalRate, DriverRate, Weight, Hours
+                TotalRate, DriverRate, Weight, Hours, SourceID
             } = input;
 
             // 🛡️ **Validation Checks**
@@ -787,13 +831,20 @@ export const loadsRouter = createRouter()
             );
 
             // 📦 **Create Load**
-            const data = await ctx.prisma.loads.create({data: input});
+            // Strip SourceID before persisting (it isn't a column on Loads).
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const {SourceID: _SourceID, ...loadData} = input;
+            const data = await ctx.prisma.loads.create({data: loadData});
+
+            if (SourceID && LoadTypeID) {
+                await upsertSourceLoadType(ctx, SourceID, LoadTypeID);
+            }
 
             return {data, warnings: ctx.warnings};
         },
     }).mutation('post', {
         // validate input with Zod
-        input: LoadsModel,
+        input: LoadsModel.extend({SourceID: z.number().int().nullish()}),
         async resolve({ctx, input}) {
             const {
                 DriverID,

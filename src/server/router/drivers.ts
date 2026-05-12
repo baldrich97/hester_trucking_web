@@ -1,6 +1,7 @@
 import {createRouter} from "./context";
 import {z} from "zod";
 import {DriversModel} from '../../../prisma/zod';
+import {wireDateToUtcNoon} from "../../utils/dateOnly";
 
 export const driversRouter = createRouter()
     .query("getAll", {
@@ -37,7 +38,11 @@ export const driversRouter = createRouter()
             search: z.string(),
             page: z.number().optional(),
             orderBy: z.string().optional(),
-            order: z.string().optional()
+            order: z.string().optional(),
+            /** When set (e.g. Load form), marks drivers who have driven this truck — used for grouped autocomplete search. */
+            TruckID: z.number().optional(),
+            /** When true (Load creation), exclude inactive drivers. */
+            onlyActive: z.boolean().optional(),
         }),
         async resolve({ctx, input}) {
             const formattedSearch = input.search.replace('"', '\"');
@@ -51,86 +56,109 @@ export const driversRouter = createRouter()
             // @ts-ignore
             orderObj[orderBy] = order;
 
-            if (input.search.length > 0) {
-                return ctx.prisma.drivers.findMany({
-                    where: {
-                        OR: [
-                            {
-                                FirstName: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                MiddleName: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                LastName: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                Street: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                City: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                ZIP: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                License: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                Email: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                Phone: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                HireDate: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                Notes: {
-                                    contains: formattedSearch
-                                }
-                            }
-                        ]
+            const notDeleted = {OR: [{Deleted: false}, {Deleted: null}]};
+            const baseWhere =
+                input.onlyActive === true ? ({AND: [notDeleted, {Active: true}]} as any) : notDeleted;
 
+            const drivers = input.search.length > 0
+                ? await ctx.prisma.drivers.findMany({
+                    where: {
+                        AND: [
+                            baseWhere,
+                            {
+                                OR: [
+                                    {
+                                        FirstName: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        MiddleName: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        LastName: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        Street: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        City: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        ZIP: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        License: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        Email: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        Phone: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        HireDate: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        Notes: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                ],
+                            },
+                        ],
                     },
                     include: {
-                        States: true
+                        States: true,
                     },
                     take: 10,
                     orderBy: orderObj,
                 })
-            } else {
-                return ctx.prisma.drivers.findMany({
+                : await ctx.prisma.drivers.findMany({
+                    where: baseWhere,
                     include: {
-                        States: true
+                        States: true,
                     },
                     take: 10,
                     skip: input.page ? input.page * 10 : 0,
                     orderBy: orderObj,
-                })
+                });
+
+            if (input.TruckID) {
+                const pairs = await ctx.prisma.trucksDriven.findMany({
+                    where: {TruckID: input.TruckID},
+                    select: {DriverID: true},
+                });
+                const driven = new Set(pairs.map((p) => p.DriverID));
+                return drivers.map((d) => ({
+                    ...d,
+                    Recommend: driven.has(d.ID),
+                }));
             }
 
-        }
+            return drivers.map((d) => ({
+                ...d,
+                Recommend: false,
+            }));
+        },
     })
     .mutation('put', {
         // validate input with Zod
@@ -138,8 +166,12 @@ export const driversRouter = createRouter()
         async resolve({ctx, input}) {
             // use your ORM of choice
             return ctx.prisma.drivers.create({
-                data: input
-            })
+                data: {
+                    ...input,
+                    DOB: wireDateToUtcNoon(input.DOB),
+                    LicenseExpiration: wireDateToUtcNoon(input.LicenseExpiration),
+                } as any,
+            });
         },
     })
     .mutation('post', {
@@ -151,8 +183,13 @@ export const driversRouter = createRouter()
             return ctx.prisma.drivers.update({
                 where: {
                     ID: ID
-                }, data: data
-            })
+                },
+                data: {
+                    ...data,
+                    DOB: wireDateToUtcNoon(data.DOB),
+                    LicenseExpiration: wireDateToUtcNoon(data.LicenseExpiration),
+                } as any,
+            });
         },
     });
 

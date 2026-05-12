@@ -2,8 +2,6 @@ import {createRouter} from "./context";
 import {z} from "zod";
 import { CustomerLoadTypesModel } from '../../../prisma/zod';
 
-type CustomerLoadTypesType = z.infer<typeof CustomerLoadTypesModel>;
-
 export const customerLoadTypesRouter = createRouter()
     .query("getAll", {
         input: z.object({
@@ -11,23 +9,17 @@ export const customerLoadTypesRouter = createRouter()
             page: z.number().optional()
         }),
         async resolve({ctx, input}) {
-            const data = ctx.prisma.customerLoadTypes.findMany({
+            return ctx.prisma.customerLoadTypes.findMany({
                 where: {
                     CustomerID: input.CustomerID
                 },
                 include: {
-                    LoadTypes: true
+                    LoadTypes: {select: {Description: true, Notes: true}}
                 },
+                distinct: ["CustomerID", "LoadTypeID"],
                 take: 10,
                 skip: input.page ? input.page*10 : 0
             });
-            const returnable: CustomerLoadTypesType[] = [];
-            (await data).forEach((item) => {
-                if (returnable.filter((_item) => _item.CustomerID === item.CustomerID && _item.LoadTypeID === item.LoadTypeID).length === 0) {
-                    returnable.push(item);
-                }
-            })
-            return returnable;
         },
     })
     .mutation('put', {

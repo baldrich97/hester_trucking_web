@@ -6,7 +6,7 @@ import FormHelperText from "@mui/material/FormHelperText"
 import FormControl from "@mui/material/FormControl"
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import moment from "moment";
+import {dateOnlyLocalToUtcNoon, parseDateOnlyFromJson} from "../utils/dateOnly";
 
 const RHDatePicker = ({ name, control, required = false, defaultValue = '', shouldError = false, errorMessage = '', label = name, disabled = false, week = false}: {name: string, control: Control<any>, required?: boolean, defaultValue?: string, shouldError?: boolean, errorMessage?: string, label?: string, disabled?: boolean, week?: boolean}) => {
     const checkKeyDown = (e: { key: string; preventDefault: () => void; }) => {
@@ -52,17 +52,21 @@ const RHDatePicker = ({ name, control, required = false, defaultValue = '', shou
             rules={{required: required}}
             defaultValue={defaultValue}
             render={({ field }) => {
-                if (typeof(field.value) === 'string' && field.value.includes('T00:00:00')) {
-                    field.value = moment.utc(field.value, "YYYY-MM-DD").format('YYYY-MM-DD')
-                    field.value += "T10:00:00.000Z"
-                }
-                if (name === 'StartDate') {
-                    field.value = moment(field.value).format("YYYY-MM-DD 08:00:00");
-                }
+                const normalizedValue = parseDateOnlyFromJson(field.value);
                 return (
                     <FormControl fullWidth={true} error={shouldError} onKeyPress={(e) => checkKeyDown(e)}>
                         <LocalizationProvider dateAdapter={AdapterDateFns}>
-                            <DesktopDatePicker {...field} disabled={disabled} onChange={(event) => {field.onChange(event)}} label={label ?? name}  renderInput={(params) => <TextField {...params} size={'small'}/>}/> {shouldError && <FormHelperText>{errorMessage}</FormHelperText>}
+                            <DesktopDatePicker
+                                {...field}
+                                value={normalizedValue}
+                                disabled={disabled}
+                                onChange={(event) => {
+                                    field.onChange(dateOnlyLocalToUtcNoon((event as Date | null) ?? null));
+                                }}
+                                label={label ?? name}
+                                renderInput={(params) => <TextField {...params} size={'small'}/>}
+                            />
+                            {shouldError && <FormHelperText>{errorMessage}</FormHelperText>}
                         </LocalizationProvider>
                     </FormControl>
                 )

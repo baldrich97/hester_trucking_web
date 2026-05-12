@@ -1,0 +1,48 @@
+/* react-confirm-alert: filled buttons + darker hover (aligned with app MUI palette). */
+.react-confirm-alert-overlay {
+    background: rgba(0, 0, 0, 0.45);
+}
+
+.react-confirm-alert-body {
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.react-confirm-alert-button-group > button {
+    min-width: 88px;
+    padding: 8px 16px;
+    margin: 6px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: none;
+}
+
+.react-confirm-alert-button-group > button.rca-btn-cancel {
+    background-color: #757575;
+    color: #fff;
+}
+
+.react-confirm-alert-button-group > button.rca-btn-cancel:hover {
+    background-color: #616161;
+}
+
+.react-confirm-alert-button-group > button.rca-btn-confirm-destructive {
+    background-color: #d32f2f;
+    color: #fff;
+}
+
+.react-confirm-alert-button-group > button.rca-btn-confirm-destructive:hover {
+    background-color: #c62828;
+}
+
+.react-confirm-alert-button-group > button.rca-btn-confirm-primary {
+    background-color: #1565c0;
+    color: #fff;
+}
+
+.react-confirm-alert-button-group > button.rca-btn-confirm-primary:hover {
+    background-color: #0d47a1;
+}

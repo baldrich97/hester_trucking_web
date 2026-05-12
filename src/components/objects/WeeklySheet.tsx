@@ -23,10 +23,11 @@ import {
     CompleteLoadTypes
 } from "../../../prisma/zod";
 import Tooltip from '@mui/material/Tooltip';
-import {confirmAlert} from "react-confirm-alert";
-import "react-confirm-alert/src/react-confirm-alert.css";
+import {confirmDestructive, confirmProceed} from "../../utils/appConfirm";
 import {trpc} from "../../utils/trpc";
+import {calendarNavButtonSx} from "../../theme/muiShared";
 import NextLink from "next/link";
+import {formatDriverDisplayName} from "../../utils/entityDisplay";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
@@ -81,6 +82,7 @@ const WeeklySheet = ({
     }, [forceExpand, initialExpand])
 
     const [sheet, setSheet] = useState<CustomerSheet>(weekly);
+    const [pdfWeeklyBusy, setPdfWeeklyBusy] = useState(false);
 
     return (
         <div style={{padding: 5}}>
@@ -90,12 +92,7 @@ const WeeklySheet = ({
                         variant="text"
                         type={"button"}
                         size="small"
-                        style={{
-                            minHeight: "30px",
-                            maxHeight: "30px",
-                            minWidth: "30px",
-                            maxWidth: "30px",
-                        }}
+                        sx={calendarNavButtonSx}
                         color="inherit"
                         onClick={() => {
                             setIsOpen(!isOpen);
@@ -120,24 +117,15 @@ const WeeklySheet = ({
                 <Grid2 xs={"auto"} sx={{paddingRight: 2}}>
                     <Button
                         variant="contained"
-                        color={"primary"}
-                        style={{backgroundColor: "#ffa726"}}
-                        onClick={async () => {
-                            confirmAlert({
+                        color="warning"
+                        onClick={() => {
+                            confirmProceed({
                                 title: "Confirm Weekly Edit",
-                                message: "Editing this Weekly will apply the changes to ALL associated Loads, Jobs, and Dailies. If you need to change only SOME Loads, Jobs, or Dailies please edit the Loads individually. Are you sure you want to change ALL Loads for ALL Drivers?",
-                                buttons: [
-                                    {
-                                        label: "Yes",
-                                        onClick: async () => {
-                                            setOpenWeeklyModal(true);
-                                        },
-                                    },
-                                    {
-                                        label: "No",
-                                        //onClick: () => {}
-                                    },
-                                ],
+                                message:
+                                    "Editing this Weekly will apply the changes to ALL associated Loads, Jobs, and Dailies. If you need to change only SOME Loads, Jobs, or Dailies please edit the Loads individually. Are you sure you want to change ALL loads for ALL drivers?",
+                                confirmLabel: "Yes",
+                                cancelLabel: "No",
+                                onConfirm: () => setOpenWeeklyModal(true),
                             });
                         }}
                     >
@@ -147,9 +135,12 @@ const WeeklySheet = ({
                 <Grid2 xs={"auto"} sx={{paddingRight: 2}}>
                     <Button
                         variant="contained"
-                        color={"primary"}
-                        style={{backgroundColor: "#ffa726"}}
-                        onClick={async () => {
+                        color="warning"
+                        disabled={pdfWeeklyBusy}
+                        onClick={() => {
+                            if (pdfWeeklyBusy) return;
+                            setPdfWeeklyBusy(true);
+                            window.setTimeout(() => setPdfWeeklyBusy(false), 2000);
                             toast("Generating PDF...", {autoClose: 2000, type: "info"});
                             const element = document.createElement("a");
                             element.href = `/api/getPDF/weekly/${sheet.ID}|${week}`;
@@ -157,7 +148,7 @@ const WeeklySheet = ({
                             document.body.appendChild(element);
                             element.click();
                             document.body.removeChild(element);
-                            setSheet({...weekly, LastPrinted: new Date})
+                            setSheet({...sheet, LastPrinted: new Date});
                         }}
                     >
                         Print Week
@@ -169,7 +160,7 @@ const WeeklySheet = ({
                         passHref
                     >
                         <a target={"_blank"}>
-                            <Button color={"primary"} variant={"contained"} style={{backgroundColor: '#1976d2'}}>
+                            <Button color="primary" variant="contained">
                                 To Invoice
                             </Button>
                         </a>
@@ -239,7 +230,6 @@ const WeeklySheet = ({
                                     optionLabel={"Name+|+Street+,+City"}
                                     optionValue={"ID"}
                                     searchQuery={"customers"}
-                                    data={[weekly.Customers]}
                                     label={"Customer"}
                                     defaultValue={weeklyCustomer}
                                     onSelect={(customer: any) => {
@@ -260,7 +250,6 @@ const WeeklySheet = ({
                                         optionLabel={"Description"}
                                         optionValue={"ID"}
                                         searchQuery={"loadtypes"}
-                                        data={[weekly.LoadTypes]}
                                         label={"Load Type"}
                                         defaultValue={weeklyLoadType}
                                         onSelect={(loadType: any) => {
@@ -273,7 +262,6 @@ const WeeklySheet = ({
                                         optionLabel={"Description"}
                                         optionValue={"ID"}
                                         searchQuery={"deliverylocations"}
-                                        data={[weekly.DeliveryLocations]}
                                         label={"Delivery Location"}
                                         defaultValue={weeklyDeliveryLocation}
                                         onSelect={(deliveryLocation: any) => {
@@ -287,14 +275,17 @@ const WeeklySheet = ({
 
                     <Box sx={{mt: 2, justifyContent: 'space-between', display: "flex"}}>
                         <Button
-                            variant={"contained"}
-                            color={"success"}
-                            style={{backgroundColor: "#66bb6a"}}
+                            variant="contained"
+                            color="success"
+                            disabled={updateWeekly.isLoading}
                             onClick={async () => {
-                                const changed = JSON.parse(JSON.stringify(weekly));
-                                changed.DeliveryLocationID = weeklyDeliveryLocation === 0 ? weekly.DeliveryLocationID : weeklyDeliveryLocation;
-                                changed.LoadTypeID = weeklyLoadType === 0 ? weekly.LoadTypeID : weeklyLoadType;
-                                changed.CustomerID = weeklyCustomer === 0 ? weekly.CustomerID : weeklyCustomer;
+                                const changed = JSON.parse(JSON.stringify(sheet));
+                                changed.DeliveryLocationID =
+                                    weeklyDeliveryLocation === 0 ? sheet.DeliveryLocationID : weeklyDeliveryLocation;
+                                changed.LoadTypeID =
+                                    weeklyLoadType === 0 ? sheet.LoadTypeID : weeklyLoadType;
+                                changed.CustomerID =
+                                    weeklyCustomer === 0 ? sheet.CustomerID : weeklyCustomer;
                                 await updateWeekly.mutateAsync(changed);
                             }}
                         >
@@ -302,8 +293,8 @@ const WeeklySheet = ({
                         </Button>
 
                         <Button
-                            variant={"contained"}
-                            style={{backgroundColor: "#757575"}}
+                            variant="contained"
+                            color="secondary"
                             onClick={async () => {
                                 setWeeklyDeliveryLocation(weekly.DeliveryLocationID)
                                 setWeeklyCustomer(weekly.CustomerID)
@@ -420,35 +411,54 @@ const TotalsRow = ({
                     <span>
                         <Button
                             variant="contained"
-                            color={"primary"}
-                            style={{backgroundColor: weekly.InvoiceID ? "#0aa201" : isClosed ? "#88ff83" : "#181eff"}}
-                            sx={{minWidth: 30, minHeight: 30, maxWidth: 30, maxHeight: 30}}
-                            disabled={isClosed}
-                            onClick={async () => {
-                                confirmAlert({
+                            sx={{
+                                minWidth: 30,
+                                minHeight: 30,
+                                maxWidth: 30,
+                                maxHeight: 30,
+                                bgcolor: weekly.InvoiceID
+                                    ? "success.dark"
+                                    : isClosed
+                                      ? "success.light"
+                                      : "info.main",
+                                color:
+                                    weekly.InvoiceID || !isClosed
+                                        ? "common.white"
+                                        : "text.primary",
+                                "&:hover": {
+                                    bgcolor: weekly.InvoiceID
+                                        ? "success.main"
+                                        : isClosed
+                                          ? "success.main"
+                                          : "info.dark",
+                                },
+                            }}
+                            disabled={isClosed || postWeeklyClosed.isLoading}
+                            onClick={() => {
+                                confirmDestructive({
                                     title: "Confirm Weekly Closure",
-                                    message: "This will close the weekly. Any future loads similar to this weekly will be on their own weekly. This cannot be undone, are you sure?",
-                                    buttons: [
-                                        {
-                                            label: "Yes",
-                                            onClick: async () => {
-                                                const data = await postWeeklyClosed.mutateAsync({
-                                                    ...weekly,
-                                                    Revenue: weekly.Revenue ? parseFloat(weekly.Revenue.toString()) : (Math.round(weightSum * (weekly.CompanyRate ? weekly.CompanyRate : 0) * 100) / 100),
-                                                    TotalWeight: (Math.round(weightSum * 100) / 100)
-                                                });
-                                                setSheetState((prevState: any) => ({
-                                                    ...prevState,
-                                                    ...data
-                                                }));
-                                                setIsClosed(true);
-                                            },
-                                        },
-                                        {
-                                            label: "No",
-                                            //onClick: () => {}
-                                        },
-                                    ],
+                                    message:
+                                        "This will close the weekly. Any future loads similar to this weekly will be on their own weekly. This cannot be undone, are you sure?",
+                                    confirmLabel: "Yes",
+                                    cancelLabel: "No",
+                                    onConfirm: async () => {
+                                        const data = await postWeeklyClosed.mutateAsync({
+                                            ...weekly,
+                                            Revenue: weekly.Revenue
+                                                ? parseFloat(weekly.Revenue.toString())
+                                                : Math.round(
+                                                      weightSum *
+                                                          (weekly.CompanyRate ? weekly.CompanyRate : 0) *
+                                                          100,
+                                                  ) / 100,
+                                            TotalWeight: Math.round(weightSum * 100) / 100,
+                                        });
+                                        setSheetState((prevState: any) => ({
+                                            ...prevState,
+                                            ...data,
+                                        }));
+                                        setIsClosed(true);
+                                    },
                                 });
                             }}
                         >
@@ -557,7 +567,7 @@ const Job = ({
                 }}
                 xs={2}
             >
-                <b style={{fontSize: 17}}>{job.Drivers.FirstName + " " + job.Drivers.LastName}</b>
+                <b style={{fontSize: 17}}>{formatDriverDisplayName(job.Drivers)}</b>
             </Grid2>
 
             {["MON", "TUE", "WED", "THUR", "FRI", "SAT", "SUN"].map((day, index) =>
