@@ -39,53 +39,50 @@ export default function Weeklies() {
     const date = new Date();
     const defaultWeek = formatDateToWeek(date);
     const [week, setWeek] = React.useState<YearWeekFormat>(defaultWeek);
-    const [loading, setLoading] = React.useState<boolean>(false);
-    const [shouldRefresh, setShouldRefresh] = React.useState<boolean>(false);
-    const [data, setData] = React.useState<any>([]);
     const [initialExpand, setInitialExpand] = React.useState<any>(null);
 
     React.useEffect(() => {
-        setLoading(true);
-        setData([]);
-        setShouldRefresh(true);
-    }, [week]);
+        if (!router.isReady) {
+            return;
+        }
+        const dw = router.query.defaultWeek;
+        const weekParam = Array.isArray(dw) ? dw[0] : dw;
+        if (typeof weekParam === "string" && weekParam.length > 0) {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            setWeek(weekParam as YearWeekFormat);
+        }
+        const fe = router.query.forceExpand;
+        if (fe !== undefined && fe !== null) {
+            setInitialExpand(fe);
+        }
+        setforceExpand(false);
+    }, [router.isReady, router.query.defaultWeek, router.query.forceExpand]);
 
-    React.useEffect(() => {
-        setLoading(true);
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        setWeek(router.query?.defaultWeek ?? defaultWeek)
-        setInitialExpand(router.query?.forceExpand ?? null)
-        setforceExpand(false)
-        setData([]);
-        setShouldRefresh(true);
-    }, [router.query]);
-
-    trpc.useQuery(["weeklies.getByWeek", {week: week}], {
-        enabled: shouldRefresh,
-        onSuccess(data) {
-            setData([])
-            setData(data ? data.filter((sheet) => sheet.Jobs.filter((job) => job.Loads.length !== 0).length > 0).sort((a, b) => a.Customers.Name.localeCompare(b.Customers.Name)) : []);
-            setLoading(false);
-            setShouldRefresh(false);
-        },
+    const {data: rawWeeklies, isLoading, refetch} = trpc.useQuery(["weeklies.getByWeek", {week}], {
+        // Override app-wide staleTime so each week navigation refetches (users edit these sheets often).
+        staleTime: 0,
         onError(err) {
             console.warn(err);
             toast(err.message ?? "Failed to load weeklies", {type: "error", autoClose: 8000});
-            setLoading(false);
-            setShouldRefresh(false);
-        },
-        onSettled() {
-            setLoading(false);
-            setShouldRefresh(false);
         },
     });
+
+    const data = React.useMemo(
+        () =>
+            rawWeeklies
+                ? rawWeeklies
+                      .filter((sheet) => sheet.Jobs.filter((job) => job.Loads.length !== 0).length > 0)
+                      .sort((a, b) => a.Customers.Name.localeCompare(b.Customers.Name))
+                : [],
+        [rawWeeklies],
+    );
 
     const [forceExpand, setforceExpand] = React.useState(true);
     return (
         <Box sx={{width: "100%"}}>
-            <LoadingModal isOpen={loading}/>
-            <Paper sx={{width: "100%", mb: 2}} key={shouldRefresh ? 'key_refresh' : 'refresh_key'}>
+            <LoadingModal isOpen={isLoading}/>
+            <Paper sx={{width: "100%", mb: 2}}>
                 <Grid2 container columnSpacing={1} rowSpacing={1} flexDirection={'row'} sx={{height: 50}}>
                     <Grid2 xs={"auto"}>
                         <Tooltip title={forceExpand ? 'Close all sheets.' : 'Expand all sheets.'}>
@@ -204,11 +201,20 @@ export default function Weeklies() {
                     <hr style={{height: 1, width: "100%"}}/>
                 </Grid2>
 
-                {data.map((weekly: CustomerSheet, index: number) => (
-                    <>
-                        {weekly.Jobs.length > 0 && <WeeklySheet key={'sheet-' + index} weekly={weekly} week={week} forceExpand={forceExpand} initialExpand={initialExpand == weekly.ID} forceRefresh={setShouldRefresh}/>}
-                    </>
-                ))}
+                {data.map((weekly: CustomerSheet, index: number) =>
+                    weekly.Jobs.length > 0 ? (
+                        <WeeklySheet
+                            key={'sheet-' + index}
+                            weekly={weekly}
+                            week={week}
+                            forceExpand={forceExpand}
+                            initialExpand={initialExpand == weekly.ID}
+                            forceRefresh={() => {
+                                void refetch();
+                            }}
+                        />
+                    ) : null,
+                )}
                 {/* <EnhancedTableToolbar
             numSelected={selected.length}
             readOnly={readOnly}
