@@ -201,11 +201,11 @@ export default function Weeklies() {
                     <hr style={{height: 1, width: "100%"}}/>
                 </Grid2>
 
-                {data.map((weekly: CustomerSheet, index: number) =>
+                {data.map((weekly, index) =>
                     weekly.Jobs.length > 0 ? (
                         <WeeklySheet
                             key={'sheet-' + index}
-                            weekly={weekly}
+                            weekly={weekly as CustomerSheet}
                             week={week}
                             forceExpand={forceExpand}
                             initialExpand={initialExpand == weekly.ID}

@@ -206,7 +206,15 @@ export default function Dailies() {
                     <hr style={{height: 1, width: "100%"}}/>
                 </Grid2>
 
-                {data.map((sheet: DriverSheet, index: number) => <DailySheet key={'sheet-' + index} sheet={sheet} week={week} forceExpand={forceExpand} initialExpand={initialExpand == sheet.DriverID}/>)}
+                {data.map((sheet, index) => (
+                    <DailySheet
+                        key={'sheet-' + index}
+                        sheet={sheet as DriverSheet}
+                        week={week}
+                        forceExpand={forceExpand}
+                        initialExpand={initialExpand == sheet.DriverID}
+                    />
+                ))}
                 {/* <EnhancedTableToolbar
             numSelected={selected.length}
             readOnly={readOnly}
