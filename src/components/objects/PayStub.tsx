@@ -126,10 +126,7 @@ const PayStub = ({
                 setJobSelectionClearNonce((n) => n + 1);
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore — create form extends with `selected`; Driver cleared in UI like initial mount
-                reset({
-                    ...defaultValues,
-                    DriverID: null,
-                });
+                reset({...defaultValues, DriverID: null,});
                 setValue("Gross", 0, {shouldValidate: true, shouldDirty: true});
             }
             toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
