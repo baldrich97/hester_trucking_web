@@ -135,7 +135,7 @@ export default function DriverFormsExpiringSoon() {
                     <TableRow key={`${r.driverId}-${r.formId}-${r.filed}`}>
                         <TableCell>{r.formName}</TableCell>
                         {showDriverColumn ? <TableCell>{r.driverName}</TableCell> : null}
-                        <TableCell>{fmtLocal(r.filed)}</TableCell>
+                        <TableCell>{r.formId === -1000 ? "—" : fmtLocal(r.filed)}</TableCell>
                         <TableCell>{fmtLocal(r.endDate)}</TableCell>
                         <TableCell>{cadenceLabel(r.cadence)}</TableCell>
                         <TableCell>
@@ -210,8 +210,8 @@ export default function DriverFormsExpiringSoon() {
                 Forms expiring soon
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{mb: 2}}>
-                On-file forms whose compliance end date is within the next {data?.daysAhead ?? 30} days (still
-                compliant today). Update filings from{" "}
+                On-file forms and driver licenses whose compliance end date is within the next {data?.daysAhead ?? 30}{" "}
+                days (still compliant today). Update filings from{" "}
                 <TableEntityLink href="/drivers/w2_forms">W2 Forms</TableEntityLink>{" "}
                 or{" "}
                 <TableEntityLink href="/drivers/owner_forms">OO Forms</TableEntityLink>
@@ -234,7 +234,7 @@ export default function DriverFormsExpiringSoon() {
             </Box>
             {!isLoading && data && data.w2Groups.length === 0 && data.ooGroups.length === 0 ? (
                 <Paper sx={{p: 3}}>
-                    <Typography>No forms expiring in the next {data.daysAhead} days.</Typography>
+                    <Typography>No forms or licenses expiring in the next {data.daysAhead} days.</Typography>
                 </Paper>
             ) : null}
             {data && data.w2Groups.length > 0 ? renderW2Section(data.w2Groups) : null}

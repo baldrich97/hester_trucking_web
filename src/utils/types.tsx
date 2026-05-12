@@ -32,6 +32,8 @@ export type FormFieldsType = {
   enableOptionGroups?: boolean;
   newOptionLabel?: string;
   onNewOptionClick?: () => void;
+  /** When true, driver/truck search only returns active rows (Load form). */
+  onlyActive?: boolean;
   /** For `selectList`: menu `""` becomes `null`, other values become integers (nullable FK). */
   coerceNumberOrNull?: boolean;
 }[];

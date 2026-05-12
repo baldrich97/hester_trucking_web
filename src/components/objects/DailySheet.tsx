@@ -17,6 +17,7 @@ import {trpc} from "../../utils/trpc";
 import {calendarNavButtonSx, tableTextLinkSx} from "../../theme/muiShared";
 import Box from "@mui/material/Box";
 import NextLink from "next/link";
+import {formatDriverDisplayName} from "../../utils/entityDisplay";
 
 type Loads = z.infer<typeof LoadsModel>;
 
@@ -75,7 +76,7 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
                 </Grid2>
                 <Grid2 xs={"auto"} sx={{display: "flex"}}>
                     <b style={{fontSize: 18, marginLeft: 3}}>
-                        {daily.Drivers.FirstName} {daily.Drivers.LastName}
+                        {formatDriverDisplayName(daily.Drivers)}
                     </b>
                 </Grid2>
                 <Grid2 xs={true}></Grid2>

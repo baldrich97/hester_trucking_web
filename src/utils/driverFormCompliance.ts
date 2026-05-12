@@ -41,6 +41,21 @@ export function getDriverFormComplianceEndDate(
     }
 }
 
+/** Driver CDL / license expiration is set and falls within the next `daysAhead` calendar days (still valid today). */
+export function isDriverLicenseExpiringSoon(
+    licenseExpiration: Date | null | undefined,
+    daysAhead: number,
+    now = new Date(),
+): boolean {
+    if (!licenseExpiration) return false;
+    const end = startOfDay(new Date(licenseExpiration));
+    const today = startOfDay(now);
+    if (end < today) return false;
+    const windowEnd = startOfDay(new Date(today));
+    windowEnd.setDate(windowEnd.getDate() + daysAhead);
+    return end <= windowEnd;
+}
+
 /** Still compliant today, and compliance end falls within the next `daysAhead` calendar days (inclusive). */
 export function isDriverFormExpiringSoon(
     record: { Expiration: Date | null; Created: Date },

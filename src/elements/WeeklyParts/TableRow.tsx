@@ -1,6 +1,7 @@
 import React from 'react';
 import {Text, View, StyleSheet} from '@react-pdf/renderer';
 import {CompleteJobs} from "../../../prisma/zod";
+import {formatDriverDisplayName} from "../../utils/entityDisplay";
 import {z} from "zod";
 import moment from "moment";
 import Grid2 from "@mui/material/Unstable_Grid2";
@@ -67,7 +68,7 @@ const TableRow = ({job, week, rate}: { job: CompleteJobs, week: string, rate: nu
             <Text style={{
                 width: '12%',
                 textAlign: 'center', ...styles.padding, ...styles.text
-            }}>{job.Drivers.FirstName + ' ' + job.Drivers.LastName}</Text>
+            }}>{formatDriverDisplayName(job.Drivers)}</Text>
             {["MON", "TUE", "WED", "THUR", "FRI", "SAT", "SUN", 'weight', 'total'].map((day, index) =>
 
                 <Text key={'row-' + Math.random()} style={{

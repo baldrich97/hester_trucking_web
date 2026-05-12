@@ -5,6 +5,8 @@ export const DriverFormsModel = z.object({
   ID: z.number().int(),
   Driver: z.number().int(),
   Form: z.number().int(),
+  Expiration: z.coerce.date().nullish(),
+  Created: z.coerce.date(),
   /**
    * When set, this filing is scoped to the carrier (OO entity) rather than only the driver row.
    */
@@ -13,8 +15,6 @@ export const DriverFormsModel = z.object({
    * Optional display of who physically submitted the paperwork.
    */
   Filer: z.string().nullish(),
-  Expiration: z.coerce.date().nullish(),
-  Created: z.coerce.date(),
 })
 
 export interface CompleteDriverForms extends z.infer<typeof DriverFormsModel> {

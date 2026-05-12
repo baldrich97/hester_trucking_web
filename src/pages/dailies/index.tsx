@@ -15,6 +15,7 @@ import {z} from "zod";
 import {CompleteJobs, DailiesModel, DriversModel, LoadsModel} from "../../../prisma/zod";
 import {formatDateToWeek} from "../../utils/UtilityFunctions";
 import {useRouter} from "next/router";
+import {toast} from "react-toastify";
 import {
     calendarChevronNavSx,
     calendarNavButtonSx,
@@ -67,6 +68,16 @@ export default function Dailies() {
         enabled: shouldRefresh,
         onSuccess(data) {
             setData(data ? data.filter((sheet) => sheet.Jobs.filter((job) => job.Loads.length !== 0).length > 0).sort((a, b) => a.Drivers.FirstName.localeCompare(b.Drivers.FirstName)) : []);
+            setLoading(false);
+            setShouldRefresh(false);
+        },
+        onError(err) {
+            console.warn(err);
+            toast(err.message ?? "Failed to load dailies", {type: "error", autoClose: 8000});
+            setLoading(false);
+            setShouldRefresh(false);
+        },
+        onSettled() {
             setLoading(false);
             setShouldRefresh(false);
         },

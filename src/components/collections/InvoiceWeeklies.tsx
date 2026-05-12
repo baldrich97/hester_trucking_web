@@ -31,6 +31,7 @@ import TableEntityLink from "../../elements/TableEntityLink";
 import {tableContainedNavButtonSx} from "../../theme/muiShared";
 import NextLink from "next/link";
 import PayStub from "../objects/PayStub";
+import {formatDriverDisplayName} from "../../utils/entityDisplay";
 
 interface CustomerSheet extends CompleteWeeklies {
     Customers: CompleteCustomers,
@@ -357,7 +358,7 @@ function Row(props: {
                                                     <TableCell align="left" padding="none" size={"small"}
                                                                sx={{width: "50%"}}>
                                                         <TableEntityLink href={`/drivers/${job.Drivers.ID}`}>
-                                                            {job.Drivers.FirstName + " " + job.Drivers.LastName}
+                                                            {formatDriverDisplayName(job.Drivers)}
                                                         </TableEntityLink>
                                                     </TableCell>
                                                     <TableCell align="left" padding="none" size={"small"}

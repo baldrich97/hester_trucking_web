@@ -14,11 +14,15 @@ import {
 
     isDriverFormExpiringSoon,
 
+    isDriverLicenseExpiringSoon,
+
     isOoFormRequired,
 
     ooEntityKey,
 
     ooEntityTrucksVitalOk,
+
+    startOfDay,
 
     type DriverComplianceShape,
 
@@ -538,6 +542,26 @@ export const complianceRouter = createRouter()
 
                 }
 
+                if (
+                    d.License &&
+                    d.License.trim().length > 0 &&
+                    d.LicenseExpiration &&
+                    isDriverLicenseExpiringSoon(d.LicenseExpiration, daysAhead)
+                ) {
+                    const end = startOfDay(new Date(d.LicenseExpiration));
+                    rows.push({
+                        formId: -1000,
+                        formName: "Driver license (CDL)",
+                        filed: "",
+                        endDate: end.toISOString(),
+                        cadence: "EXPIRATION_DATE",
+                        required: true,
+                        filer: null,
+                        driverId: d.ID,
+                        driverName: `${d.FirstName} ${d.LastName}`.trim(),
+                    });
+                }
+
                 if (rows.length === 0) continue;
 
                 rows.sort((a, b) => new Date(a.endDate).getTime() - new Date(b.endDate).getTime());
@@ -648,6 +672,26 @@ export const complianceRouter = createRouter()
 
                         });
 
+                    }
+
+                    if (
+                        ed.License &&
+                        ed.License.trim().length > 0 &&
+                        ed.LicenseExpiration &&
+                        isDriverLicenseExpiringSoon(ed.LicenseExpiration, daysAhead)
+                    ) {
+                        const end = startOfDay(new Date(ed.LicenseExpiration));
+                        rows.push({
+                            formId: -1000,
+                            formName: "Driver license (CDL)",
+                            filed: "",
+                            endDate: end.toISOString(),
+                            cadence: "EXPIRATION_DATE",
+                            required: true,
+                            filer: null,
+                            driverId: ed.ID,
+                            driverName,
+                        });
                     }
 
                 }

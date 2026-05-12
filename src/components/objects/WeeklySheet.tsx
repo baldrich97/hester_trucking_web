@@ -27,6 +27,7 @@ import {confirmDestructive, confirmProceed} from "../../utils/appConfirm";
 import {trpc} from "../../utils/trpc";
 import {calendarNavButtonSx} from "../../theme/muiShared";
 import NextLink from "next/link";
+import {formatDriverDisplayName} from "../../utils/entityDisplay";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
@@ -566,7 +567,7 @@ const Job = ({
                 }}
                 xs={2}
             >
-                <b style={{fontSize: 17}}>{job.Drivers.FirstName + " " + job.Drivers.LastName}</b>
+                <b style={{fontSize: 17}}>{formatDriverDisplayName(job.Drivers)}</b>
             </Grid2>
 
             {["MON", "TUE", "WED", "THUR", "FRI", "SAT", "SUN"].map((day, index) =>

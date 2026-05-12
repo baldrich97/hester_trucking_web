@@ -12,6 +12,7 @@ import WeeklySheet from "components/objects/WeeklySheet";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import Tooltip from "@mui/material/Tooltip";
 import {useRouter} from "next/router";
+import {toast} from "react-toastify";
 import {formatDateToWeek} from "../../utils/UtilityFunctions";
 import {
     calendarChevronNavSx,
@@ -65,6 +66,16 @@ export default function Weeklies() {
         onSuccess(data) {
             setData([])
             setData(data ? data.filter((sheet) => sheet.Jobs.filter((job) => job.Loads.length !== 0).length > 0).sort((a, b) => a.Customers.Name.localeCompare(b.Customers.Name)) : []);
+            setLoading(false);
+            setShouldRefresh(false);
+        },
+        onError(err) {
+            console.warn(err);
+            toast(err.message ?? "Failed to load weeklies", {type: "error", autoClose: 8000});
+            setLoading(false);
+            setShouldRefresh(false);
+        },
+        onSettled() {
             setLoading(false);
             setShouldRefresh(false);
         },

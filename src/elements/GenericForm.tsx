@@ -106,6 +106,7 @@ const GenericForm = ({
                                     selectedLoadType={selectedLoadType}
                                     selectedTruck={selectedTruck}
                                     selectedDriver={selectedDriver}
+                                    onlyActive={field.onlyActive}
                                     newOptionLabel={field.newOptionLabel}
                                     onNewOptionClick={field.onNewOptionClick}
                                 />

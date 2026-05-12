@@ -27,7 +27,7 @@ export const trucksDrivenRouter = createRouter().query("search", {
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
                     item.Drivers.Recommend = true;
-                    extraByKey.set(key, item);
+                    extraByKey.set(key, item as CompleteTrucksDriven);
                 }
             }
         }
@@ -48,12 +48,12 @@ export const trucksDrivenRouter = createRouter().query("search", {
                     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                     // @ts-ignore
                     item.Trucks.Recommend = true;
-                    extraByKey.set(key, item);
+                    extraByKey.set(key, item as CompleteTrucksDriven);
                 }
             }
         }
 
-        const extra = [...extraByKey.values()];
+        const extra = Array.from(extraByKey.values());
         const data: {Drivers?: Drivers; Trucks?: Trucks}[] = [];
 
         if (input.TruckID) {

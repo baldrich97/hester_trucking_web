@@ -40,6 +40,8 @@ export const trucksRouter = createRouter()
             order: z.string().optional(),
             /** When set (e.g. Load form), marks trucks this driver has driven — used for grouped autocomplete search. */
             DriverID: z.number().optional(),
+            /** When true (Load creation), exclude inactive trucks. */
+            onlyActive: z.boolean().optional(),
         }),
         async resolve({ctx, input}) {
             const formattedSearch = input.search.replace('"', '\"');
@@ -53,24 +55,33 @@ export const trucksRouter = createRouter()
             // @ts-ignore
             orderObj[orderBy] = order;
 
+            const notDeleted = {OR: [{Deleted: false}, {Deleted: null}]};
+            const baseWhere =
+                input.onlyActive === true ? ({AND: [notDeleted, {Active: true}]} as any) : notDeleted;
+
             const trucks = input.search.length > 0
                 ? await ctx.prisma.trucks.findMany({
                     where: {
-                        OR: [
+                        AND: [
+                            baseWhere,
                             {
-                                Name: {
-                                    contains: formattedSearch,
-                                },
-                            },
-                            {
-                                VIN: {
-                                    contains: formattedSearch,
-                                },
-                            },
-                            {
-                                Notes: {
-                                    contains: formattedSearch,
-                                },
+                                OR: [
+                                    {
+                                        Name: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        VIN: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        Notes: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                ],
                             },
                         ],
                     },
@@ -78,6 +89,7 @@ export const trucksRouter = createRouter()
                     orderBy: orderObj,
                 })
                 : await ctx.prisma.trucks.findMany({
+                    where: baseWhere,
                     take: 10,
                     orderBy: orderObj,
                     skip: input.page ? input.page * 10 : 0,

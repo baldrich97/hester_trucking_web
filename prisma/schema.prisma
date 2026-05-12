@@ -104,8 +104,11 @@ model Drivers {
   HireDate      String?        @db.VarChar(255)
   OwnerOperator Boolean
   TIN           String?        @db.VarChar(255)
+  /// @zod.custom(z.coerce.date())
+  LicenseExpiration           DateTime?      @db.Date
   CarrierID     Int?
   PayMethod     String?        @db.VarChar(50)
+  Active        Boolean        @default(true)
   Dailies       Dailies[]
   DriverForms   DriverForms[]
   Carriers      Carriers?      @relation(fields: [CarrierID], references: [ID], onUpdate: Restrict, map: "FK_Drivers_Carriers")
@@ -171,9 +174,9 @@ model States {
   ID               Int         @id @default(autoincrement())
   Name             String      @db.VarChar(15)
   Abbreviation     String      @db.VarChar(2)
+  Carriers         Carriers[]
   Customers        Customers[]
   Drivers          Drivers[]
-  Carriers         Carriers[]
   TrucksLicensedIn Trucks[]    @relation("TruckLicensedState")
 }
 
@@ -188,12 +191,13 @@ model Trucks {
   LicensePlate  String?        @db.VarChar(255)
   Model         String?        @db.VarChar(255)
   TruckNumber   String?        @db.VarChar(255)
+  LicensedState Int?
   /// Model year (required for OO compliance when truck is on file).
   ModelYear     Int?
-  LicensedState Int?
+  Active        Boolean        @default(true)
   Loads         Loads[]
-  TrucksDriven  TrucksDriven[]
   LicensedIn    States?        @relation("TruckLicensedState", fields: [LicensedState], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Trucks_LicensedState")
+  TrucksDriven  TrucksDriven[]
 
   @@index([LicensedState], map: "FK_Trucks_LicensedState")
   @@fulltext([Name, VIN, Notes, Make, LicensePlate, TruckNumber, Model])
@@ -376,15 +380,15 @@ model PayStubs {
 model Carriers {
   ID          Int           @id @default(autoincrement())
   Name        String        @db.VarChar(255)
+  City        String?       @db.VarChar(255)
   ContactName String?       @db.VarChar(255)
   Phone       String?       @db.VarChar(20)
-  Street      String?       @db.VarChar(255)
-  City        String?       @db.VarChar(255)
   State       Int?
+  Street      String?       @db.VarChar(255)
   ZIP         String?       @db.VarChar(10)
-  Drivers     Drivers[]
-  DriverForms DriverForms[]
   States      States?       @relation(fields: [State], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Carriers_States")
+  DriverForms DriverForms[]
+  Drivers     Drivers[]
 
   @@index([State], map: "FK_Carriers_States")
 }
@@ -393,14 +397,14 @@ model DriverForms {
   ID         Int       @id @default(autoincrement())
   Driver     Int
   Form       Int
-  /// When set, this filing is scoped to the carrier (OO entity) rather than only the driver row.
-  CarrierID  Int?
-  /// Optional display of who physically submitted the paperwork.
-  Filer      String?   @db.VarChar(255)
   /// @zod.custom(z.coerce.date())
   Expiration DateTime? @db.Date
   /// @zod.custom(z.coerce.date())
   Created    DateTime  @default(now()) @db.DateTime(0)
+  /// When set, this filing is scoped to the carrier (OO entity) rather than only the driver row.
+  CarrierID  Int?
+  /// Optional display of who physically submitted the paperwork.
+  Filer      String?   @db.VarChar(255)
   Drivers    Drivers   @relation(fields: [Driver], references: [ID], onUpdate: Restrict, map: "DriverForms_Drivers_ID_fk")
   Forms      Forms     @relation(fields: [Form], references: [ID], onUpdate: Restrict, map: "DriverForms_Forms_ID_fk")
   Carriers   Carriers? @relation(fields: [CarrierID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_DriverForms_Carriers")
@@ -419,14 +423,14 @@ model FormOptions {
   OOVisible      Boolean           @default(true)
   W2Required     Boolean           @default(true)
   OORequired     Boolean           @default(true)
-  /// When true, this form is only required for OO entities with more than one truck on file.
-  FleetWide      Boolean           @default(false)
   ExpiryCadence  FormExpiryCadence @default(EXPIRATION_DATE)
   IncludeInPdf   Boolean           @default(true)
   PdfColumnLabel String?           @db.VarChar(75)
   PdfOrder       Int               @default(0)
   /// For `ROLLING_MONTHS`: number of months the filing stays valid from `Created`.
   ValidityMonths Int?
+  /// When true, this form is only required for OO entities with more than one truck on file.
+  FleetWide      Boolean           @default(false)
   Forms          Forms             @relation(fields: [Form], references: [ID], onUpdate: Restrict, map: "FormOptions_Forms_ID_fk")
 
   @@index([Form], map: "FormOptions_Forms_ID_fk")

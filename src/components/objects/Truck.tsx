@@ -22,6 +22,7 @@ const defaultValues = {
     TruckNumber: "",
     ModelYear: null as number | null,
     LicensedState: null as number | null,
+    Active: true,
 };
 
 const Truck = ({
@@ -120,6 +121,7 @@ const Truck = ({
             coerceNumberOrNull: true,
         },
         {name: "TruckNumber", size: 6, required: false, type: "textfield", label: "Truck Number"},
+        {name: "Active", size: 6, required: false, type: "checkbox", label: "Active"},
         {name: "Notes", size: 12, required: false, type: "textfield", multiline: true},
     ];
 

@@ -72,6 +72,9 @@ const Invoice = ({
 
   const [customerWeeklies, setCustomerWeeklies] = useState<any>([]);
 
+  /** Bumped after a successful **new** invoice submit so InvoiceLoads clears its internal selection state. */
+  const [loadsSelectionClearNonce, setLoadsSelectionClearNonce] = useState(0);
+
   /** Bumped after a successful **new** invoice submit so InvoiceWeeklies clears its internal selection state. */
   const [weeklySelectionClearNonce, setWeeklySelectionClearNonce] = useState(0);
 
@@ -136,8 +139,11 @@ const Invoice = ({
     async onSuccess(data) {
       if (!initialInvoice) {
         setSelected([]);
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore extended field
         setValue("selected", []);
         setWeeklySelectionClearNonce((n) => n + 1);
+        setLoadsSelectionClearNonce((n) => n + 1);
       }
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
@@ -578,6 +584,7 @@ const Invoice = ({
               <InvoiceLoads
                   readOnly={!!initialInvoice}
                   rows={loads.length > 0 ? loads : []}
+                  selectionClearNonce={loadsSelectionClearNonce}
                   updateTotal={(newTotal: number) => {
                     setValue("TotalAmount", newTotal);
                   }}

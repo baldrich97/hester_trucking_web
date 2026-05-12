@@ -43,7 +43,8 @@ const defaultValues = {
     CheckNumber: '',
     Gross: 0,
     TakeHome: 0,
-    NetTotal: 0
+    NetTotal: 0,
+    selected: [] as string[],
 };
 
 const PayStub = ({
@@ -61,6 +62,7 @@ const PayStub = ({
     const [shouldFetchJobs, setShouldFetchJobs] = useState(!!initialJob);
     const [driverJobs, setDriverJobs] = useState<any>([]);
     const [shouldClick, setShouldClick] = React.useState<boolean>(true);
+    const [jobSelectionClearNonce, setJobSelectionClearNonce] = React.useState(0);
     const [selected, setSelected] = useState<any>(
         !initialPayStub ? initialJob ? [initialJob.ID] : [] : initialPayStub.Jobs?.map((job) => job.ID.toString())
     );
@@ -112,19 +114,32 @@ const PayStub = ({
 
     const addOrUpdatePayStub = trpc.useMutation(key, {
         async onSuccess(data) {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            reset(initialPayStub ? data : defaultValues);
-            console.log('IN HERE')
+            if (initialPayStub) {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore
+                reset(data ?? defaultValues);
+            } else {
+                setDriverJobs([]);
+                setDriver(0);
+                setShouldFetchJobs(false);
+                setSelected([]);
+                setJobSelectionClearNonce((n) => n + 1);
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+                // @ts-ignore — create form extends with `selected`; Driver cleared in UI like initial mount
+                reset({
+                    ...defaultValues,
+                    DriverID: null,
+                });
+                setValue("Gross", 0, {shouldValidate: true, shouldDirty: true});
+            }
             toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
 
             if (closeModal) {
-                closeModal()
-                window.location.reload();
+                closeModal();
             }
         },
         async onError(error) {
-            toast("There was an issue creating this invoice. The issue was: " + error.message, {
+            toast("There was an issue with this pay stub. The issue was: " + error.message, {
                 autoClose: 100000,
                 type: "error"
             })
@@ -133,7 +148,7 @@ const PayStub = ({
     });
 
     trpc.useQuery(["jobs.getByDriver", {driver}], {
-        enabled: shouldFetchJobs,
+        enabled: shouldFetchJobs && driver > 0,
         onSuccess(data) {
             setDriverJobs(data);
             setShouldFetchJobs(false);
@@ -152,7 +167,10 @@ const PayStub = ({
         if (key === "paystubs.put") {
             await router.replace(router.asPath);
         }
-        setShouldFetchJobs(true);
+        // After editing an existing stub, refresh jobs for the same driver. After creating a new one, onSuccess clears driver/jobs — do not refetch the old driver.
+        if (initialPayStub) {
+            setShouldFetchJobs(true);
+        }
         //setShouldFetchWeeklies(true);
     };
 
@@ -514,7 +532,6 @@ const PayStub = ({
 
                 <Grid2 xs={12}>
                     <PayStubJobs
-                        key={grossValue}
                         readOnly={!!initialPayStub}
                         rows={(initialPayStub && initialPayStub.Jobs.length > 0) ? initialPayStub.Jobs : driverJobs ?? []}
                         updateTotal={(newTotal: number) => {
@@ -532,6 +549,7 @@ const PayStub = ({
                         setShouldClick={setShouldClick}
                         parentSelected={selected}
                         parentTotal={grossValue}
+                        selectionClearNonce={jobSelectionClearNonce}
                     />
                 </Grid2>
 

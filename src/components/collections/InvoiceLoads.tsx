@@ -17,6 +17,7 @@ import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
+import {formatDriverDisplayName, formatTruckDisplayName} from "../../utils/entityDisplay";
 
 interface Data {
   TicketNumber: number;
@@ -321,12 +322,10 @@ function Row(props: {
                 <TableBody>
                   <TableRow key={"inner_row_" + row.ID.toString()}>
                     <TableCell align="left" padding="none" size={"small"}>
-                      {row.Drivers
-                        ? row.Drivers?.FirstName + " " + row.Drivers?.LastName
-                        : "N/A"}
+                      {formatDriverDisplayName(row.Drivers)}
                     </TableCell>
                     <TableCell align="left" padding="none" size={"small"}>
-                      {row.Trucks ? row.Trucks?.Name : "N/A"}
+                      {formatTruckDisplayName(row.Trucks)}
                     </TableCell>
                     <TableCell align="left" padding="none" size={"small"}>
                       {row.LoadTypes ? row.LoadTypes?.Description : "N/A"}
@@ -351,13 +350,14 @@ export default function InvoiceLoads({
   readOnly,
   rows,
   updateTotal,
-  updateSelected
+  updateSelected,
+  selectionClearNonce = 0,
 }: {
   readOnly: boolean;
   rows: any[];
   updateTotal: any;
   updateSelected: any;
-
+  selectionClearNonce?: number;
 }) {
   const [order, setOrder] = React.useState<Order>("asc");
   const [orderBy, setOrderBy] = React.useState<keyof Data>("TicketNumber");
@@ -367,7 +367,10 @@ export default function InvoiceLoads({
   React.useEffect(() => {
     setSelected([]);
     setTotal(0);
-  }, [rows]);
+    updateTotal(0);
+    updateSelected([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- parent callbacks; align with InvoiceWeeklies
+  }, [rows, selectionClearNonce]);
 
   const handleRequestSort = (
     event: React.MouseEvent<unknown>,

@@ -35,6 +35,8 @@ const defaultValues = {
     TIN: '',
     PayMethod: '',
     CarrierID: null as number | null,
+    LicenseExpiration: null as Date | null,
+    Active: true,
 };
 
 
@@ -61,8 +63,8 @@ const Driver = ({
         [carriers],
     );
 
-    /** Calendar DOB from SSR is ISO midnight UTC; coerce to UTC noon + accept DatePicker `Date`s. */
-    const dobFromJson = z.preprocess((v) => {
+    /** Calendar DOB / license expiration from SSR is ISO midnight UTC; coerce to UTC noon + accept DatePicker `Date`s. */
+    const dateFieldFromJson = z.preprocess((v) => {
         if (v === "" || v === null || v === undefined) return null;
         if (v instanceof Date && !Number.isNaN(v.getTime())) {
             return dateOnlyLocalToUtcNoon(v);
@@ -71,15 +73,19 @@ const Driver = ({
     }, z.date().nullable());
 
     const validationSchema = initialDriver
-        ? DriversModel.extend({DOB: dobFromJson})
-        : DriversModel.omit({ID: true}).extend({DOB: dobFromJson});
+        ? DriversModel.extend({DOB: dateFieldFromJson, LicenseExpiration: dateFieldFromJson})
+        : DriversModel.omit({ID: true}).extend({DOB: dateFieldFromJson, LicenseExpiration: dateFieldFromJson});
 
     type ValidationSchema = z.infer<typeof validationSchema>;
 
     const formDefaults = useMemo(
         () =>
             initialDriver
-                ? {...initialDriver, DOB: parseDateOnlyFromJson(initialDriver.DOB)}
+                ? {
+                      ...initialDriver,
+                      DOB: parseDateOnlyFromJson(initialDriver.DOB),
+                      LicenseExpiration: parseDateOnlyFromJson(initialDriver.LicenseExpiration),
+                  }
                 : defaultValues,
         [initialDriver],
     );
@@ -99,7 +105,13 @@ const Driver = ({
             }
             reset(
                 initialDriver
-                    ? {...data, DOB: parseDateOnlyFromJson((data as DriversType).DOB)}
+                    ? {
+                          ...data,
+                          DOB: parseDateOnlyFromJson((data as DriversType).DOB),
+                          LicenseExpiration: parseDateOnlyFromJson(
+                              (data as DriversType).LicenseExpiration,
+                          ),
+                      }
                     : defaultValues,
             );
         },
@@ -110,6 +122,7 @@ const Driver = ({
         const payload = {
             ...data,
             DOB: dateOnlyLocalToUtcNoon(data.DOB),
+            LicenseExpiration: dateOnlyLocalToUtcNoon(data.LicenseExpiration),
         };
         await addOrUpdateDriver.mutateAsync(payload);
         if (initialDriver && !skipRouteRefresh) {
@@ -135,6 +148,16 @@ const Driver = ({
             type: 'date',
         },
         {name: 'License', size: 4, required: false, type: 'textfield'},
+        {
+            name: 'LicenseExpiration',
+            size: 4,
+            label: 'License expiration',
+            required: false,
+            shouldErrorOn: ['invalid_type', 'invalid_union'],
+            errorMessage: 'Enter a valid license expiration.',
+            type: 'date',
+        },
+        {name: 'Active', size: 4, required: false, type: 'checkbox', label: 'Active'},
         {name: 'Phone', size: 4, required: false, type: 'textfield'},
         {name: 'Email', size: 8, required: false, type: 'textfield', shouldErrorOn: ['invalid_string'], errorMessage: 'Please enter a valid email.'},
         {name: 'TIN', size: 4, label: 'TIN / EIN', required: false, type: 'textfield'},

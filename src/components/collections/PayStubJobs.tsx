@@ -17,26 +17,31 @@ import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
-import {confirmProceed} from "../../utils/appConfirm";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import ViewWeekIcon from "@mui/icons-material/ViewWeek";
+import Tooltip from "@mui/material/Tooltip";
+import NextLink from "next/link";
+import TableEntityLink from "../../elements/TableEntityLink";
+import { confirmProceed } from "../../utils/appConfirm";
 
 interface Data {
-    "ID": number,
-    "DateRange": string,
-    "Loads": any,
-    "DeliveryLocations": any,
-    "LoadTypes": any,
-    "Customers": any,
-    "TruckingRate": number,
-    "DriverRate": number,
-    "Weight": number,
-    "Hours": number,
-    "TruckingRevenue": number,
-    "DescriptionLabel": string
+    ID: number;
+    DateRange: string;
+    Loads: any;
+    DeliveryLocations: any;
+    LoadTypes: any;
+    Customers: any;
+    TruckingRate: number;
+    DriverRate: number;
+    Weight: number;
+    Hours: number;
+    TruckingRevenue: number;
+    DescriptionLabel: string;
 }
 
-function descendingComparator<T>(a: any, b: any) {
-    const descA = a.LoadTypes?.StartDate ?? '';
-    const descB = b.LoadTypes?.StartDate ?? '';
+function descendingComparator(a: any, b: any) {
+    const descA = a.LoadTypes?.StartDate ?? "";
+    const descB = b.LoadTypes?.StartDate ?? "";
 
     if (descB < descA) {
         return -1;
@@ -51,11 +56,8 @@ type Order = "asc" | "desc";
 
 function getComparator<Key extends keyof any>(
     order: Order,
-    orderBy: Key
-): (
-    a: { [key in Key]: number | string },
-    b: { [key in Key]: number | string }
-) => number {
+    orderBy: Key,
+): (a: { [key in Key]: number | string }, b: { [key in Key]: number | string }) => number {
     return order === "desc"
         ? (a, b) => descendingComparator(a, b)
         : (a, b) => -descendingComparator(a, b);
@@ -94,19 +96,16 @@ const headCells: readonly HeadCell[] = [
         label: "Rate",
     },
     {
-        id: 'TruckingRevenue',
+        id: "TruckingRevenue",
         numeric: false,
         disablePadding: true,
-        label: 'Amount',
+        label: "Amount",
     },
 ];
 
 interface EnhancedTableProps {
     numSelected: number;
-    onRequestSort: (
-        event: React.MouseEvent<unknown>,
-        property: keyof Data
-    ) => void;
+    onRequestSort: (event: React.MouseEvent<unknown>, property: keyof Data) => void;
     onSelectAllClick: (event: React.ChangeEvent<HTMLInputElement>) => void;
     order: Order;
     orderBy: string;
@@ -115,19 +114,7 @@ interface EnhancedTableProps {
 }
 
 function EnhancedTableHead(props: EnhancedTableProps) {
-    const {
-        onSelectAllClick,
-        order,
-        orderBy,
-        numSelected,
-        rowCount,
-        onRequestSort,
-        readOnly,
-    } = props;
-    const createSortHandler =
-        (property: keyof Data) => (event: React.MouseEvent<unknown>) => {
-            onRequestSort(event, property);
-        };
+    const { onSelectAllClick, order, orderBy, numSelected, rowCount, readOnly } = props;
 
     return (
         <TableHead>
@@ -169,6 +156,10 @@ function EnhancedTableHead(props: EnhancedTableProps) {
                         </TableSortLabel>
                     </TableCell>
                 ))}
+                <TableCell align="center" padding="none" size="small">
+                    Sheet
+                </TableCell>
+                <TableCell padding="checkbox" size="small" />
             </TableRow>
         </TableHead>
     );
@@ -189,29 +180,16 @@ function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
                 pr: { xs: 1, sm: 1 },
                 ...(numSelected > 0 && {
                     bgcolor: (theme) =>
-                        alpha(
-                            theme.palette.primary.main,
-                            theme.palette.action.activatedOpacity
-                        ),
+                        alpha(theme.palette.primary.main, theme.palette.action.activatedOpacity),
                 }),
             }}
         >
             {numSelected > 0 ? (
-                <Typography
-                    sx={{ flex: "1 1 100%" }}
-                    color="inherit"
-                    variant="subtitle1"
-                    component="div"
-                >
+                <Typography sx={{ flex: "1 1 100%" }} color="inherit" variant="subtitle1" component="div">
                     {numSelected} selected
                 </Typography>
             ) : (
-                <Typography
-                    sx={{ flex: "1 1 100%" }}
-                    variant="h6"
-                    id="tableTitle"
-                    component="div"
-                >
+                <Typography sx={{ flex: "1 1 100%" }} variant="h6" id="tableTitle" component="div">
                     Jobs {readOnly ? "Included" : "Available"}
                 </Typography>
             )}
@@ -219,31 +197,30 @@ function EnhancedTableToolbar(props: EnhancedTableToolbarProps) {
     );
 }
 
+function utcMdY(d: Date) {
+    return `${d.getUTCMonth() + 1}/${d.getUTCDate()}/${d.getUTCFullYear()}`;
+}
+
 function formatDateRange(loads: any) {
     if (loads.length === 0) return null;
 
-    // Sort the loads by StartDate to get the earliest and latest
     const dates = loads
-        .map((load: { StartDate: string | number | Date; }) => new Date(load.StartDate))
-        .sort((a: { getTime: () => number; }, b: { getTime: () => number; }) => a.getTime() - b.getTime());
+        .map((load: { StartDate: string | number | Date }) => new Date(load.StartDate))
+        .sort((a: { getTime: () => number }, b: { getTime: () => number }) => a.getTime() - b.getTime());
 
     const earliest = dates[0];
     const latest = dates[dates.length - 1];
 
-    // Check if both dates are the same
     if (earliest.getTime() === latest.getTime()) {
-        return `${earliest.getUTCMonth() + 1}/${earliest.getUTCDate()}`; // Format as "2/13"
+        return utcMdY(earliest);
     }
 
-    // Check if both dates are in the same month
     if (earliest.getUTCMonth() === latest.getUTCMonth() && earliest.getUTCFullYear() === latest.getUTCFullYear()) {
-        return `${earliest.getUTCMonth() + 1}(${earliest.getUTCDate()}-${latest.getUTCDate()})`; // Format as "2(13-27)"
+        return `${earliest.getUTCMonth() + 1}(${earliest.getUTCDate()}-${latest.getUTCDate()}) ${earliest.getUTCFullYear()}`;
     }
 
-    // Otherwise, format as "2/21-3/1"
-    return `${earliest.getUTCMonth() + 1}/${earliest.getUTCDate()}-${latest.getUTCMonth() + 1}/${latest.getUTCDate()}`;
+    return `${utcMdY(earliest)}–${utcMdY(latest)}`;
 }
-
 
 function sumLoads(loads: { Hours?: number; Weight?: number }[]): number {
     return loads.reduce((total, load) => {
@@ -263,27 +240,28 @@ function calculateRevenue(row: {
     Loads: { Hours?: number; Weight?: number }[];
 }): number {
     if (row.TruckingRevenue) {
-        return row.TruckingRevenue
+        return row.TruckingRevenue;
     }
     const totalLoadValue = sumLoads(row.Loads);
-    const rate = row.DriverRate && row.DriverRate !== row.TruckingRate
-        ? row.DriverRate
-        : row.TruckingRate;
+    const rate =
+        row.DriverRate && row.DriverRate !== row.TruckingRate ? row.DriverRate : row.TruckingRate;
 
     return totalLoadValue * rate;
 }
 
-
-
 function Row(props: {
     readOnly: boolean;
-    row: ReturnType<any>;
+    row: any;
     labelId: string;
     isItemSelected: boolean;
     handleClick: any;
 }) {
     const { readOnly, row, labelId, isItemSelected, handleClick } = props;
     const [open, setOpen] = React.useState(false);
+
+    const week = row.Weeklies?.Week as string | undefined;
+    const driverId = row.DriverID as number | undefined;
+    const weeklyId = row.WeeklyID as number | undefined;
 
     return (
         <React.Fragment>
@@ -292,9 +270,8 @@ function Row(props: {
                 role="checkbox"
                 aria-checked={isItemSelected}
                 tabIndex={-1}
-                key={Math.random().toString()}
                 selected={isItemSelected}
-                sx={{backgroundColor: row.Weeklies?.Invoices?.Paid ? "#3acf00" : "#ff6161"}}
+                sx={{ backgroundColor: row.Weeklies?.Invoices?.Paid ? "#3acf00" : "#ff6161" }}
             >
                 {!readOnly && (
                     <TableCell padding="checkbox" size={"small"}>
@@ -304,7 +281,7 @@ function Row(props: {
                             inputProps={{
                                 "aria-labelledby": labelId,
                             }}
-                            onClick={() =>{
+                            onClick={() => {
                                 if (!row.Weeklies?.Invoices?.Paid && !isItemSelected) {
                                     confirmProceed({
                                         title: "Confirm non-paid selection",
@@ -315,66 +292,109 @@ function Row(props: {
                                         onConfirm: () => {
                                             handleClick(
                                                 row.ID.toString(),
-                                                Math.round((calculateRevenue(row) + Number.EPSILON) * 100) /
-                                                    100,
+                                                Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100,
                                             );
                                         },
                                     });
                                 } else {
-                                    handleClick(row.ID.toString(), Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100)
+                                    handleClick(
+                                        row.ID.toString(),
+                                        Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100,
+                                    );
                                 }
                             }}
                         />
                     </TableCell>
                 )}
-                <TableCell
-                    component="th"
-                    id={labelId}
-                    scope="row"
-                    padding={"none"}
-                    size={"small"}
-                    align={"center"}
-                >
+                <TableCell component="th" id={labelId} scope="row" padding={"none"} size={"small"} align={"center"}>
                     {formatDateRange(row.Loads ? row.Loads : [])}
                 </TableCell>
                 <TableCell align="center" padding="none" size={"small"}>
-                    {((row.LoadTypes?.Description ?? 'MISSING') + ' ' + (row.Customers?.Name ?? 'MISSING') + ' ' + (row.DeliveryLocations?.Description ?? 'MISSING'))}
+                    {(row.LoadTypes?.Description ?? "MISSING") +
+                        " " +
+                        (row.Customers?.Name ?? "MISSING") +
+                        " " +
+                        (row.DeliveryLocations?.Description ?? "MISSING")}
                 </TableCell>
                 <TableCell align="center" padding="none" size={"small"}>
                     {Math.round((sumLoads(row.Loads ? row.Loads : []) + Number.EPSILON) * 100) / 100}
                 </TableCell>
                 <TableCell align="center" padding="none" size={"small"}>
-                    {Math.round((parseFloat((row.DriverRate && row.DriverRate !== row.TruckingRate) ? row.DriverRate : row.TruckingRate) + Number.EPSILON) * 100) /
-                        100}
+                    {Math.round(
+                        (parseFloat(
+                            row.DriverRate && row.DriverRate !== row.TruckingRate
+                                ? row.DriverRate
+                                : row.TruckingRate,
+                        ) +
+                            Number.EPSILON) *
+                            100,
+                    ) / 100}
                 </TableCell>
                 <TableCell align="center" padding="none" size={"small"}>
                     {Math.round((calculateRevenue(row) + Number.EPSILON) * 100) / 100}
                 </TableCell>
-                <TableCell>
-                    <IconButton
-                        aria-label="expand row"
-                        size="small"
-                        onClick={() => setOpen(!open)}
-                    >
+                <TableCell align="center" padding="none" size="small">
+                    {week && driverId != null ? (
+                        <Box sx={{ display: "flex", justifyContent: "center", gap: 0.5 }}>
+                            <Tooltip title="Open in dailies">
+                                <NextLink
+                                    href={{
+                                        pathname: "/dailies",
+                                        query: { forceExpand: driverId, defaultWeek: week },
+                                    }}
+                                    passHref
+                                    legacyBehavior
+                                >
+                                    <IconButton component="a" size="small" target="_blank" rel="noopener noreferrer">
+                                        <CalendarMonthIcon fontSize="small" />
+                                    </IconButton>
+                                </NextLink>
+                            </Tooltip>
+                            {weeklyId != null ? (
+                                <Tooltip title="Open in weeklies">
+                                    <NextLink
+                                        href={{
+                                            pathname: "/weeklies",
+                                            query: { forceExpand: weeklyId, defaultWeek: week },
+                                        }}
+                                        passHref
+                                        legacyBehavior
+                                    >
+                                        <IconButton component="a" size="small" target="_blank" rel="noopener noreferrer">
+                                            <ViewWeekIcon fontSize="small" />
+                                        </IconButton>
+                                    </NextLink>
+                                </Tooltip>
+                            ) : null}
+                        </Box>
+                    ) : (
+                        "—"
+                    )}
+                </TableCell>
+                <TableCell padding="checkbox" size="small">
+                    <IconButton aria-label="expand row" size="small" onClick={() => setOpen(!open)}>
                         {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
                     </IconButton>
                 </TableCell>
             </TableRow>
             <TableRow>
-                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
+                <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={readOnly ? 7 : 8}>
                     <Collapse in={open} timeout="auto" unmountOnExit>
                         <Box sx={{ margin: 1 }}>
                             <Typography variant="h6" gutterBottom component="div">
-                                Details
+                                Loads
                             </Typography>
-                            <Table size="small" aria-label="purchases">
+                            <Table size="small" aria-label="loads">
                                 <TableHead>
                                     <TableRow>
                                         <TableCell align="left" padding="none" size={"small"}>
                                             Date Delivered
                                         </TableCell>
                                         <TableCell align="left" padding="none" size={"small"}>
-                                            Ticket Number
+                                            Ticket
+                                        </TableCell>
+                                        <TableCell align="left" padding="none" size={"small"}>
+                                            Load
                                         </TableCell>
                                         <TableCell align="left" padding="none" size={"small"}>
                                             Notes
@@ -382,20 +402,33 @@ function Row(props: {
                                     </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                    {row.Loads?.map((load: { ID: { toString: () => string; }; StartDate: string | number | Date; TicketNumber: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | React.ReactFragment | React.ReactPortal | null | undefined; Notes: string | number | boolean | React.ReactElement<any, string | React.JSXElementConstructor<any>> | React.ReactFragment | React.ReactPortal | null | undefined; }) =>
-                                        <TableRow key={"inner_row_" + load.ID.toString()}>
-                                            <TableCell align="left" padding="none" size={"small"}>
-                                                {new Date(load.StartDate).toLocaleDateString("en-US", {
-                                                    timeZone: "UTC",
-                                                })}
-                                            </TableCell>
-                                            <TableCell align="left" padding="none" size={"small"}>
-                                                {load.TicketNumber}
-                                            </TableCell>
-                                            <TableCell align="left" padding="none" size={"small"}>
-                                                {load.Notes ? load.Notes : "N/A"}
-                                            </TableCell>
-                                        </TableRow>
+                                    {row.Loads?.map(
+                                        (load: {
+                                            ID: number;
+                                            StartDate: string | number | Date;
+                                            TicketNumber: string | number;
+                                            Notes: string | null;
+                                        }) => (
+                                            <TableRow key={`inner_row_${load.ID}`}>
+                                                <TableCell align="left" padding="none" size={"small"}>
+                                                    {new Date(load.StartDate).toLocaleDateString("en-US", {
+                                                        timeZone: "UTC",
+                                                        year: "numeric",
+                                                        month: "numeric",
+                                                        day: "numeric",
+                                                    })}
+                                                </TableCell>
+                                                <TableCell align="left" padding="none" size={"small"}>
+                                                    {load.TicketNumber}
+                                                </TableCell>
+                                                <TableCell align="left" padding="none" size={"small"}>
+                                                    <TableEntityLink href={`/loads/${load.ID}`}>Open</TableEntityLink>
+                                                </TableCell>
+                                                <TableCell align="left" padding="none" size={"small"}>
+                                                    {load.Notes ? load.Notes : "N/A"}
+                                                </TableCell>
+                                            </TableRow>
+                                        ),
                                     )}
                                 </TableBody>
                             </Table>
@@ -408,16 +441,17 @@ function Row(props: {
 }
 
 export default function PayStubJobs({
-                                         readOnly,
-                                         rows,
-                                         updateTotal,
-                                         updateSelected,
-                                        initialSelected = null,
+    readOnly,
+    rows,
+    updateTotal,
+    updateSelected,
+    initialSelected = null,
     shouldClick = false,
     setShouldClick = null,
     parentSelected = [],
     parentTotal = 0,
-                                     }: {
+    selectionClearNonce = 0,
+}: {
     readOnly: boolean;
     rows: any[];
     updateTotal: any;
@@ -427,67 +461,14 @@ export default function PayStubJobs({
     setShouldClick?: any;
     parentSelected?: string[];
     parentTotal?: number;
+    selectionClearNonce?: number;
 }) {
     const [order, setOrder] = React.useState<Order>("asc");
     const [orderBy, setOrderBy] = React.useState<keyof Data>("DeliveryLocations");
     const [selected, setSelected] = React.useState<any>([]);
     const [total, setTotal] = React.useState<number>(0);
 
-
-    React.useEffect(() => {
-        if (!!initialSelected && selected.length === 0 && shouldClick) {
-            setShouldClick(false)
-            handleClick(initialSelected.ID.toString(), (Math.round((calculateRevenue(initialSelected) + Number.EPSILON) * 100) / 100))
-        } else if (!initialSelected) {
-            setSelected([]);
-            setTotal(0);
-        }
-    }, [rows]);
-
-    React.useEffect(() => {
-        if (parentSelected !== selected) {
-            setSelected(parentSelected)
-        }
-    }, [parentSelected])
-
-    React.useEffect(() => {
-        if (parentTotal !== total) {
-            setTotal(parentTotal)
-        }
-    }, [parentTotal])
-
-    const handleRequestSort = (
-        event: React.MouseEvent<unknown>,
-        property: keyof Data
-    ) => {
-        const isAsc = orderBy === property && order === "asc";
-        setOrder(isAsc ? "desc" : "asc");
-        setOrderBy(property);
-    };
-
-    const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.checked) {
-            let newTotal = 0;
-            const newSelected = rows.map((n) => {
-                newTotal += (Math.round((calculateRevenue(n) + Number.EPSILON) * 100) / 100);
-                return n.ID.toString();
-            });
-            setSelected(newSelected);
-            setTotal(Math.round((newTotal + Number.EPSILON) * 100) / 100);
-            updateTotal(Math.round((newTotal + Number.EPSILON) * 100) / 100);
-            updateSelected(newSelected);
-            return;
-        }
-        setSelected([]);
-        setTotal(0);
-        updateTotal(0);
-        updateSelected([]);
-    };
-
-    const handleClick = (
-        ID: string,
-        TotalAmount: number
-    ) => {
+    const handleRowClick = (ID: string, TotalAmount: number) => {
         const selectedIndex = selected.indexOf(ID);
         let newSelected: string[] = [];
         let newTotal = total;
@@ -504,7 +485,7 @@ export default function PayStubJobs({
         } else if (selectedIndex > 0) {
             newSelected = newSelected.concat(
                 selected.slice(0, selectedIndex),
-                selected.slice(selectedIndex + 1)
+                selected.slice(selectedIndex + 1),
             );
             newTotal = total - TotalAmount;
         }
@@ -514,20 +495,72 @@ export default function PayStubJobs({
         updateSelected(newSelected);
     };
 
+    React.useEffect(() => {
+        if (readOnly) return;
+        setSelected([]);
+        setTotal(0);
+        updateTotal(0);
+        updateSelected([]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [rows, selectionClearNonce, readOnly]);
+
+    React.useEffect(() => {
+        if (readOnly) return;
+        if (!!initialSelected && selected.length === 0 && shouldClick) {
+            setShouldClick?.(false);
+            handleRowClick(
+                initialSelected.ID.toString(),
+                Math.round((calculateRevenue(initialSelected) + Number.EPSILON) * 100) / 100,
+            );
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [rows, initialSelected, shouldClick]);
+
+    React.useEffect(() => {
+        if (parentSelected !== selected) {
+            setSelected(parentSelected);
+        }
+    }, [parentSelected]);
+
+    React.useEffect(() => {
+        if (parentTotal !== total) {
+            setTotal(parentTotal);
+        }
+    }, [parentTotal]);
+
+    const handleRequestSort = (event: React.MouseEvent<unknown>, property: keyof Data) => {
+        const isAsc = orderBy === property && order === "asc";
+        setOrder(isAsc ? "desc" : "asc");
+        setOrderBy(property);
+    };
+
+    const handleSelectAllClick = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.checked) {
+            let newTotal = 0;
+            const newSelected = rows.map((n) => {
+                newTotal += Math.round((calculateRevenue(n) + Number.EPSILON) * 100) / 100;
+                return n.ID.toString();
+            });
+            setSelected(newSelected);
+            setTotal(Math.round((newTotal + Number.EPSILON) * 100) / 100);
+            updateTotal(Math.round((newTotal + Number.EPSILON) * 100) / 100);
+            updateSelected(newSelected);
+            return;
+        }
+        setSelected([]);
+        setTotal(0);
+        updateTotal(0);
+        updateSelected([]);
+    };
+
     const isSelected = (ID: string) => selected.indexOf(ID) !== -1;
 
     return (
         <Box sx={{ width: "100%" }}>
             <Paper sx={{ width: "100%", mb: 2 }}>
-                {!readOnly &&  <EnhancedTableToolbar
-                    numSelected={selected.length}
-                    readOnly={readOnly}
-                />}
+                {!readOnly && <EnhancedTableToolbar numSelected={selected.length} readOnly={readOnly} />}
                 <TableContainer>
-                    <Table
-                        aria-labelledby="tableTitle"
-                        size={"small"}
-                    >
+                    <Table aria-labelledby="tableTitle" size={"small"}>
                         <EnhancedTableHead
                             numSelected={selected.length}
                             order={order}
@@ -538,7 +571,7 @@ export default function PayStubJobs({
                             readOnly={readOnly}
                         />
                         <TableBody>
-                            {rows.sort(getComparator(order, orderBy)).map((row, index) => {
+                            {[...rows].sort(getComparator(order, orderBy)).map((row, index) => {
                                 const isItemSelected = isSelected(row.ID.toString());
                                 const labelId = `enhanced-table-checkbox-${index}`;
 
@@ -549,7 +582,7 @@ export default function PayStubJobs({
                                         row={row}
                                         isItemSelected={isItemSelected}
                                         labelId={labelId}
-                                        handleClick={handleClick}
+                                        handleClick={handleRowClick}
                                     />
                                 );
                             })}

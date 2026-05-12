@@ -9,10 +9,6 @@ export const FormOptionsModel = z.object({
   OOVisible: z.boolean(),
   W2Required: z.boolean(),
   OORequired: z.boolean(),
-  /**
-   * When true, this form is only required for OO entities with more than one truck on file.
-   */
-  FleetWide: z.boolean(),
   ExpiryCadence: z.nativeEnum(FormExpiryCadence),
   IncludeInPdf: z.boolean(),
   PdfColumnLabel: z.string().nullish(),
@@ -21,6 +17,10 @@ export const FormOptionsModel = z.object({
    * For `ROLLING_MONTHS`: number of months the filing stays valid from `Created`.
    */
   ValidityMonths: z.number().int().nullish(),
+  /**
+   * When true, this form is only required for OO entities with more than one truck on file.
+   */
+  FleetWide: z.boolean(),
 })
 
 export interface CompleteFormOptions extends z.infer<typeof FormOptionsModel> {

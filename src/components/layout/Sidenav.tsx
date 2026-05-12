@@ -666,17 +666,17 @@ function Sidenav(props: any) {
                 {/*    </List>*/}
                 {/*</Collapse>*/}
 
-                <NextLink href="/sources" passHref>
-                    <ListItemButton
-                        selected={selectedIndex === 26}
-                        onClick={() => setSelectedIndex(26)}
-                    >
-                        <ListItemIcon>
-                            <HubIcon />
-                        </ListItemIcon>
-                        <ListItemText primary="Sources" />
-                    </ListItemButton>
-                </NextLink>
+                {/*<NextLink href="/sources" passHref>*/}
+                {/*    <ListItemButton*/}
+                {/*        selected={selectedIndex === 26}*/}
+                {/*        onClick={() => setSelectedIndex(26)}*/}
+                {/*    >*/}
+                {/*        <ListItemIcon>*/}
+                {/*            <HubIcon />*/}
+                {/*        </ListItemIcon>*/}
+                {/*        <ListItemText primary="Sources" />*/}
+                {/*    </ListItemButton>*/}
+                {/*</NextLink>*/}
 
                 <NextLink href="/trucks" passHref>
                     <ListItemButton

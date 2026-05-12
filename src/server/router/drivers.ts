@@ -41,6 +41,8 @@ export const driversRouter = createRouter()
             order: z.string().optional(),
             /** When set (e.g. Load form), marks drivers who have driven this truck — used for grouped autocomplete search. */
             TruckID: z.number().optional(),
+            /** When true (Load creation), exclude inactive drivers. */
+            onlyActive: z.boolean().optional(),
         }),
         async resolve({ctx, input}) {
             const formattedSearch = input.search.replace('"', '\"');
@@ -54,64 +56,73 @@ export const driversRouter = createRouter()
             // @ts-ignore
             orderObj[orderBy] = order;
 
+            const notDeleted = {OR: [{Deleted: false}, {Deleted: null}]};
+            const baseWhere =
+                input.onlyActive === true ? ({AND: [notDeleted, {Active: true}]} as any) : notDeleted;
+
             const drivers = input.search.length > 0
                 ? await ctx.prisma.drivers.findMany({
                     where: {
-                        OR: [
+                        AND: [
+                            baseWhere,
                             {
-                                FirstName: {
-                                    contains: formattedSearch,
-                                },
-                            },
-                            {
-                                MiddleName: {
-                                    contains: formattedSearch,
-                                },
-                            },
-                            {
-                                LastName: {
-                                    contains: formattedSearch,
-                                },
-                            },
-                            {
-                                Street: {
-                                    contains: formattedSearch,
-                                },
-                            },
-                            {
-                                City: {
-                                    contains: formattedSearch,
-                                },
-                            },
-                            {
-                                ZIP: {
-                                    contains: formattedSearch,
-                                },
-                            },
-                            {
-                                License: {
-                                    contains: formattedSearch,
-                                },
-                            },
-                            {
-                                Email: {
-                                    contains: formattedSearch,
-                                },
-                            },
-                            {
-                                Phone: {
-                                    contains: formattedSearch,
-                                },
-                            },
-                            {
-                                HireDate: {
-                                    contains: formattedSearch,
-                                },
-                            },
-                            {
-                                Notes: {
-                                    contains: formattedSearch,
-                                },
+                                OR: [
+                                    {
+                                        FirstName: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        MiddleName: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        LastName: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        Street: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        City: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        ZIP: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        License: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        Email: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        Phone: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        HireDate: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                    {
+                                        Notes: {
+                                            contains: formattedSearch,
+                                        },
+                                    },
+                                ],
                             },
                         ],
                     },
@@ -122,6 +133,7 @@ export const driversRouter = createRouter()
                     orderBy: orderObj,
                 })
                 : await ctx.prisma.drivers.findMany({
+                    where: baseWhere,
                     include: {
                         States: true,
                     },
@@ -154,7 +166,11 @@ export const driversRouter = createRouter()
         async resolve({ctx, input}) {
             // use your ORM of choice
             return ctx.prisma.drivers.create({
-                data: {...input, DOB: wireDateToUtcNoon(input.DOB)},
+                data: {
+                    ...input,
+                    DOB: wireDateToUtcNoon(input.DOB),
+                    LicenseExpiration: wireDateToUtcNoon(input.LicenseExpiration),
+                } as any,
             });
         },
     })
@@ -168,7 +184,11 @@ export const driversRouter = createRouter()
                 where: {
                     ID: ID
                 },
-                data: {...data, DOB: wireDateToUtcNoon(data.DOB)},
+                data: {
+                    ...data,
+                    DOB: wireDateToUtcNoon(data.DOB),
+                    LicenseExpiration: wireDateToUtcNoon(data.LicenseExpiration),
+                } as any,
             });
         },
     });

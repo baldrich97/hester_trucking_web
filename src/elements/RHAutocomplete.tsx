@@ -41,6 +41,8 @@ const RHAutocomplete = ({
     enableOptionGroups = true,
     newOptionLabel = "",
     onNewOptionClick,
+    /** When true, `drivers.search` / `trucks.search` only return active entities (Load form). */
+    onlyActive = false,
 }: {
     name: string;
     control: Control<any>;
@@ -64,6 +66,7 @@ const RHAutocomplete = ({
     enableOptionGroups?: boolean;
     newOptionLabel?: string;
     onNewOptionClick?: () => void;
+    onlyActive?: boolean;
 }) => {
     const NEW_OPTION_VALUE = "__create_new_option__";
 
@@ -99,6 +102,9 @@ const RHAutocomplete = ({
                 return item.Description.toString();
             }
             return "";
+        }
+        if (item?.Active === false) {
+            return returnable ? `${returnable} - INACTIVE` : "- INACTIVE";
         }
         return returnable;
     };
@@ -152,6 +158,7 @@ const RHAutocomplete = ({
             LoadTypeID: selectedLoadType || undefined,
             TruckID: selectedTruck || undefined,
             DriverID: selectedDriver || undefined,
+            onlyActive: onlyActive ? true : undefined,
         }),
         [
             debouncedSearch,
@@ -160,6 +167,7 @@ const RHAutocomplete = ({
             selectedLoadType,
             selectedTruck,
             selectedDriver,
+            onlyActive,
         ]
     );
 

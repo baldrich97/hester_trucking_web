@@ -2,6 +2,7 @@ import React from 'react';
 import {Page, Document, StyleSheet, Font, View} from '@react-pdf/renderer';
 import {DriversModel, JobsModel, PayStubsModel} from "../../../prisma/zod";
 import PayStubParts from "../../elements/PayStubParts"
+import {formatDriverDisplayName} from "../../utils/entityDisplay";
 import Html from 'react-pdf-html';
 import ReactDOMServer from 'react-dom/server';
 import {z} from "zod";
@@ -48,7 +49,7 @@ const PayStubPrintable = ({payStub}: { payStub: PayStubData}) => {
             <Page size='A4' style={styles.page}>
                 <PayStubParts.Title/>
                 <Html>{linebreakhtml}</Html>
-                <PayStubParts.Header driver={(Drivers.FirstName + " " + Drivers.LastName)}
+                <PayStubParts.Header driver={formatDriverDisplayName(Drivers)}
                                      invoiceDate={new Date(rest.DepositDate ?? rest.Created).toLocaleDateString('en-US', {timeZone: 'UTC'})}
                                      checkNumber={rest.CheckNumber ? rest.CheckNumber : 'N/A'}/>
                 <PayStubParts.Table jobs={Jobs} payStub={rest}/>

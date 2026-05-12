@@ -5,6 +5,7 @@ import Html from 'react-pdf-html';
 import ReactDOMServer from 'react-dom/server';
 import {z} from "zod";
 import {CompleteJobs, LoadsModel, DriversModel, DailiesModel} from "../../../prisma/zod";
+import {formatDriverDisplayName} from "../../utils/entityDisplay";
 
 type Driver = z.infer<typeof DriversModel>;
 
@@ -49,7 +50,7 @@ const DailySheetFull = ({sheet, week} : {sheet: DriverSheet, week: string}) => {
     return (
         <Document>
             <Page size='A4' style={styles.page} orientation={'landscape'}>
-                <DailyParts.Title driver={sheet.Drivers.FirstName + ' ' + sheet.Drivers.LastName} week={week}/>
+                <DailyParts.Title driver={formatDriverDisplayName(sheet.Drivers)} week={week}/>
                 <Html>{linebreakhtml}</Html>
                 <DailyParts.Table jobs={sheet.Jobs}/>
             </Page>

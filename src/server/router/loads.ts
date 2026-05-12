@@ -47,8 +47,8 @@ function buildLoadFilters(input: z.infer<typeof loadsListInput>) {
 
 const loadListInclude = {
     Customers: {select: {Name: true}},
-    Trucks: {select: {Name: true}},
-    Drivers: {select: {FirstName: true, LastName: true}},
+    Trucks: {select: {Name: true, Active: true}},
+    Drivers: {select: {FirstName: true, LastName: true, Active: true}},
     LoadTypes: {select: {Description: true}},
     DeliveryLocations: {select: {Description: true}},
 };
@@ -355,8 +355,8 @@ export const loadsRouter = createRouter()
             return ctx.prisma.loads.findMany({
                 include: {
                     Customers: {select: {Name: true}},
-                    Trucks: {select: {Name: true}},
-                    Drivers: {select: {FirstName: true, LastName: true}},
+                    Trucks: {select: {Name: true, Active: true}},
+                    Drivers: {select: {FirstName: true, LastName: true, Active: true}},
                     LoadTypes: {select: {Description: true}},
                     DeliveryLocations: {select: {Description: true}},
                 },
@@ -391,8 +391,8 @@ export const loadsRouter = createRouter()
             return ctx.prisma.loads.findMany({
                 include: {
                     Customers: {select: {Name: true}},
-                    Trucks: {select: {Name: true}},
-                    Drivers: {select: {FirstName: true, LastName: true}},
+                    Trucks: {select: {Name: true, Active: true}},
+                    Drivers: {select: {FirstName: true, LastName: true, Active: true}},
                     LoadTypes: {select: {Description: true}},
                     DeliveryLocations: {select: {Description: true}},
                 },
