@@ -14,6 +14,7 @@ import Tooltip from "@mui/material/Tooltip";
 import {z} from "zod";
 import {CompleteJobs, DailiesModel, DriversModel, LoadsModel} from "../../../prisma/zod";
 import {formatDateToWeek} from "../../utils/UtilityFunctions";
+import {useDebouncedWeek} from "../../hooks/useDebouncedWeek";
 import {useRouter} from "next/router";
 import {toast} from "react-toastify";
 import {
@@ -62,7 +63,9 @@ export default function Dailies() {
         setforceExpand(false);
     }, [router.isReady, router.query.defaultWeek, router.query.forceExpand]);
 
-    const {data: rawDailies, isLoading} = trpc.useQuery(["dailies.getByWeek", {week}], {
+    const {debouncedWeek, pending: weekDebouncePending} = useDebouncedWeek(week, 400);
+
+    const {data: rawDailies, isLoading, isFetching} = trpc.useQuery(["dailies.getByWeek", {week: debouncedWeek}], {
         // Override app-wide staleTime so each week navigation refetches (users edit these sheets often).
         staleTime: 0,
         onError(err) {
@@ -71,7 +74,7 @@ export default function Dailies() {
         },
     });
 
-    const data = React.useMemo(
+    const processedDailies = React.useMemo(
         () =>
             rawDailies
                 ? rawDailies
@@ -81,12 +84,15 @@ export default function Dailies() {
         [rawDailies],
     );
 
+    const visuallyLoading = weekDebouncePending || isLoading || isFetching;
+    const data = visuallyLoading ? [] : processedDailies;
+
 
 
     const [forceExpand, setforceExpand] = React.useState(true);
     return (
         <Box sx={{width: "100%"}}>
-            <LoadingModal isOpen={isLoading}/>
+            <LoadingModal isOpen={visuallyLoading}/>
             <Paper sx={{width: "100%", mb: 2}}>
                 <Grid2 container columnSpacing={1} rowSpacing={1} flexDirection={'row'} sx={{height: 50}}>
                     <Grid2 xs={"auto"}>
@@ -206,9 +212,9 @@ export default function Dailies() {
                     <hr style={{height: 1, width: "100%"}}/>
                 </Grid2>
 
-                {data.map((sheet, index) => (
+                {data.map((sheet) => (
                     <DailySheet
-                        key={'sheet-' + index}
+                        key={`${week}-${sheet.DriverID}`}
                         sheet={sheet as DriverSheet}
                         week={week}
                         forceExpand={forceExpand}

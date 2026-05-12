@@ -14,6 +14,7 @@ import Tooltip from "@mui/material/Tooltip";
 import {useRouter} from "next/router";
 import {toast} from "react-toastify";
 import {formatDateToWeek} from "../../utils/UtilityFunctions";
+import {useDebouncedWeek} from "../../hooks/useDebouncedWeek";
 import {
     calendarChevronNavSx,
     calendarNavButtonSx,
@@ -59,7 +60,9 @@ export default function Weeklies() {
         setforceExpand(false);
     }, [router.isReady, router.query.defaultWeek, router.query.forceExpand]);
 
-    const {data: rawWeeklies, isLoading, refetch} = trpc.useQuery(["weeklies.getByWeek", {week}], {
+    const {debouncedWeek, pending: weekDebouncePending} = useDebouncedWeek(week, 400);
+
+    const {data: rawWeeklies, isLoading, isFetching, refetch} = trpc.useQuery(["weeklies.getByWeek", {week: debouncedWeek}], {
         // Override app-wide staleTime so each week navigation refetches (users edit these sheets often).
         staleTime: 0,
         onError(err) {
@@ -68,7 +71,7 @@ export default function Weeklies() {
         },
     });
 
-    const data = React.useMemo(
+    const processedWeeklies = React.useMemo(
         () =>
             rawWeeklies
                 ? rawWeeklies
@@ -78,10 +81,13 @@ export default function Weeklies() {
         [rawWeeklies],
     );
 
+    const visuallyLoading = weekDebouncePending || isLoading || isFetching;
+    const data = visuallyLoading ? [] : processedWeeklies;
+
     const [forceExpand, setforceExpand] = React.useState(true);
     return (
         <Box sx={{width: "100%"}}>
-            <LoadingModal isOpen={isLoading}/>
+            <LoadingModal isOpen={visuallyLoading}/>
             <Paper sx={{width: "100%", mb: 2}}>
                 <Grid2 container columnSpacing={1} rowSpacing={1} flexDirection={'row'} sx={{height: 50}}>
                     <Grid2 xs={"auto"}>
@@ -201,10 +207,10 @@ export default function Weeklies() {
                     <hr style={{height: 1, width: "100%"}}/>
                 </Grid2>
 
-                {data.map((weekly, index) =>
+                {data.map((weekly) =>
                     weekly.Jobs.length > 0 ? (
                         <WeeklySheet
-                            key={'sheet-' + index}
+                            key={`${week}-${weekly.ID}`}
                             weekly={weekly as CustomerSheet}
                             week={week}
                             forceExpand={forceExpand}
