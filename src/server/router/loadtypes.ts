@@ -61,13 +61,11 @@ export const loadTypesRouter = createRouter()
                 associated.forEach((item) => sourceLinkedIDs.add(item.LoadTypeID));
             }
 
-            const {order, orderBy} = input;
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            const orderObj: Record<string, string> = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            orderObj[orderBy] = order;
+            const orderByField = input.orderBy ?? 'ID';
+            const orderDir = input.order ?? 'desc';
+            const orderObj = {[orderByField]: orderDir};
+
+            const notDeleted = {OR: [{Deleted: false}, {Deleted: null}]};
 
             // Pull all matching load types (including grouped ones; we'll re-sort below).
             let baseRows: LoadTypes[];
@@ -75,9 +73,14 @@ export const loadTypesRouter = createRouter()
                 const formattedSearch = input.search.replace('"', '\"');
                 baseRows = await ctx.prisma.loadTypes.findMany({
                     where: {
-                        OR: [
-                            {Notes: {contains: formattedSearch}},
-                            {Description: {contains: formattedSearch}},
+                        AND: [
+                            notDeleted,
+                            {
+                                OR: [
+                                    {Notes: {contains: formattedSearch}},
+                                    {Description: {contains: formattedSearch}},
+                                ],
+                            },
                         ],
                     },
                     take: 100,
@@ -85,6 +88,7 @@ export const loadTypesRouter = createRouter()
                 });
             } else {
                 baseRows = await ctx.prisma.loadTypes.findMany({
+                    where: notDeleted,
                     take: 100,
                     orderBy: orderObj,
                     skip: input.page ? input.page * 10 : 0,
@@ -193,13 +197,10 @@ export const loadTypesRouter = createRouter()
             order: z.string().optional(),
         }),
         async resolve({ctx, input}) {
-            const {order, orderBy, page} = input;
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            orderObj[orderBy] = order;
+            const {page} = input;
+            const orderByField = input.orderBy ?? 'ID';
+            const orderDir = input.order ?? 'desc';
+            const orderObj = {[orderByField]: orderDir};
 
             const where = {
                 OR: [{Deleted: false}, {Deleted: null}],

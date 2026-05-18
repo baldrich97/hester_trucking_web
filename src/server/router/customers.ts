@@ -43,19 +43,18 @@ export const customersRouter = createRouter()
         async resolve({ctx, input}) {
             const formattedSearch = input.search.replace('"', '\"');
 
-            const {order, orderBy} = input;
+            const orderByField = input.orderBy ?? 'ID';
+            const orderDir = input.order ?? 'desc';
+            const orderObj = {[orderByField]: orderDir};
 
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            orderObj[orderBy] = order;
+            const notDeleted = {OR: [{Deleted: false}, {Deleted: null}]};
 
             if (input.search.length > 0) {
                 return ctx.prisma.customers.findMany({
                     where: {
-                        OR: [
+                        AND: [
+                            notDeleted,
+                            {OR: [
                             {
                                 Name: {
                                     contains: formattedSearch
@@ -96,7 +95,8 @@ export const customersRouter = createRouter()
                                     contains: formattedSearch
                                 }
                             }
-                        ]
+                        ]},
+                        ],
                     },
                     orderBy: orderObj,
                     include: {
@@ -106,6 +106,7 @@ export const customersRouter = createRouter()
                 })
             } else {
                 return ctx.prisma.customers.findMany({
+                    where: notDeleted,
                     orderBy: orderObj,
                     include: {
                         States: true

@@ -1,4 +1,4 @@
-import React, {useRef, useState} from "react";
+import React, {useEffect, useRef, useState} from "react";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import Typography from "@mui/material/Typography";
@@ -340,13 +340,21 @@ function Load({
 
     const [tdtrpcData, tdsetData] = useState<CompleteTrucksDriven[]>([]);
 
-    const [ltshouldRefresh, ltsetShouldRefresh] = useState(false);
+    const [ltshouldRefresh, ltsetShouldRefresh] = useState(
+        () => Boolean(initialLoad?.CustomerID),
+    );
 
-    const [dlshouldRefresh, dlsetShouldRefresh] = useState(false);
+    const [dlshouldRefresh, dlsetShouldRefresh] = useState(
+        () => Boolean(initialLoad?.CustomerID),
+    );
 
-    const [srcshouldRefresh, srcsetShouldRefresh] = useState(false);
+    const [srcshouldRefresh, srcsetShouldRefresh] = useState(
+        () => Boolean(initialLoad?.LoadTypeID),
+    );
 
-    const [tdshouldRefresh, tdsetShouldRefresh] = useState(false);
+    const [tdshouldRefresh, tdsetShouldRefresh] = useState(
+        () => Boolean(initialLoad?.TruckID || initialLoad?.DriverID),
+    );
 
     const deleteLoad = trpc.useMutation("loads.delete", {
         async onSuccess() {
@@ -361,7 +369,7 @@ function Load({
         await router.replace("/loads");
     };
 
-    trpc.useQuery(
+    const {data: ltQueryData} = trpc.useQuery(
         [
             "loadtypes.search",
             {
@@ -371,10 +379,6 @@ function Load({
         ],
         {
             enabled: ltshouldRefresh,
-            onSuccess(data) {
-                ltsetData(JSON.parse(JSON.stringify(data)));
-                ltsetShouldRefresh(false);
-            },
             onError(error) {
                 console.warn(error.message);
                 ltsetShouldRefresh(false);
@@ -382,7 +386,14 @@ function Load({
         },
     );
 
-    trpc.useQuery(
+    useEffect(() => {
+        if (ltQueryData) {
+            ltsetData(JSON.parse(JSON.stringify(ltQueryData)));
+            ltsetShouldRefresh(false);
+        }
+    }, [ltQueryData]);
+
+    const {data: srcQueryData} = trpc.useQuery(
         [
             "sources.search",
             {
@@ -391,10 +402,6 @@ function Load({
         ],
         {
             enabled: srcshouldRefresh,
-            onSuccess(data) {
-                srcsetData(JSON.parse(JSON.stringify(data)));
-                srcsetShouldRefresh(false);
-            },
             onError(error) {
                 console.warn(error.message);
                 srcsetShouldRefresh(false);
@@ -402,31 +409,48 @@ function Load({
         },
     );
 
-    trpc.useQuery(["deliverylocations.search", {CustomerID: customer}], {
-        enabled: dlshouldRefresh,
-        onSuccess(data) {
-            dlsetData(JSON.parse(JSON.stringify(data)));
-            dlsetShouldRefresh(false);
-            //forceUpdate;
-        },
-        onError(error) {
-            console.warn(error.message);
-            dlsetShouldRefresh(false);
-        },
-    });
+    useEffect(() => {
+        if (srcQueryData) {
+            srcsetData(JSON.parse(JSON.stringify(srcQueryData)));
+            srcsetShouldRefresh(false);
+        }
+    }, [srcQueryData]);
 
-    trpc.useQuery(["trucksdriven.search", {TruckID: truck, DriverID: driver}], {
-        enabled: tdshouldRefresh,
-        onSuccess(data) {
-            tdsetData(JSON.parse(JSON.stringify(data)));
-            tdsetShouldRefresh(false);
-            //forceUpdate;
+    const {data: dlQueryData} = trpc.useQuery(
+        ["deliverylocations.search", {CustomerID: customer || undefined}],
+        {
+            enabled: dlshouldRefresh,
+            onError(error) {
+                console.warn(error.message);
+                dlsetShouldRefresh(false);
+            },
         },
-        onError(error) {
-            console.warn(error.message);
-            tdsetShouldRefresh(false);
+    );
+
+    useEffect(() => {
+        if (dlQueryData) {
+            dlsetData(JSON.parse(JSON.stringify(dlQueryData)));
+            dlsetShouldRefresh(false);
+        }
+    }, [dlQueryData]);
+
+    const {data: tdQueryData} = trpc.useQuery(
+        ["trucksdriven.search", {TruckID: truck, DriverID: driver}],
+        {
+            enabled: tdshouldRefresh,
+            onError(error) {
+                console.warn(error.message);
+                tdsetShouldRefresh(false);
+            },
         },
-    });
+    );
+
+    useEffect(() => {
+        if (tdQueryData) {
+            tdsetData(JSON.parse(JSON.stringify(tdQueryData)));
+            tdsetShouldRefresh(false);
+        }
+    }, [tdQueryData]);
 
     React.useEffect(() => {
         const subscription = watch((value, {name, type}) => {
@@ -477,15 +501,19 @@ function Load({
             }
             if (name === "CustomerID" && type === "change") {
                 setCustomer(value.CustomerID ?? 0);
+                dlsetData([]);
                 dlsetShouldRefresh(true);
+                ltsetData([]);
                 ltsetShouldRefresh(true);
             }
             if (name === "SourceID" && type === "change") {
                 setSource(value.SourceID ?? 0);
+                ltsetData([]);
                 ltsetShouldRefresh(true);
             }
             if (name === "LoadTypeID" && type === "change") {
                 setLoadTypeSelected(value.LoadTypeID ?? 0);
+                srcsetData([]);
                 if (!value.SourceID) {
                     srcsetShouldRefresh(true);
                 }
@@ -501,6 +529,7 @@ function Load({
                     //setTruck(0)
                 }
                 if (value.TruckID || value.DriverID) {
+                    tdsetData([]);
                     tdsetShouldRefresh(true);
                 } else {
                     tdsetData([]);

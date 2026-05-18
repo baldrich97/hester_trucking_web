@@ -51,19 +51,22 @@ const Customers = ({states, customers, count}: {states: StatesType[], customers:
         }
     }, [search])
 
-    trpc.useQuery(['customers.searchPage', {search, page, orderBy, order}], {
+    const {data: queryData} = trpc.useQuery(['customers.searchPage', {search, page, orderBy, order}], {
         enabled: shouldSearch,
         refetchOnWindowFocus: false,
-        onSuccess(data) {
-            setData(data.rows);
-            setCount(data.count);
-            setShouldSearch(false);
-        },
         onError(error) {
             console.warn(error.message)
             setShouldSearch(false)
         }
     })
+
+    useEffect(() => {
+        if (queryData) {
+            setData(queryData.rows);
+            setCount(queryData.count);
+            setShouldSearch(false);
+        }
+    }, [queryData]);
 
     return (
         <Grid2 container wrap={'nowrap'}>
@@ -71,7 +74,7 @@ const Customers = ({states, customers, count}: {states: StatesType[], customers:
                 <Grid2 xs={4}>
                     <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Customers'}/>
                 </Grid2>
-                <GenericTable data={trpcData.length > 0 || (order !== 'desc' || orderBy !== 'ID') ? trpcData : customers} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
+                <GenericTable data={trpcData.length > 0 || (order !== 'desc' || orderBy !== 'ID') ? trpcData : customers} columns={columns} overrides={overrides} count={search ? trpcCount : count} page={page} refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
                     setPage(page);
                     setOrderBy(orderBy);
                     setOrder(order);

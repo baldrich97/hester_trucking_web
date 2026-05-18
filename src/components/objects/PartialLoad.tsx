@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import Box from "@mui/material/Box";
 import {useForm} from "react-hook-form";
 import {z} from "zod";
@@ -201,50 +201,71 @@ function PartialLoad({
 
     const [tdtrpcData, tdsetData] = useState<CompleteTrucksDriven[]>([]);
 
-    const [ltshouldRefresh, ltsetShouldRefresh] = useState(false);
+    const [ltshouldRefresh, ltsetShouldRefresh] = useState(
+        () => Boolean(initialLoad?.CustomerID),
+    );
 
-    const [dlshouldRefresh, dlsetShouldRefresh] = useState(false);
+    const [dlshouldRefresh, dlsetShouldRefresh] = useState(
+        () => Boolean(initialLoad?.CustomerID),
+    );
 
-    const [tdshouldRefresh, tdsetShouldRefresh] = useState(false);
+    const [tdshouldRefresh, tdsetShouldRefresh] = useState(
+        () => Boolean(initialLoad?.TruckID || initialLoad?.DriverID),
+    );
 
-    trpc.useQuery(["loadtypes.search", {CustomerID: customer}], {
-        enabled: ltshouldRefresh,
-        onSuccess(data) {
-            ltsetData(JSON.parse(JSON.stringify(data)));
+    const {data: ltQueryData} = trpc.useQuery(
+        ["loadtypes.search", {CustomerID: customer || undefined}],
+        {
+            enabled: ltshouldRefresh,
+            onError(error) {
+                console.warn(error.message);
+                ltsetShouldRefresh(false);
+            },
+        },
+    );
+
+    useEffect(() => {
+        if (ltQueryData) {
+            ltsetData(JSON.parse(JSON.stringify(ltQueryData)));
             ltsetShouldRefresh(false);
-            //forceUpdate;
-        },
-        onError(error) {
-            console.warn(error.message);
-            ltsetShouldRefresh(false);
-        },
-    });
+        }
+    }, [ltQueryData]);
 
-    trpc.useQuery(["deliverylocations.search", {CustomerID: customer}], {
-        enabled: dlshouldRefresh,
-        onSuccess(data) {
-            dlsetData(JSON.parse(JSON.stringify(data)));
-            dlsetShouldRefresh(false);
-            //forceUpdate;
+    const {data: dlQueryData} = trpc.useQuery(
+        ["deliverylocations.search", {CustomerID: customer || undefined}],
+        {
+            enabled: dlshouldRefresh,
+            onError(error) {
+                console.warn(error.message);
+                dlsetShouldRefresh(false);
+            },
         },
-        onError(error) {
-            console.warn(error.message);
-            dlsetShouldRefresh(false);
-        },
-    });
+    );
 
-    trpc.useQuery(["trucksdriven.search", {TruckID: truck, DriverID: driver}], {
-        enabled: tdshouldRefresh,
-        onSuccess(data) {
-            tdsetData(JSON.parse(JSON.stringify(data)));
-            tdsetShouldRefresh(false);
-            //forceUpdate;
+    useEffect(() => {
+        if (dlQueryData) {
+            dlsetData(JSON.parse(JSON.stringify(dlQueryData)));
+            dlsetShouldRefresh(false);
+        }
+    }, [dlQueryData]);
+
+    const {data: tdQueryData} = trpc.useQuery(
+        ["trucksdriven.search", {TruckID: truck, DriverID: driver}],
+        {
+            enabled: tdshouldRefresh,
+            onError(error) {
+                console.warn(error.message);
+                tdsetShouldRefresh(false);
+            },
         },
-        onError(error) {
-            console.warn(error.message);
+    );
+
+    useEffect(() => {
+        if (tdQueryData) {
+            tdsetData(JSON.parse(JSON.stringify(tdQueryData)));
             tdsetShouldRefresh(false);
-        },
-    });
+        }
+    }, [tdQueryData]);
 
     React.useEffect(() => {
         const subscription = watch((value, {name, type}) => {
@@ -277,7 +298,9 @@ function PartialLoad({
             }
             if (name === "CustomerID" && type === "change") {
                 setCustomer(value.CustomerID ?? 0);
+                dlsetData([]);
                 dlsetShouldRefresh(true);
+                ltsetData([]);
                 ltsetShouldRefresh(true);
             }
             if (name === "LoadTypeID" && type === "change") {
@@ -294,6 +317,7 @@ function PartialLoad({
                     //setTruck(0)
                 }
                 if (value.TruckID || value.DriverID) {
+                    tdsetData([]);
                     tdsetShouldRefresh(true);
                 } else {
                     tdsetData([]);

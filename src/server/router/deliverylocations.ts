@@ -59,14 +59,11 @@ export const deliveryLocationsRouter = createRouter()
             }
             const formattedSearch = input.search ? input.search.replace('"', '\"') : '';
 
-            const {order, orderBy} = input;
+            const orderByField = input.orderBy ?? 'ID';
+            const orderDir = input.order ?? 'desc';
+            const orderObj = {[orderByField]: orderDir};
 
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            orderObj[orderBy] = order;
+            const notDeleted = {OR: [{Deleted: false}, {Deleted: null}]};
 
             const extraCondition = extra.length > 0 ? {
                 NOT: {
@@ -79,10 +76,15 @@ export const deliveryLocationsRouter = createRouter()
             if (input.search && input.search.length > 0) {
                 data = await ctx.prisma.deliveryLocations.findMany({
                     where: {
-                        Description: {
-                            contains: formattedSearch
-                        },
-                        ...extraCondition
+                        AND: [
+                            notDeleted,
+                            {
+                                Description: {
+                                    contains: formattedSearch
+                                },
+                            },
+                            extraCondition,
+                        ],
                     },
                     take: 50,
                     orderBy: orderObj,
@@ -92,7 +94,7 @@ export const deliveryLocationsRouter = createRouter()
                     take: 50,
                     orderBy: orderObj,
                     where: {
-                        ...extraCondition
+                        AND: [notDeleted, extraCondition],
                     },
                     skip: input.page ? input.page * 10 : 0
                 })

@@ -180,7 +180,7 @@ const RHAutocomplete = ({
             !clientProvidedOptions &&
             !disabled,
         keepPreviousData: true,
-        staleTime: 30_000,
+        staleTime: 0,
     });
 
     const canUseGet =
@@ -331,7 +331,12 @@ const RHAutocomplete = ({
                         open={menuOpen}
                         fullWidth={true}
                         disabled={disabled}
-                        onOpen={() => setMenuOpen(true)}
+                        onOpen={() => {
+                            setMenuOpen(true);
+                            if (!clientProvidedOptions && Boolean(searchQuery)) {
+                                void searchQueryResult.refetch();
+                            }
+                        }}
                         onClose={() => setMenuOpen(false)}
                         isOptionEqualToValue={(option, v) => {
                             return (

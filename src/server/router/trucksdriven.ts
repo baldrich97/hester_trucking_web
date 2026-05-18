@@ -56,21 +56,21 @@ export const trucksDrivenRouter = createRouter().query("search", {
         const extra = Array.from(extraByKey.values());
         const data: {Drivers?: Drivers; Trucks?: Trucks}[] = [];
 
+        const notDeleted = {OR: [{Deleted: false}, {Deleted: null}]};
+
         if (input.TruckID) {
             const _data = await ctx.prisma.drivers.findMany({
-                take: 10,
-                orderBy: {
-                    FirstName: "asc",
-                },
+                where: notDeleted,
+                take: 50,
+                orderBy: {ID: "desc"},
             });
             _data.forEach((item) => data.push({Drivers: item}));
         }
         if (input.DriverID) {
             const _data = await ctx.prisma.trucks.findMany({
-                take: 10,
-                orderBy: {
-                    Name: "asc",
-                },
+                where: notDeleted,
+                take: 50,
+                orderBy: {ID: "desc"},
             });
             _data.forEach((item) => data.push({Trucks: item}));
         }

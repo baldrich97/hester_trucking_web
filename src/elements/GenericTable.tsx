@@ -169,6 +169,7 @@ export default function GenericTable({
   overrides = [],
   count,
   refreshData,
+  page: controlledPage,
   setCustomer = null,
   selectedCustomer = null,
   filterBody = null,
@@ -182,6 +183,8 @@ export default function GenericTable({
   overrides: TableColumnOverridesType;
   count?: number;
   refreshData?: any;
+  /** When set, keeps pagination UI in sync with the parent query page. */
+  page?: number;
   setCustomer?: any;
   selectedCustomer?: any;
   filterBody?: any;
@@ -193,6 +196,12 @@ export default function GenericTable({
   //console.log(data, columns, overrides);
 
   const [page, setPage] = React.useState(0);
+
+  React.useEffect(() => {
+    if (typeof controlledPage === "number") {
+      setPage(controlledPage);
+    }
+  }, [controlledPage]);
   const [lastRefreshedAt, setLastRefreshedAt] = React.useState<Date | null>(null);
 
   const [opened, setOpened] = React.useState(false);

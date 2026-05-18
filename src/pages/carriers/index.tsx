@@ -53,19 +53,22 @@ const CarriersIndex = ({
         }
     }, [search]);
 
-    trpc.useQuery(["carriers.searchPage", {search, page, orderBy, order}], {
+    const {data: queryData} = trpc.useQuery(["carriers.searchPage", {search, page, orderBy, order}], {
         enabled: shouldSearch,
         refetchOnWindowFocus: false,
-        onSuccess(data) {
-            setData(data.rows as CarrierRowType[]);
-            setCount(data.count);
-            setShouldSearch(false);
-        },
         onError(error) {
             console.warn(error.message);
             setShouldSearch(false);
         },
     });
+
+    useEffect(() => {
+        if (queryData) {
+            setData(queryData.rows as CarrierRowType[]);
+            setCount(queryData.count);
+            setShouldSearch(false);
+        }
+    }, [queryData]);
 
     return (
         <Grid2 container wrap={"nowrap"}>
@@ -87,6 +90,7 @@ const CarriersIndex = ({
                     columns={columns}
                     overrides={overrides}
                     count={search ? trpcCount : count}
+                    page={page}
                     refreshData={(
                         pageArg: React.SetStateAction<number>,
                         orderByArg: string,

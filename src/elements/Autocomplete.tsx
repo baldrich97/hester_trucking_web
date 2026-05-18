@@ -99,7 +99,7 @@ const BasicAutocomplete = ({
     const searchQueryResult = trpc.useQuery([`${searchQuery}.search`, searchInput], {
         enabled: Boolean(searchQuery) && menuOpen && !clientProvidedOptions,
         keepPreviousData: true,
-        staleTime: 30_000,
+        staleTime: 0,
     });
 
     const canUseGet =
@@ -172,7 +172,12 @@ const BasicAutocomplete = ({
             id={label + "-autocomplete"}
             open={menuOpen}
             fullWidth={true}
-            onOpen={() => setMenuOpen(true)}
+            onOpen={() => {
+                setMenuOpen(true);
+                if (!clientProvidedOptions && Boolean(searchQuery)) {
+                    void searchQueryResult.refetch();
+                }
+            }}
             onClose={() => setMenuOpen(false)}
             isOptionEqualToValue={(option: {[x: string]: any}, v: {[x: string]: any}) => {
                 return option[optionValue] === v[optionValue];

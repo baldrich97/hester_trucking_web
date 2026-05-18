@@ -46,14 +46,9 @@ export const trucksRouter = createRouter()
         async resolve({ctx, input}) {
             const formattedSearch = input.search.replace('"', '\"');
 
-            const {order, orderBy} = input;
-
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            orderObj[orderBy] = order;
+            const orderByField = input.orderBy ?? 'ID';
+            const orderDir = input.order ?? 'desc';
+            const orderObj = {[orderByField]: orderDir};
 
             const notDeleted = {OR: [{Deleted: false}, {Deleted: null}]};
             const baseWhere =
@@ -85,12 +80,12 @@ export const trucksRouter = createRouter()
                             },
                         ],
                     },
-                    take: 10,
+                    take: 50,
                     orderBy: orderObj,
                 })
                 : await ctx.prisma.trucks.findMany({
                     where: baseWhere,
-                    take: 10,
+                    take: 50,
                     orderBy: orderObj,
                     skip: input.page ? input.page * 10 : 0,
                 });

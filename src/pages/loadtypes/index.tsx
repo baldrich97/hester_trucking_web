@@ -23,13 +23,9 @@ const overrides: TableColumnOverridesType = [
     {name: 'ID', type: 'button'}
 ]
 
-const DeliveryLocations = ({loadtypes, count}: {loadtypes: LoadTypesType[], count: number}) => {
+const LoadTypesIndex = ({loadtypes, count}: {loadtypes: LoadTypesType[], count: number}) => {
 
     const [search, setSearch] = useState('');
-
-    const [trpcData, setData] = useState<LoadTypesType[]>([]);
-
-    const [trpcCount, setCount] = useState(0);
 
     const [page, setPage] = useState(0);
 
@@ -38,20 +34,17 @@ const DeliveryLocations = ({loadtypes, count}: {loadtypes: LoadTypesType[], coun
 
     useEffect(() => {
         if (search.length === 0) {
-            setData([])
+            setPage(0);
         }
     }, [search])
 
-    trpc.useQuery(['loadtypes.searchPage', {search, page, orderBy, order}], {
-        refetchOnWindowFocus: false,
-        onSuccess(data) {
-            setData(data.rows);
-            setCount(data.count);
-        },
-        onError(error) {
-            console.warn(error.message)
-        }
-    })
+    const {data: queryData, refetch} = trpc.useQuery(
+        ['loadtypes.searchPage', {search, page, orderBy, order}],
+        {refetchOnWindowFocus: false},
+    );
+
+    const tableData = queryData?.rows ?? loadtypes;
+    const tableCount = queryData?.count ?? count;
 
     return (
         <Grid2 container wrap={'nowrap'}>
@@ -66,21 +59,31 @@ const DeliveryLocations = ({loadtypes, count}: {loadtypes: LoadTypesType[], coun
                         label={'Load Types'}
                     />
                 </Grid2>
-                <GenericTable data={trpcData.length || (order !== 'desc' || orderBy !== 'ID') ? trpcData : loadtypes} columns={columns} overrides={overrides} count={search ? trpcCount : count} refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
-                    setPage(page);
-                    setOrderBy(orderBy);
-                    setOrder(order);
-                }}/>
+                <GenericTable
+                    data={tableData}
+                    columns={columns}
+                    overrides={overrides}
+                    count={tableCount}
+                    page={page}
+                    refreshData={(newPage: React.SetStateAction<number>, newOrderBy: string, newOrder: 'asc'|'desc') => {
+                        setPage(newPage);
+                        setOrderBy(newOrderBy);
+                        setOrder(newOrder);
+                    }}
+                />
             </Grid2>
             <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
             <Grid2 xs={4}>
-                <LoadType/>
+                <LoadType onCreated={() => {
+                    setPage(0);
+                    void refetch();
+                }}/>
             </Grid2>
         </Grid2>
     )
 };
 
-export default DeliveryLocations;
+export default LoadTypesIndex;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
 
