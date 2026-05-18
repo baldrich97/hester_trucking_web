@@ -94,10 +94,18 @@ const BasicAutocomplete = ({
 
     const searchInput = useMemo(() => ({search: debouncedSearch}), [debouncedSearch]);
 
+    // Run live server search whenever the menu is open AND either no client options were
+    // provided OR the user has typed past the preloaded set. This lets typing reach rows
+    // outside the preloaded window.
+    const liveSearchEnabled =
+        Boolean(searchQuery) &&
+        menuOpen &&
+        (!clientProvidedOptions || debouncedSearch.length > 0);
+
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore dynamic procedure path
     const searchQueryResult = trpc.useQuery([`${searchQuery}.search`, searchInput], {
-        enabled: Boolean(searchQuery) && menuOpen && !clientProvidedOptions,
+        enabled: liveSearchEnabled,
         keepPreviousData: true,
         staleTime: 0,
     });
@@ -115,10 +123,30 @@ const BasicAutocomplete = ({
     const selectedRow = selectedRowQuery.data;
 
     useEffect(() => {
+        const liveRows = (searchQueryResult.data as any[] | undefined) ?? [];
+
         if (clientProvidedOptions) {
-            setOptions(data);
+            const merged = [...data];
+
+            // Merge live hits when the user is searching, so dropdowns aren't capped at
+            // the preloaded set.
+            if (debouncedSearch.length > 0 && liveRows.length > 0) {
+                for (const row of liveRows) {
+                    if (
+                        !merged.some(
+                            (o) =>
+                                (o as Record<string, unknown>)[optionValue] ===
+                                (row as Record<string, unknown>)[optionValue],
+                        )
+                    ) {
+                        merged.push(row);
+                    }
+                }
+            }
+
+            setOptions(merged);
             const match = parsedId
-                ? data.find((item) => item[optionValue] == parsedId)
+                ? merged.find((item) => item[optionValue] == parsedId)
                 : null;
             if (match) {
                 setValue(match);
@@ -144,6 +172,7 @@ const BasicAutocomplete = ({
     }, [
         clientProvidedOptions,
         data,
+        debouncedSearch,
         searchQueryResult.data,
         selectedRow,
         optionValue,
@@ -163,7 +192,7 @@ const BasicAutocomplete = ({
         }
     }, [clientProvidedOptions, parsedId, selectedRow]);
 
-    const loading = menuOpen && !clientProvidedOptions && searchQueryResult.isFetching;
+    const loading = menuOpen && liveSearchEnabled && searchQueryResult.isFetching;
 
     return (
         <Autocomplete
@@ -174,7 +203,10 @@ const BasicAutocomplete = ({
             fullWidth={true}
             onOpen={() => {
                 setMenuOpen(true);
-                if (!clientProvidedOptions && Boolean(searchQuery)) {
+                if (
+                    Boolean(searchQuery) &&
+                    (!clientProvidedOptions || debouncedSearch.length > 0)
+                ) {
                     void searchQueryResult.refetch();
                 }
             }}

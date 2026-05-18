@@ -171,14 +171,19 @@ const RHAutocomplete = ({
         ]
     );
 
+    // Run live server search when the menu is open, including alongside client-provided
+    // options whenever the user has typed something. The preloaded customer/source list
+    // is just a head-start — the live search lets us reach rows outside that window.
+    const liveSearchEnabled =
+        Boolean(searchQuery) &&
+        menuOpen &&
+        !disabled &&
+        (!clientProvidedOptions || debouncedSearch.length > 0);
+
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore dynamic procedure path
     const searchQueryResult = trpc.useQuery([`${searchQuery}.search`, searchInput], {
-        enabled:
-            Boolean(searchQuery) &&
-            menuOpen &&
-            !clientProvidedOptions &&
-            !disabled,
+        enabled: liveSearchEnabled,
         keepPreviousData: true,
         staleTime: 0,
     });
@@ -198,9 +203,27 @@ const RHAutocomplete = ({
     const selectedRow = selectedRowQuery.data;
 
     useEffect(() => {
+        const liveRows = (searchQueryResult.data as any[] | undefined) ?? [];
+
         if (clientProvidedOptions) {
-            // Merge `.get` row when the selected ID is not in client `data` yet (e.g. inline create).
             const mergedData = [...data];
+
+            // Merge live search hits so typing past the preloaded window still reaches the full table.
+            if (debouncedSearch.length > 0 && liveRows.length > 0) {
+                for (const row of liveRows) {
+                    if (
+                        !mergedData.some(
+                            (o) =>
+                                (o as Record<string, unknown>)[optionValue] ===
+                                (row as Record<string, unknown>)[optionValue],
+                        )
+                    ) {
+                        mergedData.push(row);
+                    }
+                }
+            }
+
+            // Merge `.get` row when the selected ID is not in client `data` yet (e.g. inline create).
             if (
                 parsedId &&
                 selectedRow &&
@@ -246,6 +269,7 @@ const RHAutocomplete = ({
     }, [
         clientProvidedOptions,
         data,
+        debouncedSearch,
         searchQueryResult.data,
         selectedRow,
         optionValue,
@@ -267,7 +291,7 @@ const RHAutocomplete = ({
         }
     }, [clientProvidedOptions, parsedId, selectedRow]);
 
-    const loading = menuOpen && !clientProvidedOptions && searchQueryResult.isFetching;
+    const loading = menuOpen && liveSearchEnabled && searchQueryResult.isFetching;
 
     function groupByFunction(option: {[x: string]: any}): string {
         // Keep "New …" in its own group without custom `renderGroup` (MUI default = full-row hit target + spacing).
@@ -333,7 +357,10 @@ const RHAutocomplete = ({
                         disabled={disabled}
                         onOpen={() => {
                             setMenuOpen(true);
-                            if (!clientProvidedOptions && Boolean(searchQuery)) {
+                            if (
+                                Boolean(searchQuery) &&
+                                (!clientProvidedOptions || debouncedSearch.length > 0)
+                            ) {
                                 void searchQueryResult.refetch();
                             }
                         }}
