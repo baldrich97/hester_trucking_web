@@ -85,6 +85,48 @@ export const paystubsRouter = createRouter()
 
         }
     })
+    .query("searchPage", {
+        input: z.object({
+            search: z.string().optional(),
+            page: z.number().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional(),
+        }),
+        async resolve({ctx, input}) {
+            const trimmed = (input.search ?? "").trim();
+            const formattedSearch = trimmed.replace('"', '\"');
+            const orderByField = input.orderBy ?? "ID";
+            const orderDir = (input.order ?? "desc") as "asc" | "desc";
+            const page = input.page ?? 0;
+            const where =
+                trimmed.length > 0
+                    ? {
+                          Drivers: {
+                              is: {
+                                  OR: [
+                                      {FirstName: {contains: formattedSearch}},
+                                      {LastName: {contains: formattedSearch}},
+                                  ],
+                              },
+                          },
+                      }
+                    : {};
+            const [rows, count] = await Promise.all([
+                ctx.prisma.payStubs.findMany({
+                    where,
+                    orderBy: {[orderByField]: orderDir},
+                    include: {
+                        Drivers: true,
+                        Jobs: true,
+                    },
+                    take: 10,
+                    skip: page * 10,
+                }),
+                ctx.prisma.payStubs.count({where}),
+            ]);
+            return {rows, count};
+        },
+    })
     .mutation('put', {
         // validate input with Zod
         input: PayStubsModel.omit({ID: true}).extend({selected: z.array(z.string())}),

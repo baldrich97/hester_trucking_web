@@ -90,6 +90,35 @@ export const invoicesRouter = createRouter()
             });
         },
     })
+    .query("getAllOverduePage", {
+        input: invoiceListInput,
+        async resolve({ctx, input}) {
+            const cutoffDate = new Date();
+            cutoffDate.setDate(cutoffDate.getDate() - 60);
+            const extra = buildInvoiceListFilters(input);
+            const {page, orderBy, order} = input;
+            const where = {
+                Paid: {not: true},
+                InvoiceDate: {lte: cutoffDate},
+                ...extra,
+            };
+            const orderObj = buildInvoiceOrder(orderBy, order);
+            const [rows, count] = await Promise.all([
+                ctx.prisma.invoices.findMany({
+                    where,
+                    include: {
+                        Customers: true,
+                        Loads: true,
+                    },
+                    take: 10,
+                    orderBy: orderObj,
+                    skip: page ? page * 10 : 0,
+                }),
+                ctx.prisma.invoices.count({where}),
+            ]);
+            return {rows, count};
+        },
+    })
     .query("getOverdueCount", {
         async resolve({ctx}) {
             const cutoffDate = new Date();

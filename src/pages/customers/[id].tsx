@@ -156,31 +156,13 @@ const Customer = ({
     setTabValue(newValue);
   };
 
-  const [trpcData, setData] = useState<InvoicesType[]>([]);
-
-  const [ltrpcData, lsetData] = useState<LoadTypes[]>([]);
-
-  const [shouldRefresh, setShouldRefresh] = useState(false);
-
-  const [lshouldRefresh, lsetShouldRefresh] = useState(false);
-
-  const [page, setPage] = useState(0);
-
-  const [lpage, lsetPage] = useState(0);
-
-  const [lttrpcData, ltsetData] = useState<CustomerLoadTypes[]>([]);
-
-  const [dltrpcData, dlsetData] = useState<CustomerDeliveryLocations[]>([]);
-
-  const [ltshouldRefresh, ltsetShouldRefresh] = useState(false);
-
-  const [dlshouldRefresh, dlsetShouldRefresh] = useState(false);
-
-  const [ltpage, ltsetPage] = useState(0);
-
-  const [dlpage, dlsetPage] = useState(0);
-
   const [open, setOpen] = useState(false);
+
+  const customerId = initialCustomer.ID;
+  const invoiceTableInput = { customer: customerId };
+  const loadTableInput = { customer: customerId };
+  const loadTypeTableInput = { CustomerID: customerId };
+  const deliveryLocationTableInput = { CustomerID: customerId };
 
   const [method, setMethod] = useState<
     "customerdeliverylocations.delete" | "customerloadtypes.delete"
@@ -192,73 +174,6 @@ const Customer = ({
     setOpen(false);
     setDeletedItem(null);
   };
-
-  trpc.useQuery(["invoices.getAllPage", { page, customer: initialCustomer.ID }], {
-    enabled: shouldRefresh,
-    refetchOnWindowFocus: false,
-    onSuccess(data) {
-      setData(JSON.parse(JSON.stringify(data.rows)));
-      setShouldRefresh(false);
-    },
-    onError(error) {
-      console.warn(error.message);
-      setShouldRefresh(false);
-    },
-  });
-
-  trpc.useQuery(
-    ["loads.getAllPage", { page: lpage, customer: initialCustomer.ID }],
-    {
-      enabled: lshouldRefresh,
-      refetchOnWindowFocus: false,
-      onSuccess(data) {
-        lsetData(JSON.parse(JSON.stringify(data.rows)));
-        lsetShouldRefresh(false);
-      },
-      onError(error) {
-        console.warn(error.message);
-        lsetShouldRefresh(false);
-      },
-    }
-  );
-
-  trpc.useQuery(
-    [
-      "customerloadtypes.getAll",
-      { page: ltpage, CustomerID: initialCustomer.ID },
-    ],
-    {
-      enabled: ltshouldRefresh || (ltcount !== 0 && ltrpcData.length === 0),
-      refetchOnWindowFocus: false,
-      onSuccess(data) {
-        ltsetData(JSON.parse(JSON.stringify(data)));
-        ltsetShouldRefresh(false);
-      },
-      onError(error) {
-        console.warn(error.message);
-        ltsetShouldRefresh(false);
-      },
-    }
-  );
-
-  trpc.useQuery(
-    [
-      "customerdeliverylocations.getAll",
-      { page: dlpage, CustomerID: initialCustomer.ID },
-    ],
-    {
-      enabled: dlshouldRefresh || (dlcount !== 0 && dltrpcData.length === 0),
-      refetchOnWindowFocus: false,
-      onSuccess(data) {
-        dlsetData(JSON.parse(JSON.stringify(data)));
-        dlsetShouldRefresh(false);
-      },
-      onError(error) {
-        console.warn(error.message);
-        dlsetShouldRefresh(false);
-      },
-    }
-  );
 
   const deleteRelated = trpc.useMutation([method], {
     async onSuccess() {
@@ -298,14 +213,16 @@ const Customer = ({
                 </Typography>
                 {/* </Box> */}
                 <GenericTable
-                  data={lttrpcData}
+                  trpcQuery="customerloadtypes.getAllPage"
+                  trpcInput={loadTypeTableInput}
+                  resultShape="paginated"
+                  initialRows={[]}
+                  initialCount={ltcount}
+                  fetchOnMount={ltcount > 0}
+                  defaultOrderBy="LoadTypeID"
+                  defaultOrder="asc"
                   columns={ltcolumns}
                   overrides={ltoverrides}
-                  count={ltcount}
-                  refreshData={(page: React.SetStateAction<number>) => {
-                    ltsetPage(page);
-                    ltsetShouldRefresh(true);
-                  }}
                 />
               </Grid2>
               <Grid2 xs={6} sx={{ paddingLeft: 1.25 }}>
@@ -313,14 +230,16 @@ const Customer = ({
                   Associated Delivery Locations
                 </Typography>
                 <GenericTable
-                  data={dltrpcData}
+                  trpcQuery="customerdeliverylocations.getAllPage"
+                  trpcInput={deliveryLocationTableInput}
+                  resultShape="paginated"
+                  initialRows={[]}
+                  initialCount={dlcount}
+                  fetchOnMount={dlcount > 0}
+                  defaultOrderBy="DeliveryLocationID"
+                  defaultOrder="asc"
                   columns={dlcolumns}
                   overrides={dloverrides}
-                  count={dlcount}
-                  refreshData={(page: React.SetStateAction<number>) => {
-                    dlsetPage(page);
-                    dlsetShouldRefresh(true);
-                  }}
                 />
               </Grid2>
             </Grid2>
@@ -328,26 +247,28 @@ const Customer = ({
         )}
         {tabValue === 1 && (
           <GenericTable
-            data={page === 0 ? invoices : trpcData}
+            trpcQuery="invoices.getAllPage"
+            trpcInput={invoiceTableInput}
+            resultShape="paginated"
+            initialRows={invoices as InvoicesType[]}
+            initialCount={icount}
+            defaultOrderBy="ID"
+            defaultOrder="desc"
             columns={columns}
             overrides={overrides}
-            count={icount}
-            refreshData={(page: React.SetStateAction<number>) => {
-              setPage(page);
-              setShouldRefresh(true);
-            }}
           />
         )}
         {tabValue === 2 && (
           <GenericTable
-            data={lpage === 0 ? loads : ltrpcData}
+            trpcQuery="loads.getAllPage"
+            trpcInput={loadTableInput}
+            resultShape="paginated"
+            initialRows={loads as Loads[]}
+            initialCount={lcount}
+            defaultOrderBy="ID"
+            defaultOrder="desc"
             columns={lcolumns}
             overrides={loverrides}
-            count={lcount}
-            refreshData={(page: React.SetStateAction<number>) => {
-              lsetPage(page);
-              lsetShouldRefresh(true);
-            }}
           />
         )}
         <Modal open={open} onClose={handleClose}>

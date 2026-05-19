@@ -22,6 +22,34 @@ export const customerLoadTypesRouter = createRouter()
             });
         },
     })
+    .query("getAllPage", {
+        input: z.object({
+            CustomerID: z.number(),
+            page: z.number().optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional(),
+        }),
+        async resolve({ctx, input}) {
+            const where = {CustomerID: input.CustomerID};
+            const orderByField = input.orderBy ?? "LoadTypeID";
+            const orderDir = (input.order ?? "asc") as "asc" | "desc";
+            const page = input.page ?? 0;
+            const [rows, count] = await Promise.all([
+                ctx.prisma.customerLoadTypes.findMany({
+                    where,
+                    include: {
+                        LoadTypes: {select: {Description: true, Notes: true}},
+                    },
+                    distinct: ["CustomerID", "LoadTypeID"],
+                    orderBy: {[orderByField]: orderDir},
+                    take: 10,
+                    skip: page * 10,
+                }),
+                ctx.prisma.customerLoadTypes.count({where}),
+            ]);
+            return {rows, count};
+        },
+    })
     .mutation('put', {
         // validate input with Zod
         input: CustomerLoadTypesModel.omit({ID: true}),

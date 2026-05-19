@@ -128,7 +128,7 @@ const Loads = ({
   );
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    filters.clear();
+    filters.resetQuiet();
     setTabValue(newValue);
   };
 
@@ -144,6 +144,7 @@ const Loads = ({
 
         {tabValue === 0 ? (
           <GenericTable
+            key="loads-all"
             tableRef={allTableRef}
             trpcQuery="loads.getAllPage"
             trpcInput={tableQueryInput}
@@ -167,6 +168,7 @@ const Loads = ({
 
         {tabValue === 1 ? (
           <GenericTable
+            key="loads-uninvoiced"
             tableRef={uninvTableRef}
             trpcQuery="loads.getUninvPage"
             trpcInput={tableQueryInput}
@@ -214,17 +216,23 @@ export const getServerSideProps: GetServerSideProps = async () => {
     DeliveryLocations: true,
   } as const;
 
+  const activeLoadWhere = {
+    OR: [{ Deleted: false }, { Deleted: null }],
+  };
+  const uninvWhere = { ...activeLoadWhere, Invoiced: null as null };
+
   const [count, uninvCount, loads, uninvLoads] = await Promise.all([
-    prisma.loads.count(),
-    prisma.loads.count({ where: { Invoiced: { not: true } } }),
+    prisma.loads.count({ where: activeLoadWhere }),
+    prisma.loads.count({ where: uninvWhere }),
     prisma.loads.findMany({
       include: loadInclude,
+      where: activeLoadWhere,
       take: 10,
       orderBy: { ID: "desc" },
     }),
     prisma.loads.findMany({
       include: loadInclude,
-      where: { Invoiced: { not: true } },
+      where: uninvWhere,
       take: 10,
       orderBy: { StartDate: "asc" },
     }),

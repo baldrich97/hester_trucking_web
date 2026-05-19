@@ -68,12 +68,19 @@ export function useTableFilters<T extends Record<string, unknown>>(empty: T) {
     const setBoth = useCallback((values: Partial<T>) => {
         setDraft((prev) => ({...prev, ...values}));
         setApplied((prev) => ({...prev, ...values}));
+        setRevision((r) => r + 1);
     }, []);
 
     const clear = useCallback(() => {
         setDraft(empty);
         setApplied(empty);
         setRevision((r) => r + 1);
+    }, [empty]);
+
+    /** Reset filters without bumping revision (e.g. switching tabs — new table mounts with SSR data). */
+    const resetQuiet = useCallback(() => {
+        setDraft(empty);
+        setApplied(empty);
     }, [empty]);
 
     const revertDraft = useCallback(() => {
@@ -92,5 +99,5 @@ export function useTableFilters<T extends Record<string, unknown>>(empty: T) {
         return false;
     }, [applied, empty]);
 
-    return {draft, applied, updateDraft, setBoth, apply, clear, revertDraft, isActive, revision};
+    return {draft, applied, updateDraft, setBoth, apply, clear, resetQuiet, revertDraft, isActive, revision};
 }

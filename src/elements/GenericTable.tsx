@@ -38,6 +38,11 @@ import { trpc } from "../utils/trpc";
 /** Rows per page — must match skip/take on the server (10). */
 const ROWS_PER_PAGE = 10;
 
+function clampPageIndex(page: number, totalCount: number): number {
+  const maxPage = Math.max(0, Math.ceil(Math.max(0, totalCount) / ROWS_PER_PAGE) - 1);
+  return Math.min(Math.max(0, page), maxPage);
+}
+
 /**
  * Filter-modal match mode (loads, invoices, overdue, …).
  * Values match the `matchMode` Zod enum on the server.
@@ -94,6 +99,8 @@ export type GenericTableProps = {
   onClearFilters?: () => void;
 
   tableRef?: React.Ref<GenericTableHandle>;
+  /** Notified when displayed rows change (e.g. consolidate-invoice modal). */
+  onRowsChange?: (rows: any[]) => void;
 
   /** @deprecated Use `rows` — parent-managed data (legacy). Omit when using `trpcQuery`. */
   data?: any[];
@@ -392,12 +399,17 @@ function GenericTableInner({
   onApplyFilters,
   onClearFilters,
   tableRef,
+  onRowsChange,
 }: GenericTableProps) {
   const [page, setPage] = React.useState(0);
   const [orderBy, setOrderBy] = React.useState(defaultOrderBy);
   const [order, setOrder] = React.useState<"asc" | "desc">(defaultOrder);
   const [useRemote, setUseRemote] = React.useState(fetchOnMount || remoteActive);
   const [showFilterModal, setShowFilterModal] = React.useState(false);
+
+  /** Last rows we showed — prevents empty flash / layout jump while the next page loads. */
+  const staleRowsRef = React.useRef<any[]>(initialRows.length > 0 ? initialRows : []);
+  const staleCountRef = React.useRef(initialCount);
 
   const isDefaultSort = orderBy === defaultOrderBy && order === defaultOrder;
   const isFirstPage = page === 0;
@@ -417,7 +429,7 @@ function GenericTableInner({
     [trpcInput, page, orderBy, order],
   );
 
-  const { data, isFetching, refetch } = trpc.useQuery(
+  const { data, isFetching, isPreviousData, refetch } = trpc.useQuery(
     [trpcQuery!, queryInput] as any,
     {
       enabled: shouldFetch,
@@ -442,13 +454,13 @@ function GenericTableInner({
     },
   }));
 
-  // Parent applied/cleared filters — go back to page 0 and load from server.
+  // Parent applied/cleared filters — go back to page 0; fetch only when filters are active.
   React.useEffect(() => {
     if (filterRevision > 0) {
       setPage(0);
-      setUseRemote(true);
+      setUseRemote(remoteActive || searchSet || fetchOnMount);
     }
-  }, [filterRevision]);
+  }, [filterRevision, remoteActive, searchSet, fetchOnMount]);
 
   // Search or filter state turned off — return to SSR bootstrap when possible.
   React.useEffect(() => {
@@ -471,6 +483,18 @@ function GenericTableInner({
     prevRemoteActive.current = remoteActive;
   }, [remoteActive]);
 
+  // Different tab/table endpoints share one component type — reset bootstrap cache.
+  React.useEffect(() => {
+    staleRowsRef.current = initialRows.length > 0 ? initialRows : [];
+    staleCountRef.current = initialCount;
+    setPage(0);
+    setOrderBy(defaultOrderBy);
+    setOrder(defaultOrder);
+    if (!fetchOnMount && !remoteActive) {
+      setUseRemote(false);
+    }
+  }, [trpcQuery]);
+
   const remoteRows = React.useMemo(() => {
     if (!data) return [];
     if (resultShape === "array") {
@@ -490,20 +514,53 @@ function GenericTableInner({
     return initialCount;
   }, [trpcCountQuery, countFromExtraQuery, resultShape, data, initialCount]);
 
-  const displayRows = showInitialData
-    ? (initialRows ?? staticRows ?? [])
-    : trpcQuery
-      ? remoteRows
-      : (staticRows ?? []);
+  /** True when `data` is the live response for the current query (not cross-query placeholder). */
+  const hasFreshRemoteData = shouldFetch && data != null && !isPreviousData;
+
+  if (showInitialData && initialRows.length > 0) {
+    staleRowsRef.current = initialRows;
+    staleCountRef.current = initialCount;
+  } else if (hasFreshRemoteData && remoteRows.length > 0) {
+    staleRowsRef.current = remoteRows;
+    staleCountRef.current = remoteCount;
+  }
+
+  const displayRows =
+    staticRows != null
+      ? staticRows
+      : showInitialData
+        ? (initialRows ?? [])
+        : hasFreshRemoteData && remoteRows.length > 0
+          ? remoteRows
+          : staleRowsRef.current;
 
   const displayCount = showInitialData
     ? (initialCount ?? staticRowCount ?? displayRows.length)
-    : trpcQuery
+    : hasFreshRemoteData
       ? remoteCount
-      : (staticRowCount ?? displayRows.length);
+      : staleCountRef.current || initialCount;
+
+  const isLoadingPage = shouldFetch && isFetching;
+  const showEmptyState = displayRows.length === 0 && !isLoadingPage;
+
+  React.useEffect(() => {
+    onRowsChange?.(displayRows);
+  }, [displayRows, onRowsChange]);
+
+  /** Keeps table height stable while paginating (10 rows per page). */
+  const tableBodyMinHeight = ROWS_PER_PAGE * 48;
+
+  const safePage = clampPageIndex(page, displayCount);
+
+  React.useEffect(() => {
+    if (page !== safePage) {
+      setPage(safePage);
+    }
+  }, [page, safePage]);
 
   const goToPage = (newPage: number) => {
-    setPage(newPage);
+    const clamped = clampPageIndex(newPage, displayCount);
+    setPage(clamped);
     if (trpcQuery) {
       const backToBootstrap =
         newPage === 0 && isDefaultSort && !remoteActive && !searchSet;
@@ -630,8 +687,8 @@ function GenericTableInner({
           </TableRow>
         </TableHead>
 
-        <TableBody>
-          {displayRows.length === 0 && !isFetching ? (
+        <TableBody sx={{ minHeight: tableBodyMinHeight }}>
+          {showEmptyState ? (
             <StyledTableRow>
               <StyledTableCell colSpan={columns.length} align="center" sx={{ py: 5, borderBottom: "none" }}>
                 <Typography variant="body2" color="text.secondary">
@@ -641,7 +698,10 @@ function GenericTableInner({
             </StyledTableRow>
           ) : (
             displayRows.map((row, rowIndex) => (
-              <StyledTableRow key={`row-${rowIndex}`}>
+              <StyledTableRow
+                key={`row-${rowIndex}`}
+                sx={isLoadingPage ? { opacity: 0.55 } : undefined}
+              >
                 <TableRowCells
                   row={row}
                   rowIndex={rowIndex}
@@ -659,13 +719,14 @@ function GenericTableInner({
               rowsPerPageOptions={[]}
               count={displayCount}
               rowsPerPage={ROWS_PER_PAGE}
-              page={page}
+              page={safePage}
               onPageChange={handleChangePage}
               ActionsComponent={(subProps) => (
                 <TablePaginationActions
                   {...subProps}
+                  page={safePage}
                   onRefresh={trpcQuery ? () => { setUseRemote(true); void refetch(); } : undefined}
-                  isFetching={isFetching && shouldFetch}
+                  isFetching={isLoadingPage}
                 />
               )}
             />
@@ -765,6 +826,7 @@ function StaticGenericTable({
   const page = typeof controlledPage === "number" ? controlledPage : localPage;
   const displayRows = rows ?? data ?? [];
   const displayCount = rowCount ?? count ?? displayRows.length;
+  const safePage = clampPageIndex(page, displayCount);
 
   const notifyParent = (nextPage: number, nextOrderBy: string, nextOrder: "asc" | "desc") => {
     if (typeof refreshData === "function") {
@@ -772,14 +834,25 @@ function StaticGenericTable({
     }
   };
 
+  React.useEffect(() => {
+    if (page !== safePage) {
+      if (typeof controlledPage === "number") {
+        notifyParent(safePage, orderBy, order);
+      } else {
+        setLocalPage(safePage);
+      }
+    }
+  }, [page, safePage, displayCount, controlledPage, orderBy, order]);
+
   const handleChangePage = (
     _event: React.MouseEvent<HTMLButtonElement> | null,
     newPage: number,
   ) => {
+    const clamped = clampPageIndex(newPage, displayCount);
     if (typeof controlledPage !== "number") {
-      setLocalPage(newPage);
+      setLocalPage(clamped);
     }
-    notifyParent(newPage, orderBy, order);
+    notifyParent(clamped, orderBy, order);
   };
 
   const handleSort = (columnOrderBy: string) => {
@@ -850,12 +923,13 @@ function StaticGenericTable({
               rowsPerPageOptions={[]}
               count={displayCount}
               rowsPerPage={ROWS_PER_PAGE}
-              page={page}
+              page={safePage}
               onPageChange={handleChangePage}
               ActionsComponent={(subProps) => (
                 <TablePaginationActions
                   {...subProps}
-                  onRefresh={refreshData ? () => notifyParent(page, orderBy, order) : undefined}
+                  page={safePage}
+                  onRefresh={refreshData ? () => notifyParent(safePage, orderBy, order) : undefined}
                 />
               )}
             />

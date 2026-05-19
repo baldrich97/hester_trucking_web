@@ -1,108 +1,80 @@
-import React, {useEffect, useState} from 'react';
+import React, { useRef, useState } from "react";
 import Grid2 from "@mui/material/Unstable_Grid2";
 import DeliveryLocation from "../../components/objects/DeliveryLocation";
-import {GetServerSideProps} from "next";
-import { prisma } from 'server/db/client'
-import { DeliveryLocationsModel  } from '../../../prisma/zod';
-import {z} from "zod";
-import GenericTable from '../../elements/GenericTable';
-import SearchBar from '../../elements/SearchBar';
-import Divider from '@mui/material/Divider'
-import {TableColumnsType, TableColumnOverridesType} from "../../utils/types";
-import {trpc} from "../../utils/trpc";
+import { GetServerSideProps } from "next";
+import { prisma } from "server/db/client";
+import { DeliveryLocationsModel } from "../../../prisma/zod";
+import { z } from "zod";
+import GenericTable, { GenericTableHandle } from "../../elements/GenericTable";
+import SearchBar from "../../elements/SearchBar";
+import Divider from "@mui/material/Divider";
+import { TableColumnsType, TableColumnOverridesType } from "../../utils/types";
 
 type DeliveryLocationsType = z.infer<typeof DeliveryLocationsModel>;
 
 const columns: TableColumnsType = [
-    {name: 'Description'},
-    {name: 'ID', as: '', navigateTo: '/deliverylocations/'}
+  { name: "Description" },
+  { name: "ID", as: "", navigateTo: "/deliverylocations/" },
 ];
 
-const overrides: TableColumnOverridesType = [
-    {name: 'ID', type: 'button'}
-]
+const overrides: TableColumnOverridesType = [{ name: "ID", type: "button" }];
 
-const DeliveryLocations = ({deliverylocations, count}: {deliverylocations: DeliveryLocationsType[], count: number}) => {
+const DeliveryLocations = ({
+  deliverylocations,
+  count,
+}: {
+  deliverylocations: DeliveryLocationsType[];
+  count: number;
+}) => {
+  const [search, setSearch] = useState("");
+  const tableRef = useRef<GenericTableHandle>(null);
 
-    const [search, setSearch] = useState('');
-
-    const [trpcData, setData] = useState<DeliveryLocationsType[]>([]);
-
-    const [trpcCount, setCount] = useState(0);
-
-    const [shouldSearch, setShouldSearch] = useState(false);
-
-    const [page, setPage] = useState(0);
-
-    const [order, setOrder] = React.useState<'asc'|'desc'>('desc');
-    const [orderBy, setOrderBy] = React.useState('ID')
-
-    useEffect(() => {
-        if (search.length === 0) {
-            setData([])
-        }
-    }, [search])
-
-    const {data: queryData} = trpc.useQuery(['deliverylocations.searchPage', {search, page, orderBy, order}], {
-        enabled: shouldSearch,
-        refetchOnWindowFocus: false,
-        onError(error) {
-            console.warn(error.message)
-            setShouldSearch(false)
-        }
-    })
-
-    useEffect(() => {
-        if (queryData) {
-            setData(queryData.rows);
-            setCount(queryData.count);
-            setShouldSearch(false);
-        }
-    }, [queryData]);
-
-    return (
-        <Grid2 container wrap={'nowrap'}>
-            <Grid2 xs={8} sx={{paddingRight: 2.5}}>
-                <Grid2 xs={4}>
-                    <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Delivery Locations'}/>
-                </Grid2>
-                <GenericTable data={trpcData.length || (order !== 'desc' || orderBy !== 'ID') ? trpcData : deliverylocations} columns={columns} overrides={overrides} count={search ? trpcCount : count} page={page} refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
-                    setPage(page);
-                    setOrderBy(orderBy);
-                    setOrder(order);
-                    setShouldSearch(true);
-                }}/>
-            </Grid2>
-            <Divider flexItem={true} orientation={'vertical'} sx={{ mr: "-1px" }} variant={'fullWidth'}/>
-            <Grid2 xs={4}>
-                <DeliveryLocation/>
-            </Grid2>
+  return (
+    <Grid2 container wrap={"nowrap"}>
+      <Grid2 xs={8} sx={{ paddingRight: 2.5 }}>
+        <Grid2 xs={4}>
+          <SearchBar
+            setSearchQuery={setSearch}
+            setShouldSearch={() => undefined}
+            query={search}
+            label={"Delivery Locations"}
+          />
         </Grid2>
-    )
+        <GenericTable
+          tableRef={tableRef}
+          trpcQuery="deliverylocations.searchPage"
+          trpcInput={{ search }}
+          resultShape="paginated"
+          initialRows={deliverylocations}
+          initialCount={count}
+          defaultOrderBy="ID"
+          defaultOrder="desc"
+          remoteActive={search.length > 0}
+          columns={columns}
+          overrides={overrides}
+        />
+      </Grid2>
+      <Divider flexItem orientation={"vertical"} sx={{ mr: "-1px" }} variant={"fullWidth"} />
+      <Grid2 xs={4}>
+        <DeliveryLocation />
+      </Grid2>
+    </Grid2>
+  );
 };
 
 export default DeliveryLocations;
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
+export const getServerSideProps: GetServerSideProps = async () => {
+  const count = await prisma.deliveryLocations.count();
+  const deliverylocations = await prisma.deliveryLocations.findMany({
+    take: 10,
+    orderBy: { ID: "desc" },
+  });
 
-    
-
-    const count = await prisma.deliveryLocations.count();
-
-    const deliverylocations = await prisma.deliveryLocations.findMany({
-        take: 10,
-        orderBy: {
-            ID: 'desc'
-        }
-        /*include: {
-            States: true MAYBE PUT CUSTOMERS HERE AT SOME POINT
-        }*/
-    });
-
-    return {
-        props: {
-            deliverylocations: JSON.parse(JSON.stringify(deliverylocations)),
-            count
-        }
-    }
-}
+  return {
+    props: {
+      deliverylocations,
+      count,
+    },
+  };
+};

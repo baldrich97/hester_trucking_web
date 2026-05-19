@@ -1,11 +1,14 @@
-import React, {useState} from "react";
+import React, {useRef, useState} from "react";
 import Grid2 from "@mui/material/Unstable_Grid2";
 import Invoice from "../../components/objects/Invoice";
 import {GetServerSideProps} from "next";
 import {prisma} from "server/db/client";
 import {InvoicesModel} from "../../../prisma/zod";
 import {z} from "zod";
-import GenericTable, { TableFilterMatchMode } from "../../elements/GenericTable";
+import GenericTable, {
+  GenericTableHandle,
+  TableFilterMatchMode,
+} from "../../elements/GenericTable";
 import Divider from "@mui/material/Divider";
 import {TableColumnsType, TableColumnOverridesType} from "../../utils/types";
 import Tabs from "@mui/material/Tabs";
@@ -175,14 +178,11 @@ const Invoices = ({
     const draft = filters.draft;
     const applied = filters.applied;
 
-    const [unpaidData, setUnpaidData] = useState<InvoicesType[]>([]);
-    const [paidData, setPaidData] = useState<InvoicesType[]>([]);
-    const [consolidatedData, setConsolidatedData] = useState<InvoicesType[]>([]);
-    const [trpcData, setData] = useState<InvoicesType[]>([]);
-
-    const [shouldRefresh, setShouldRefresh] = useState(false);
-    const [consolidatedShouldRefresh, setConsolidatedShouldRefresh] =
-        useState(false);
+    const unpaidTableRef = useRef<GenericTableHandle>(null);
+    const paidTableRef = useRef<GenericTableHandle>(null);
+    const allTableRef = useRef<GenericTableHandle>(null);
+    const consolidatedTableRef = useRef<GenericTableHandle>(null);
+    const consolidateModalTableRef = useRef<GenericTableHandle>(null);
 
     const [consolidateCustomer, setConsolidateCustomer] = useState(0);
     const [consolidateableInvoices, setConsolidateableInvoices] = React.useState<
@@ -190,27 +190,36 @@ const Invoices = ({
     >([]);
 
     const [tabValue, setTabValue] = React.useState(0);
-    const [newCount, setNewCount] = useState(0);
-    const [page, setPage] = useState(0);
 
     const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-        setPage(0);
-        filters.clear();
-        setShouldRefresh(true);
+        filters.resetQuiet();
         setTabValue(newValue);
     };
 
-    const handleApply = () => {
-        filters.apply();
-        setPage(0);
-        setShouldRefresh(true);
+    const tableQueryInput = {
+        customer: applied.customer,
+        search: applied.search,
+        deliveryLocation: applied.deliveryLocation,
+        loadType: applied.loadType,
+        matchMode: applied.matchMode,
     };
 
-    const handleClear = () => {
-        filters.clear();
-        setPage(0);
-        setShouldRefresh(true);
+    const refreshActiveTab = () => {
+        unpaidTableRef.current?.refresh();
+        paidTableRef.current?.refresh();
+        allTableRef.current?.refresh();
+        consolidatedTableRef.current?.refresh();
     };
+
+    function handleInvoiceSelect(item: InvoicesType) {
+        setConsolidateableInvoices((prev) =>
+            prev.map((_item) =>
+                _item.ID === item.ID
+                    ? { ..._item, Consolidated: !_item.Consolidated }
+                    : _item,
+            ),
+        );
+    }
 
     const overridesConsolidatedSelect: TableColumnOverridesType = [
         {
@@ -223,130 +232,7 @@ const Invoices = ({
         {name: "InvoiceDate", type: "date"},
     ];
 
-    function handleInvoiceSelect(item: InvoicesType) {
-        const newConsolidated = consolidateableInvoices.map((_item) => {
-            if (_item.ID === item.ID) {
-                _item.Consolidated = !_item.Consolidated;
-            }
-            return _item;
-        });
-        setConsolidateableInvoices(newConsolidated);
-    }
-
-    const [order, setOrder] = React.useState<"asc" | "desc">("desc");
-    const [orderBy, setOrderBy] = React.useState("ID");
     const [modal, toggleModal] = React.useState(false);
-    const [, setNewKey] = React.useState(Math.random());
-
-    const queryInput = {
-        customer: applied.customer,
-        search: applied.search,
-        page,
-        orderBy,
-        order,
-        deliveryLocation: applied.deliveryLocation,
-        loadType: applied.loadType,
-        matchMode: applied.matchMode,
-    };
-
-    trpc.useQuery(
-        ["invoices.getAllUnpaidPage", queryInput],
-        {
-            enabled: shouldRefresh && tabValue === 0,
-            refetchOnWindowFocus: false,
-            onSuccess(data) {
-                setUnpaidData(JSON.parse(JSON.stringify(data.rows)));
-                setNewCount(data.count);
-                setNewKey(Math.random());
-                setShouldRefresh(false);
-            },
-            onError(error) {
-                console.warn(error.message);
-                setShouldRefresh(false);
-            },
-        }
-    );
-
-    trpc.useQuery(
-        ["invoices.getAllConsolidatedPage", queryInput],
-        {
-            enabled: shouldRefresh && tabValue === 3,
-            refetchOnWindowFocus: false,
-            onSuccess(data) {
-                setConsolidatedData(JSON.parse(JSON.stringify(data.rows)));
-                setNewCount(data.count);
-                setNewKey(Math.random());
-                setShouldRefresh(false);
-            },
-            onError(error) {
-                console.warn(error.message);
-                setShouldRefresh(false);
-            },
-        }
-    );
-
-    trpc.useQuery(
-        [
-            "invoices.getAllConsolidateable",
-            {
-                customer: consolidateCustomer,
-                page,
-                orderBy,
-                order,
-            },
-        ],
-        {
-            enabled: consolidatedShouldRefresh,
-            refetchOnWindowFocus: false,
-            onSuccess(data) {
-                setConsolidateableInvoices(JSON.parse(JSON.stringify(data)));
-                setNewKey(Math.random());
-                setConsolidatedShouldRefresh(false);
-            },
-            onError(error) {
-                console.warn(error.message);
-                setConsolidatedShouldRefresh(false);
-            },
-        }
-    );
-
-    trpc.useQuery(
-        ["invoices.getAllPaidPage", queryInput],
-        {
-            enabled: shouldRefresh && tabValue === 1,
-            refetchOnWindowFocus: false,
-            onSuccess(data) {
-                setPaidData(JSON.parse(JSON.stringify(data.rows)));
-                setNewCount(data.count);
-                setNewKey(Math.random());
-                setShouldRefresh(false);
-            },
-            onError(error) {
-                console.warn(error.message);
-                setShouldRefresh(false);
-            },
-        }
-    );
-
-    trpc.useQuery(
-        ["invoices.getAllPage", queryInput],
-        {
-            enabled: shouldRefresh && tabValue === 2,
-            refetchOnWindowFocus: false,
-            onSuccess(data) {
-                setData(JSON.parse(JSON.stringify(data.rows)));
-                setNewCount(data.count);
-                setNewKey(Math.random());
-                setShouldRefresh(false);
-            },
-            onError(error) {
-                console.warn(error.message);
-                setShouldRefresh(false);
-            },
-        }
-    );
-
-    const sortsApplied = order !== "desc" || orderBy !== "ID";
 
     // Inputs in the filter modal are bound to `filters.draft` so values survive
     // closing/reopening the modal — only an explicit Apply promotes them.
@@ -428,9 +314,6 @@ const Invoices = ({
     },
   });
 
-  const showFetched = (rows: InvoicesType[]) =>
-      filters.isActive || sortsApplied || rows.length !== 0;
-
   return (
       <Grid2 container wrap={'nowrap'}>
       <Grid2 xs={8} sx={{ paddingRight: 2.5 }}>
@@ -462,109 +345,93 @@ const Invoices = ({
             Create Consolidated
           </Button>
         </Box>
-                {tabValue === 0 && (
+                {tabValue === 0 ? (
                     <GenericTable
-                        data={showFetched(unpaidData) ? unpaidData : invoicesUnpaid}
+                        key="invoices-unpaid"
+                        tableRef={unpaidTableRef}
+                        trpcQuery="invoices.getAllUnpaidPage"
+                        trpcInput={tableQueryInput}
+                        resultShape="paginated"
+                        initialRows={invoicesUnpaid}
+                        initialCount={countUnpaid}
+                        remoteActive={filters.isActive}
+                        filterRevision={filters.revision}
                         columns={columnsUnpaid}
                         overrides={overridesUnpaid}
-                        count={filters.isActive ? newCount : countUnpaid}
-                        page={page}
                         filterBody={filterBody}
                         searchSet={filters.isActive}
                         matchMode={draft.matchMode}
                         onMatchModeChange={(m) => filters.updateDraft("matchMode", m)}
-                        doSearch={handleApply}
-                        refreshData={(
-                            page: React.SetStateAction<number>,
-                            orderBy: string,
-                            order: "asc" | "desc"
-                        ) => {
-                            setPage(page);
-                            setOrderBy(orderBy);
-                            setOrder(order);
-                            setShouldRefresh(true);
-                        }}
-                        clearFilter={handleClear}
+                        onApplyFilters={filters.apply}
+                        onClearFilters={filters.clear}
                     />
-                )}
+                ) : null}
 
-                {tabValue === 1 && (
+                {tabValue === 1 ? (
                     <GenericTable
-                        data={showFetched(paidData) ? paidData : invoicesPaid}
+                        key="invoices-paid"
+                        tableRef={paidTableRef}
+                        trpcQuery="invoices.getAllPaidPage"
+                        trpcInput={tableQueryInput}
+                        resultShape="paginated"
+                        initialRows={invoicesPaid}
+                        initialCount={countPaid}
+                        remoteActive={filters.isActive}
+                        filterRevision={filters.revision}
                         columns={columnsPaid}
                         overrides={overridesPaid}
-                        count={filters.isActive ? newCount : countPaid}
-                        page={page}
                         filterBody={filterBody}
                         searchSet={filters.isActive}
                         matchMode={draft.matchMode}
                         onMatchModeChange={(m) => filters.updateDraft("matchMode", m)}
-                        doSearch={handleApply}
-                        refreshData={(
-                            page: React.SetStateAction<number>,
-                            orderBy: string,
-                            order: "asc" | "desc"
-                        ) => {
-                            setPage(page);
-                            setOrderBy(orderBy);
-                            setOrder(order);
-                            setShouldRefresh(true);
-                        }}
-                        clearFilter={handleClear}
+                        onApplyFilters={filters.apply}
+                        onClearFilters={filters.clear}
                     />
-                )}
+                ) : null}
 
-                {tabValue === 2 && (
+                {tabValue === 2 ? (
                     <GenericTable
-                        data={showFetched(trpcData) ? trpcData : invoicesAll}
+                        key="invoices-all"
+                        tableRef={allTableRef}
+                        trpcQuery="invoices.getAllPage"
+                        trpcInput={tableQueryInput}
+                        resultShape="paginated"
+                        initialRows={invoicesAll}
+                        initialCount={countAll}
+                        remoteActive={filters.isActive}
+                        filterRevision={filters.revision}
                         columns={columnsAll}
                         overrides={overridesAll}
-                        count={filters.isActive ? newCount : countAll}
-                        page={page}
                         filterBody={filterBody}
                         searchSet={filters.isActive}
                         matchMode={draft.matchMode}
                         onMatchModeChange={(m) => filters.updateDraft("matchMode", m)}
-                        doSearch={handleApply}
-                        refreshData={(
-                            page: React.SetStateAction<number>,
-                            orderBy: string,
-                            order: "asc" | "desc"
-                        ) => {
-                            setPage(page);
-                            setOrderBy(orderBy);
-                            setOrder(order);
-                            setShouldRefresh(true);
-                        }}
-                        clearFilter={handleClear}
+                        onApplyFilters={filters.apply}
+                        onClearFilters={filters.clear}
                     />
-                )}
+                ) : null}
 
-                {tabValue === 3 && (
+                {tabValue === 3 ? (
                     <GenericTable
-                        data={showFetched(consolidatedData) ? consolidatedData : invoicesConsolidated}
+                        key="invoices-consolidated"
+                        tableRef={consolidatedTableRef}
+                        trpcQuery="invoices.getAllConsolidatedPage"
+                        trpcInput={tableQueryInput}
+                        resultShape="paginated"
+                        initialRows={invoicesConsolidated}
+                        initialCount={countConsolidated}
+                        remoteActive={filters.isActive}
+                        filterRevision={filters.revision}
                         columns={columnsConsolidated}
                         overrides={overridesConsolidated}
-                        count={filters.isActive ? newCount : countConsolidated}
-                        page={page}
                         filterBody={filterBody}
                         searchSet={filters.isActive}
                         matchMode={draft.matchMode}
                         onMatchModeChange={(m) => filters.updateDraft("matchMode", m)}
-                        doSearch={handleApply}
-                        refreshData={(
-                            page: React.SetStateAction<number>,
-                            orderBy: string,
-                            order: "asc" | "desc"
-                        ) => {
-                            setPage(page);
-                            setOrderBy(orderBy);
-                            setOrder(order);
-                            setShouldRefresh(true);
-                        }}
-                        clearFilter={handleClear}
+                        onApplyFilters={filters.apply}
+                        onClearFilters={filters.clear}
                     />
-                )}
+                ) : null}
             </Grid2>
             <Divider
                 flexItem={true}
@@ -574,9 +441,7 @@ const Invoices = ({
             />
             <Grid2 xs={4}>
                 <Invoice
-                    refreshData={() => {
-                        setShouldRefresh(true);
-                    }}
+                    refreshData={refreshActiveTab}
                     lastInvoice={lastInvoice}
                 />
             </Grid2>
@@ -587,9 +452,6 @@ const Invoices = ({
                     toggleModal(false);
                     setConsolidateableInvoices([]);
                     setConsolidateCustomer(0);
-                    setPage(0);
-                    setOrderBy("ID");
-                    setOrder("desc");
                 }}
             >
                 <Box sx={style}>
@@ -612,9 +474,9 @@ const Invoices = ({
                                     searchQuery={"customers"}
                                     label={"Customer"}
                                     defaultValue={null}
-                                    onSelect={(customer: any) => {
+                                    onSelect={(customer: number) => {
                                         setConsolidateCustomer(customer);
-                                        setConsolidatedShouldRefresh(true);
+                                        setConsolidateableInvoices([]);
                                     }}
                                 />
                             </div>
@@ -634,20 +496,15 @@ const Invoices = ({
                     </div>
 
                     <GenericTable
-                        data={consolidateableInvoices}
+                        tableRef={consolidateModalTableRef}
+                        trpcQuery="invoices.getAllConsolidateable"
+                        trpcInput={{ customer: consolidateCustomer }}
+                        resultShape="array"
+                        remoteActive={consolidateCustomer > 0}
                         columns={columnsConsolidatedSelect}
                         overrides={overridesConsolidatedSelect}
-                        count={consolidateableInvoices.length}
-                        refreshData={(
-                            page: React.SetStateAction<number>,
-                            orderBy: string,
-                            order: "asc" | "desc"
-                        ) => {
-                            setPage(page);
-                            setOrderBy(orderBy);
-                            setOrder(order);
-                            setConsolidatedShouldRefresh(true);
-                        }}
+                        rowCount={consolidateableInvoices.length}
+                        onRowsChange={setConsolidateableInvoices}
                     />
 
                     <div
@@ -672,10 +529,7 @@ const Invoices = ({
                                 toggleModal(false);
                                 setConsolidateableInvoices([]);
                                 setConsolidateCustomer(0);
-                                setPage(0);
-                                setOrderBy("ID");
-                                setOrder("desc");
-                                setShouldRefresh(true);
+                                refreshActiveTab();
                             }}
                         >
                             Create
@@ -687,9 +541,6 @@ const Invoices = ({
                                 toggleModal(false);
                                 setConsolidateableInvoices([]);
                                 setConsolidateCustomer(0);
-                                setPage(0);
-                                setOrderBy("ID");
-                                setOrder("desc");
                             }}
                         >
                             Cancel
