@@ -153,11 +153,9 @@ const Loads = ({
             enabled: shouldRefresh,
             onSuccess(data) {
                 setNewCount(data);
-                setShouldRefresh(false);
             },
             onError(error) {
                 console.warn(error.message);
-                setShouldRefresh(false);
             },
         }
     );
@@ -189,6 +187,7 @@ const Loads = ({
                     columns={columns}
                     overrides={overrides}
                     count={useFetched ? newCount : count}
+                    page={page}
                     refreshData={(page: React.SetStateAction<number>, orderBy: string, order: 'asc'|'desc') => {
                         setPage(page);
                         setOrderBy(orderBy);

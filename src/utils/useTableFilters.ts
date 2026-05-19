@@ -43,6 +43,8 @@ import {useCallback, useMemo, useState} from "react";
 export function useTableFilters<T extends Record<string, unknown>>(empty: T) {
     const [draft, setDraft] = useState<T>(empty);
     const [applied, setApplied] = useState<T>(empty);
+    /** Bumps on apply/clear so GenericTable can reset to page 0. */
+    const [revision, setRevision] = useState(0);
 
     const updateDraft = useCallback(
         <K extends keyof T>(key: K, value: T[K]) => {
@@ -53,6 +55,7 @@ export function useTableFilters<T extends Record<string, unknown>>(empty: T) {
 
     const apply = useCallback(() => {
         setApplied(draft);
+        setRevision((r) => r + 1);
     }, [draft]);
 
     /**
@@ -70,6 +73,7 @@ export function useTableFilters<T extends Record<string, unknown>>(empty: T) {
     const clear = useCallback(() => {
         setDraft(empty);
         setApplied(empty);
+        setRevision((r) => r + 1);
     }, [empty]);
 
     const revertDraft = useCallback(() => {
@@ -88,5 +92,5 @@ export function useTableFilters<T extends Record<string, unknown>>(empty: T) {
         return false;
     }, [applied, empty]);
 
-    return {draft, applied, updateDraft, setBoth, apply, clear, revertDraft, isActive};
+    return {draft, applied, updateDraft, setBoth, apply, clear, revertDraft, isActive, revision};
 }

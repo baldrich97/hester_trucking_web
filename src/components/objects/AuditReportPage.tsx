@@ -231,7 +231,7 @@ const AuditReportPage = ({mode}: {mode: Mode}) => {
                         </TableBody>
                     </Table>
                     <Typography variant="h6" sx={{mb: 1}}>Detailed Rows</Typography>
-                    <GenericTable data={displayRows} columns={reportColumns} overrides={reportOverrides} count={displayRows.length} />
+                    <GenericTable rows={displayRows} rowCount={displayRows.length} columns={reportColumns} overrides={reportOverrides} />
                 </>
             ) : (
                 <Typography variant="body2" color="text.secondary">Run a report to view totals and detailed load rows.</Typography>

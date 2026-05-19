@@ -119,11 +119,9 @@ const OverdueInvoices = ({
             enabled: shouldRefresh,
             onSuccess(responseData) {
                 setNewCount(responseData);
-                setShouldRefresh(false);
             },
             onError(error) {
                 console.warn(error.message);
-                setShouldRefresh(false);
             },
         }
     );
@@ -216,6 +214,7 @@ const OverdueInvoices = ({
                 columns={columnsOverdue}
                 overrides={overridesOverdue}
                 count={filters.isActive ? newCount : countOverdue}
+                page={page}
                 filterBody={filterBody}
                 searchSet={filters.isActive}
                 matchMode={draft.matchMode}
