@@ -45,8 +45,9 @@ const Trucks = ({trucks, count}: {trucks: TrucksType[], count: number}) => {
         }
     }, [search])
 
-    const {data: queryData} = trpc.useQuery(['trucks.search', {search, page, orderBy, order}], {
+    const {data: queryData} = trpc.useQuery(['trucks.searchPage', {search, page, orderBy, order}], {
         enabled: shouldSearch,
+        refetchOnWindowFocus: false,
         onError(error) {
             console.warn(error.message)
             setShouldSearch(false)
@@ -55,7 +56,8 @@ const Trucks = ({trucks, count}: {trucks: TrucksType[], count: number}) => {
 
     useEffect(() => {
         if (queryData) {
-            setData(queryData);
+            setData(queryData.rows);
+            setCount(queryData.count);
             setShouldSearch(false);
         }
     }, [queryData]);

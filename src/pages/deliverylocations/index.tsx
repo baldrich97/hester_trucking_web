@@ -43,8 +43,9 @@ const DeliveryLocations = ({deliverylocations, count}: {deliverylocations: Deliv
         }
     }, [search])
 
-    const {data: queryData} = trpc.useQuery(['deliverylocations.search', {search, page, orderBy, order}], {
+    const {data: queryData} = trpc.useQuery(['deliverylocations.searchPage', {search, page, orderBy, order}], {
         enabled: shouldSearch,
+        refetchOnWindowFocus: false,
         onError(error) {
             console.warn(error.message)
             setShouldSearch(false)
@@ -53,7 +54,8 @@ const DeliveryLocations = ({deliverylocations, count}: {deliverylocations: Deliv
 
     useEffect(() => {
         if (queryData) {
-            setData(queryData);
+            setData(queryData.rows);
+            setCount(queryData.count);
             setShouldSearch(false);
         }
     }, [queryData]);

@@ -5,8 +5,7 @@ import { GetServerSideProps } from "next";
 import { prisma } from "server/db/client";
 import {LoadsModel} from "../../../prisma/zod";
 import { z } from "zod";
-import GenericTable from "../../elements/GenericTable";
-import SearchBar from "../../elements/SearchBar";
+import GenericTable, { TableFilterMatchMode } from "../../elements/GenericTable";
 import Divider from "@mui/material/Divider";
 import { TableColumnsType, TableColumnOverridesType } from "../../utils/types";
 import { trpc } from "../../utils/trpc";
@@ -14,8 +13,8 @@ import BasicAutocomplete from "elements/Autocomplete";
 import TextField from "@mui/material/TextField";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
-import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
+import { useTableFilters } from "../../utils/useTableFilters";
 
 type LoadsType = z.infer<typeof LoadsModel>;
 
@@ -53,6 +52,16 @@ const uninvOverrides: TableColumnOverridesType = [
   { name: "StartDate", type: "date" },
 ];
 
+const EMPTY_LOAD_FILTERS = {
+  customer: 0,
+  driver: 0,
+  truck: 0,
+  loadType: 0,
+  deliveryLocation: 0,
+  search: null as number | null,
+  matchMode: "all" as TableFilterMatchMode,
+};
+
 const Loads = ({
   loads,
     uninvLoads,
@@ -64,67 +73,44 @@ const Loads = ({
   count: number;
   uninvCount: number;
 }) => {
-  const [search, setSearch] = useState<number | null>(null);
+  // Two parallel filter snapshots: `draft` is bound to the modal inputs and
+  // survives close/reopen; `applied` is what the trpc query actually keys off
+  // so the table doesn't empty out behind the modal while the user is editing.
+  const filters = useTableFilters(EMPTY_LOAD_FILTERS);
 
   const [newUninvData, setNewUninvData] = useState<LoadsType[]>([]);
-
   const [newData, setNewData] = useState<LoadsType[]>([]);
-
   const [newUninvCount, setNewUninvCount] = useState(0);
-
   const [newCount, setNewCount] = useState(0);
-
-  const [shouldSearch, setShouldSearch] = useState(false);
-
   const [shouldRefresh, setShouldRefresh] = useState(false);
-
   const [page, setPage] = useState(0);
-
-  const [customer, setCustomer] = useState(0);
-
-  const [loadType, setLoadType] = useState(0);
-
-  const [driver, setDriver] = useState(0);
-
-  const [truck, setTruck] = useState(0);
-
-  const [deliveryLocation, setDeliveryLocation] = useState(0);
-
   const [tabValue, setTabValue] = React.useState(0);
+  const [order, setOrder] = React.useState<'asc' | 'desc'>('desc');
+  const [orderBy, setOrderBy] = React.useState('ID');
 
-  const handleChange = (event: React.SyntheticEvent, newValue: number) => {
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setPage(0);
-    setCustomer(0);
-    setDriver(0);
-    setTruck(0);
-    setLoadType(0);
-    setDeliveryLocation(0);
-    setSearch(null);
+    filters.clear();
     setShouldRefresh(true);
     setTabValue(newValue);
   };
 
-  const [order, setOrder] = React.useState<'asc' | 'desc'>('desc');
-  const [orderBy, setOrderBy] = React.useState('ID')
-
-  /* trpc.useQuery(['loads.search', {search}], {
-          enabled: shouldSearch,
-          onSuccess(data) {
-              setData(data);
-              setCount(data.length)
-              setShouldSearch(false);
-          },
-          onError(error) {
-              console.warn(error.message)
-              setShouldSearch(false)
-          }
-      })*/
+  const applied = filters.applied;
+  const loadsQueryInput = {
+    page,
+    customer: applied.customer,
+    driver: applied.driver,
+    truck: applied.truck,
+    loadType: applied.loadType,
+    deliveryLocation: applied.deliveryLocation,
+    orderBy,
+    order,
+    search: applied.search,
+    matchMode: applied.matchMode,
+  };
 
   trpc.useQuery(
-      [
-        "loads.getAllPage",
-        {page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search},
-      ],
+      ["loads.getAllPage", loadsQueryInput],
       {
         enabled: shouldRefresh,
         refetchOnWindowFocus: false,
@@ -141,10 +127,7 @@ const Loads = ({
   );
 
   trpc.useQuery(
-      [
-        "loads.getUninvPage",
-        {page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search},
-      ],
+      ["loads.getUninvPage", loadsQueryInput],
       {
         enabled: shouldRefresh,
         refetchOnWindowFocus: false,
@@ -161,35 +144,38 @@ const Loads = ({
   );
 
   const sortsApplied = order !== "desc" || orderBy !== "ID";
-  const ticketFilterActive =
-    search !== null &&
-    search !== undefined &&
-    Number.isFinite(search);
-  const filtersActive =
-    customer !== 0 ||
-    driver !== 0 ||
-    truck !== 0 ||
-    loadType !== 0 ||
-    deliveryLocation !== 0 ||
-    ticketFilterActive;
-
+  // Use APPLIED state — not draft — so the table doesn't switch out from under
+  // the user while they're filling in the modal.
   const useAllFetched =
-    newData.length >= 1 || sortsApplied || filtersActive;
+    newData.length >= 1 || sortsApplied || filters.isActive;
   const useUninvFetched =
-    newUninvData.length >= 1 || sortsApplied || filtersActive;
+    newUninvData.length >= 1 || sortsApplied || filters.isActive;
 
+  const handleApply = () => {
+    filters.apply();
+    setPage(0);
+    setShouldRefresh(true);
+  };
+
+  const handleClear = () => {
+    filters.clear();
+    setPage(0);
+    setShouldRefresh(true);
+  };
+
+  // Inputs in the filter modal are bound to `filters.draft` so values survive
+  // closing/reopening the modal — only an explicit Apply promotes them to
+  // `applied`, and only Clear wipes them.
+  const draft = filters.draft;
   const filterBody = <div style={{display: "flex", flexDirection: "column"}}>
-    <b style={{textAlign: "center"}}>Specify Search Terms</b>
     <div style={{width: "100%", paddingBottom: 5}}>
       <BasicAutocomplete
           optionLabel={"Name+|+Street+,+City"}
           optionValue={"ID"}
           searchQuery={"customers"}
           label={"Customer"}
-          defaultValue={null}
-          onSelect={(customer: any) => {
-            setCustomer(customer);
-          }}
+          defaultValue={draft.customer || null}
+          onSelect={(c: any) => filters.updateDraft("customer", c)}
       />
     </div>
     <div style={{width: "100%", paddingBottom: 5}}>
@@ -198,8 +184,15 @@ const Loads = ({
           fullWidth
           type={"number"}
           size={"small"}
+          value={draft.search ?? ""}
           onChange={(e) => {
-            setSearch(parseFloat(e.currentTarget.value));
+            const raw = e.currentTarget.value;
+            if (raw === "") {
+              filters.updateDraft("search", null);
+              return;
+            }
+            const n = parseFloat(raw);
+            filters.updateDraft("search", Number.isFinite(n) ? n : null);
           }}
       />
     </div>
@@ -217,10 +210,8 @@ const Loads = ({
             optionValue={"ID"}
             searchQuery={"drivers"}
             label={"Driver"}
-            defaultValue={null}
-            onSelect={(driver: any) => {
-              setDriver(driver);
-            }}
+            defaultValue={draft.driver || null}
+            onSelect={(d: any) => filters.updateDraft("driver", d)}
         />
       </div>
       <div style={{width: "48%"}}>
@@ -229,10 +220,8 @@ const Loads = ({
             optionValue={"ID"}
             searchQuery={"trucks"}
             label={"Truck"}
-            defaultValue={null}
-            onSelect={(truck: any) => {
-              setTruck(truck);
-            }}
+            defaultValue={draft.truck || null}
+            onSelect={(t: any) => filters.updateDraft("truck", t)}
         />
       </div>
     </div>
@@ -250,10 +239,8 @@ const Loads = ({
             optionValue={"ID"}
             searchQuery={"loadtypes"}
             label={"Load Type"}
-            defaultValue={null}
-            onSelect={(loadType: any) => {
-              setLoadType(loadType);
-            }}
+            defaultValue={draft.loadType || null}
+            onSelect={(lt: any) => filters.updateDraft("loadType", lt)}
         />
       </div>
       <div style={{width: "48%"}}>
@@ -262,10 +249,8 @@ const Loads = ({
             optionValue={"ID"}
             searchQuery={"deliverylocations"}
             label={"Delivery Location"}
-            defaultValue={null}
-            onSelect={(deliveryLocation: any) => {
-              setDeliveryLocation(deliveryLocation);
-            }}
+            defaultValue={draft.deliveryLocation || null}
+            onSelect={(dl: any) => filters.updateDraft("deliveryLocation", dl)}
         />
       </div>
     </div>
@@ -284,7 +269,7 @@ const Loads = ({
                 justifyContent: "space-between",
               }}
           >
-            <Tabs value={tabValue} onChange={handleChange}>
+            <Tabs value={tabValue} onChange={handleTabChange}>
               <Tab label="All"/>
               <Tab label="Uninvoiced"/>
             </Tabs>
@@ -301,21 +286,12 @@ const Loads = ({
                 setOrder(order);
                 setShouldRefresh(true);
               }}
-              doSearch={() => {
-                setPage(0);
-                setShouldRefresh(true);
-              }}
-              clearFilter={() => {
-                setPage(0);
-                setCustomer(0);
-                setDriver(0);
-                setTruck(0);
-                setLoadType(0);
-                setDeliveryLocation(0);
-                setSearch(null);
-                setShouldRefresh(true);
-              }}
+              doSearch={handleApply}
+              clearFilter={handleClear}
               filterBody={filterBody}
+              searchSet={filters.isActive}
+              matchMode={draft.matchMode}
+              onMatchModeChange={(m) => filters.updateDraft("matchMode", m)}
           />)}
 
           {tabValue === 1 && (<GenericTable
@@ -329,21 +305,12 @@ const Loads = ({
                 setOrder(order);
                 setShouldRefresh(true);
               }}
-              doSearch={() => {
-                setPage(0);
-                setShouldRefresh(true);
-              }}
-              clearFilter={() => {
-                setPage(0);
-                setCustomer(0);
-                setDriver(0);
-                setTruck(0);
-                setLoadType(0);
-                setDeliveryLocation(0);
-                setSearch(null);
-                setShouldRefresh(true);
-              }}
+              doSearch={handleApply}
+              clearFilter={handleClear}
               filterBody={filterBody}
+              searchSet={filters.isActive}
+              matchMode={draft.matchMode}
+              onMatchModeChange={(m) => filters.updateDraft("matchMode", m)}
           />)}
 
         </Grid2>

@@ -1,6 +1,30 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import {CustomersModel} from '../../../prisma/zod';
+import {CustomersModel} from "../../../prisma/zod";
+import {Prisma} from "@prisma/client";
+import {
+    OTHER_GROUP,
+    assembleDropdownResults,
+    notDeleted,
+} from "./_dropdownSearch";
+
+function customerSearchClause(
+    trimmed: string,
+): Prisma.CustomersWhereInput | undefined {
+    if (trimmed.length === 0) return undefined;
+    return {
+        OR: [
+            {Name: {contains: trimmed}},
+            {Street: {contains: trimmed}},
+            {City: {contains: trimmed}},
+            {ZIP: {contains: trimmed}},
+            {Email: {contains: trimmed}},
+            {Phone: {contains: trimmed}},
+            {MainContact: {contains: trimmed}},
+            {Notes: {contains: trimmed}},
+        ],
+    };
+}
 
 export const customersRouter = createRouter()
     .query("getAll", {
@@ -33,90 +57,30 @@ export const customersRouter = createRouter()
 
         }
     })
-    .query('search', {
+    .query("search", {
+        // Dropdown contract — see `_dropdownSearch.ts`. Customers have no fkey
+        // relationship, so every row lands in the `Other` group and is capped
+        // at `OTHER_GROUP_LIMIT`.
         input: z.object({
-            search: z.string(),
-            page: z.number().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional()
+            search: z.string().optional(),
         }),
         async resolve({ctx, input}) {
-            const formattedSearch = input.search.replace('"', '\"');
+            const trimmed = (input.search ?? "").trim();
+            const searchClause = customerSearchClause(trimmed);
+            const baseFilters: Prisma.CustomersWhereInput[] = [notDeleted];
+            if (searchClause) baseFilters.push(searchClause);
+            const where: Prisma.CustomersWhereInput = {AND: baseFilters};
 
-            const orderByField = input.orderBy ?? 'ID';
-            const orderDir = input.order ?? 'desc';
-            const orderObj = {[orderByField]: orderDir};
-
-            const notDeleted = {OR: [{Deleted: false}, {Deleted: null}]};
-
-            if (input.search.length > 0) {
-                return ctx.prisma.customers.findMany({
-                    where: {
-                        AND: [
-                            notDeleted,
-                            {OR: [
-                            {
-                                Name: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                Street: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                City: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                ZIP: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                Email: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                Phone: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                MainContact: {
-                                    contains: formattedSearch
-                                }
-                            },
-                            {
-                                Notes: {
-                                    contains: formattedSearch
-                                }
-                            }
-                        ]},
-                        ],
-                    },
-                    orderBy: orderObj,
-                    include: {
-                        States: true
-                    },
-                    take: 50,
-                })
-            } else {
-                return ctx.prisma.customers.findMany({
-                    where: notDeleted,
-                    orderBy: orderObj,
-                    include: {
-                        States: true
-                    },
-                    take: 50,
-                    skip: input.page ? 10 * input.page : 0
-                })
-            }
-
-        }
+            const rows = await ctx.prisma.customers.findMany({
+                where,
+                orderBy: {Name: "asc"},
+                include: {States: true},
+                take: 200,
+            });
+            return assembleDropdownResults([
+                {group: OTHER_GROUP, rows},
+            ]);
+        },
     })
     .query("searchPage", {
         input: z.object({

@@ -3,12 +3,13 @@ import {GetServerSideProps} from "next";
 import {prisma} from "server/db/client";
 import {InvoicesModel} from "../../../prisma/zod";
 import {z} from "zod";
-import GenericTable from "../../elements/GenericTable";
+import GenericTable, { TableFilterMatchMode } from "../../elements/GenericTable";
 import {TableColumnsType, TableColumnOverridesType} from "../../utils/types";
 import BasicAutocomplete from "elements/Autocomplete";
 import TextField from "@mui/material/TextField";
 import Box from "@mui/material/Box";
 import {trpc} from "../../utils/trpc";
+import { useTableFilters } from "../../utils/useTableFilters";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 
@@ -35,6 +36,14 @@ const overridesOverdue: TableColumnOverridesType = [
     {name: "ConsolidatedID", type: "link"},
 ];
 
+const EMPTY_OVERDUE_FILTERS = {
+    customer: 0,
+    loadType: 0,
+    deliveryLocation: 0,
+    search: null as number | null,
+    matchMode: "all" as TableFilterMatchMode,
+};
+
 const OverdueInvoices = ({
     invoicesOverdue,
     countOverdue,
@@ -42,21 +51,46 @@ const OverdueInvoices = ({
     invoicesOverdue: InvoicesType[];
     countOverdue: number;
 }) => {
+    // Draft/applied split — modal binds to `draft` and survives close/reopen;
+    // queries key off `applied` so the table doesn't change behind the modal.
+    const filters = useTableFilters(EMPTY_OVERDUE_FILTERS);
+    const draft = filters.draft;
+    const applied = filters.applied;
+
     const [data, setData] = useState<InvoicesType[]>([]);
     const [shouldRefresh, setShouldRefresh] = useState(false);
     const [newCount, setNewCount] = useState(0);
-
-    const [customer, setCustomer] = useState(0);
-    const [loadType, setLoadType] = useState(0);
-    const [deliveryLocation, setDLocation] = useState(0);
-    const [search, setSearch] = useState<number | null>(null);
 
     const [page, setPage] = useState(0);
     const [order, setOrder] = useState<"asc" | "desc">("asc");
     const [orderBy, setOrderBy] = useState("InvoiceDate");
 
+    const handleApply = () => {
+        filters.apply();
+        setPage(0);
+        setShouldRefresh(true);
+    };
+
+    const handleClear = () => {
+        filters.clear();
+        setPage(0);
+        setShouldRefresh(true);
+    };
+
     trpc.useQuery(
-        ["invoices.getAllOverdue", {customer, search, page, orderBy, order, deliveryLocation, loadType}],
+        [
+            "invoices.getAllOverdue",
+            {
+                customer: applied.customer,
+                search: applied.search,
+                page,
+                orderBy,
+                order,
+                deliveryLocation: applied.deliveryLocation,
+                loadType: applied.loadType,
+                matchMode: applied.matchMode,
+            },
+        ],
         {
             enabled: shouldRefresh,
             onSuccess(responseData) {
@@ -71,7 +105,16 @@ const OverdueInvoices = ({
     );
 
     trpc.useQuery(
-        ["invoices.getOverdueFilteredCount", {customer, search, deliveryLocation, loadType}],
+        [
+            "invoices.getOverdueFilteredCount",
+            {
+                customer: applied.customer,
+                search: applied.search,
+                deliveryLocation: applied.deliveryLocation,
+                loadType: applied.loadType,
+                matchMode: applied.matchMode,
+            },
+        ],
         {
             enabled: shouldRefresh,
             onSuccess(responseData) {
@@ -85,9 +128,10 @@ const OverdueInvoices = ({
         }
     );
 
+    // Inputs in the filter modal are bound to `filters.draft` so values survive
+    // closing/reopening the modal — only an explicit Apply promotes them.
     const filterBody = (
         <div style={{display: "flex", flexDirection: "column"}}>
-            <b style={{textAlign: "center"}}>Specify Search Terms</b>
             <div
                 style={{
                     paddingBottom: 5,
@@ -102,10 +146,8 @@ const OverdueInvoices = ({
                         optionValue={"ID"}
                         searchQuery={"customers"}
                         label={"Customer"}
-                        defaultValue={null}
-                        onSelect={(selectedCustomer: any) => {
-                            setCustomer(selectedCustomer);
-                        }}
+                        defaultValue={draft.customer || null}
+                        onSelect={(c: any) => filters.updateDraft("customer", c)}
                     />
                 </div>
                 <div style={{width: "30%"}}>
@@ -114,8 +156,15 @@ const OverdueInvoices = ({
                         fullWidth
                         type={"number"}
                         size={"small"}
+                        value={draft.search ?? ""}
                         onChange={(e) => {
-                            setSearch(parseFloat(e.currentTarget.value));
+                            const raw = e.currentTarget.value;
+                            if (raw === "") {
+                                filters.updateDraft("search", null);
+                                return;
+                            }
+                            const n = parseFloat(raw);
+                            filters.updateDraft("search", Number.isFinite(n) ? n : null);
                         }}
                     />
                 </div>
@@ -135,10 +184,8 @@ const OverdueInvoices = ({
                         optionValue={"ID"}
                         searchQuery={"loadtypes"}
                         label={"Load Type"}
-                        defaultValue={null}
-                        onSelect={(selectedLoadType: any) => {
-                            setLoadType(selectedLoadType);
-                        }}
+                        defaultValue={draft.loadType || null}
+                        onSelect={(lt: any) => filters.updateDraft("loadType", lt)}
                     />
                 </div>
                 <div style={{width: "49%"}}>
@@ -147,40 +194,33 @@ const OverdueInvoices = ({
                         optionValue={"ID"}
                         searchQuery={"deliverylocations"}
                         label={"Delivery Location"}
-                        defaultValue={null}
-                        onSelect={(selectedLocation: any) => {
-                            setDLocation(selectedLocation);
-                        }}
+                        defaultValue={draft.deliveryLocation || null}
+                        onSelect={(dl: any) => filters.updateDraft("deliveryLocation", dl)}
                     />
                 </div>
             </div>
         </div>
     );
 
+    const useFetched =
+        filters.isActive ||
+        order !== "asc" ||
+        orderBy !== "InvoiceDate" ||
+        data.length !== 0;
+
     return (
         <Box>
             <h1 style={{marginTop: 0}}>Overdue Invoices</h1>
             <GenericTable
-                data={
-                    customer ||
-                    search ||
-                    loadType ||
-                    deliveryLocation ||
-                    order !== "asc" ||
-                    orderBy !== "InvoiceDate" ||
-                    data.length !== 0
-                        ? data
-                        : invoicesOverdue
-                }
+                data={useFetched ? data : invoicesOverdue}
                 columns={columnsOverdue}
                 overrides={overridesOverdue}
-                count={customer || loadType || deliveryLocation || search ? newCount : countOverdue}
+                count={filters.isActive ? newCount : countOverdue}
                 filterBody={filterBody}
-                searchSet={(customer !== 0 && customer !== undefined && customer !== null) || (search !== null)}
-                doSearch={() => {
-                    setPage(0);
-                    setShouldRefresh(true);
-                }}
+                searchSet={filters.isActive}
+                matchMode={draft.matchMode}
+                onMatchModeChange={(m) => filters.updateDraft("matchMode", m)}
+                doSearch={handleApply}
                 refreshData={(
                     nextPage: React.SetStateAction<number>,
                     nextOrderBy: string,
@@ -191,14 +231,7 @@ const OverdueInvoices = ({
                     setOrder(nextOrder);
                     setShouldRefresh(true);
                 }}
-                clearFilter={() => {
-                    setPage(0);
-                    setCustomer(0);
-                    setLoadType(0);
-                    setDLocation(0);
-                    setSearch(null);
-                    setShouldRefresh(true);
-                }}
+                clearFilter={handleClear}
             />
         </Box>
     );

@@ -6,7 +6,6 @@ import { prisma } from "server/db/client";
 import {LoadsModel} from "../../../prisma/zod";
 import { z } from "zod";
 import GenericTable from "../../elements/GenericTable";
-import SearchBar from "../../elements/SearchBar";
 import Divider from "@mui/material/Divider";
 import { TableColumnsType, TableColumnOverridesType } from "../../utils/types";
 import { trpc } from "../../utils/trpc";
@@ -14,6 +13,8 @@ import BasicAutocomplete from "elements/Autocomplete";
 import TextField from "@mui/material/TextField";
 import ArrowRight from "@mui/icons-material/ArrowRight";
 import CloseIcon from "@mui/icons-material/Close";
+import { TableFilterMatchMode } from "../../elements/GenericTable";
+import { useTableFilters } from "../../utils/useTableFilters";
 
 type LoadsType = z.infer<typeof LoadsModel>;
 
@@ -27,7 +28,15 @@ const columns: TableColumnsType = [
     { name: "ID", as: "", navigateTo: "/loads/" },
 ];
 
-
+const EMPTY_LOAD_FILTERS = {
+    customer: 0,
+    driver: 0,
+    truck: 0,
+    loadType: 0,
+    deliveryLocation: 0,
+    search: null as number | null,
+    matchMode: "all" as TableFilterMatchMode,
+};
 
 const Loads = ({
                    loads,
@@ -36,65 +45,50 @@ const Loads = ({
     loads: LoadsType[];
     count: number;
 }) => {
-    const [search, setSearch] = useState<number|null>(null);
-
-    const [searchSet, setSearchSet] = useState<boolean>(false);
-
-    const [trpcData, setData] = useState<LoadsType[]>([]);
+    // `draft` drives the modal inputs; `applied` drives the trpc query so the
+    // table doesn't refresh out from under the user while they're editing the
+    // modal. `setBoth` is the chosen-load path that auto-applies in one step.
+    const filters = useTableFilters(EMPTY_LOAD_FILTERS);
+    const draft = filters.draft;
+    const applied = filters.applied;
 
     const [newData, setNewData] = useState<LoadsType[]>([]);
-
-    const [trpcCount, setCount] = useState(0);
-
     const [newCount, setNewCount] = useState(0);
-
-    const [shouldSearch, setShouldSearch] = useState(false);
-
     const [shouldRefresh, setShouldRefresh] = useState(false);
-
     const [page, setPage] = useState(0);
+    const [chosenLoad, setChosenLoad] = useState<LoadsType|null>(null);
 
-    const [customer, setCustomer] = useState(0);
-
-    const [loadType, setLoadType] = useState(0);
-
-    const [driver, setDriver] = useState(0);
-
-    const [truck, setTruck] = useState(0);
-
-    const [deliveryLocation, setDeliveryLocation] = useState(0);
-
-    const [chosenLoad, setChosenLoad] = useState<LoadsType|null>(null)
-
+    // searchSet is the legacy "we're in mass-edit-from-chosen-load mode" flag
+    // (separate from a generic "filters are applied" check) because the table
+    // and the right pane both branch on it.
+    const [searchSet, setSearchSet] = useState<boolean>(false);
 
     const handleLoad = (load: any) => {
         if (searchSet) {
-            setNewData(newData.filter((record) => record.ID !== load.ID))
-            if (newData.filter((record) => record.ID !== load.ID).length === 0) {
+            const next = newData.filter((record) => record.ID !== load.ID);
+            setNewData(next);
+            if (next.length === 0) {
                 setPage(0);
-                setCustomer(0);
-                setDriver(0);
-                setTruck(0);
-                setLoadType(0);
-                setDeliveryLocation(0);
-                setSearch(null);
+                filters.clear();
                 setShouldRefresh(true);
                 setSearchSet(false);
-                setChosenLoad(null)
+                setChosenLoad(null);
             }
             return;
         }
 
-        setCustomer(load.Customers.ID);
-        setDriver(load.Drivers.ID);
-        setTruck(load.Trucks.ID);
-        setLoadType(load.LoadTypes.ID);
-        setDeliveryLocation(load.DeliveryLocations.ID);
-        setChosenLoad(load)
-        setShouldRefresh(true)
-        setSearch(null)
-        setSearchSet(true)
-    }
+        filters.setBoth({
+            customer: load.Customers.ID,
+            driver: load.Drivers.ID,
+            truck: load.Trucks.ID,
+            loadType: load.LoadTypes.ID,
+            deliveryLocation: load.DeliveryLocations.ID,
+            search: null,
+        });
+        setChosenLoad(load);
+        setShouldRefresh(true);
+        setSearchSet(true);
+    };
 
     const overrides: TableColumnOverridesType = [
         { name: "ID", type: "action", callback: handleLoad, icon: searchSet ? <CloseIcon style={{ color: "white" }} /> : <ArrowRight/> },
@@ -103,31 +97,28 @@ const Loads = ({
     ];
 
     const [order, setOrder] = React.useState<'asc'|'desc'>('desc');
-    const [orderBy, setOrderBy] = React.useState('ID')
+    const [orderBy, setOrderBy] = React.useState('ID');
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     const {Customers, DeliveryLocations, Drivers, LoadTypes, Trucks, ...rest} = chosenLoad ?? {};
 
-
-
-    /* trpc.useQuery(['loads.search', {search}], {
-            enabled: shouldSearch,
-            onSuccess(data) {
-                setData(data);
-                setCount(data.length)
-                setShouldSearch(false);
-            },
-            onError(error) {
-                console.warn(error.message)
-                setShouldSearch(false)
-            }
-        })*/
-
     trpc.useQuery(
         [
             "loads.getAll",
-            { page, customer, driver, truck, loadType, deliveryLocation, orderBy, order, search, chosenLoad: chosenLoad ? {...rest} : null },
+            {
+                page,
+                customer: applied.customer,
+                driver: applied.driver,
+                truck: applied.truck,
+                loadType: applied.loadType,
+                deliveryLocation: applied.deliveryLocation,
+                orderBy,
+                order,
+                search: applied.search,
+                matchMode: applied.matchMode,
+                chosenLoad: chosenLoad ? {...rest} : null,
+            },
         ],
         {
             enabled: shouldRefresh,
@@ -143,7 +134,21 @@ const Loads = ({
     );
 
     trpc.useQuery(
-        ["loads.getCount", { customer, driver, truck, loadType, deliveryLocation, search, chosenLoad: chosenLoad ? {MaterialRate: chosenLoad?.MaterialRate, DriverRate: chosenLoad?.DriverRate, TruckRate: chosenLoad?.TruckRate, TotalRate: chosenLoad?.TotalRate} : null }],
+        [
+            "loads.getCount",
+            {
+                customer: applied.customer,
+                driver: applied.driver,
+                truck: applied.truck,
+                loadType: applied.loadType,
+                deliveryLocation: applied.deliveryLocation,
+                search: applied.search,
+                matchMode: applied.matchMode,
+                chosenLoad: chosenLoad
+                    ? {MaterialRate: chosenLoad?.MaterialRate, DriverRate: chosenLoad?.DriverRate, TruckRate: chosenLoad?.TruckRate, TotalRate: chosenLoad?.TotalRate}
+                    : null,
+            },
+        ],
         {
             enabled: shouldRefresh,
             onSuccess(data) {
@@ -158,27 +163,26 @@ const Loads = ({
     );
 
     const sortsApplied = order !== "desc" || orderBy !== "ID";
-    const ticketFilterActive =
-        search !== null &&
-        search !== undefined &&
-        Number.isFinite(search);
-    const filtersActive =
-        customer !== 0 ||
-        driver !== 0 ||
-        truck !== 0 ||
-        loadType !== 0 ||
-        deliveryLocation !== 0 ||
-        ticketFilterActive ||
-        searchSet;
     const useFetched =
-        newData.length >= 1 || sortsApplied || filtersActive;
+        newData.length >= 1 || sortsApplied || filters.isActive || searchSet;
+
+    const handleApply = () => {
+        filters.apply();
+        setPage(0);
+        setShouldRefresh(true);
+    };
+
+    const handleClear = () => {
+        filters.clear();
+        setSearchSet(false);
+        setChosenLoad(null);
+        setPage(0);
+        setShouldRefresh(true);
+    };
 
     return (
         <Grid2 container wrap={'nowrap'}>
             <Grid2 xs={8} sx={{ paddingRight: 2.5 }}>
-                {/*<Grid2 xs={4}>
-                    <SearchBar setSearchQuery={setSearch} setShouldSearch={setShouldSearch} query={search} label={'Loads'}/>
-                </Grid2>*/}
                 <GenericTable
                     key={`key-${shouldRefresh ? "1" : "2"}`}
                     data={useFetched ? newData : loads}
@@ -191,36 +195,21 @@ const Loads = ({
                         setOrder(order);
                         setShouldRefresh(true);
                     }}
-                    doSearch={() => {
-                        setPage(0);
-                        setShouldRefresh(true);
-                    }}
-                    clearFilter={() => {
-                        setPage(0);
-                        setCustomer(0);
-                        setDriver(0);
-                        setTruck(0);
-                        setLoadType(0);
-                        setDeliveryLocation(0);
-                        setSearch(null);
-                        setShouldRefresh(true);
-                        setSearchSet(false);
-                        setChosenLoad(null)
-                    }}
-                    searchSet={searchSet}
+                    doSearch={handleApply}
+                    clearFilter={handleClear}
+                    searchSet={searchSet || filters.isActive}
+                    matchMode={draft.matchMode}
+                    onMatchModeChange={(m) => filters.updateDraft("matchMode", m)}
                     filterBody={
                         <div style={{display: "flex", flexDirection: "column"}}>
-                            <b style={{textAlign: "center"}}>Specify Search Terms</b>
                             <div style={{width: "100%", paddingBottom: 5}}>
                                 <BasicAutocomplete
                                     optionLabel={"Name+|+Street+,+City"}
                                     optionValue={"ID"}
                                     searchQuery={"customers"}
                                     label={"Customer"}
-                                    defaultValue={null}
-                                    onSelect={(customer: any) => {
-                                        setCustomer(customer);
-                                    }}
+                                    defaultValue={draft.customer || null}
+                                    onSelect={(c: any) => filters.updateDraft("customer", c)}
                                 />
                             </div>
                             <div style={{width: "100%", paddingBottom: 5}}>
@@ -229,8 +218,15 @@ const Loads = ({
                                     fullWidth
                                     type={"number"}
                                     size={"small"}
+                                    value={draft.search ?? ""}
                                     onChange={(e) => {
-                                        setSearch(parseFloat(e.currentTarget.value));
+                                        const raw = e.currentTarget.value;
+                                        if (raw === "") {
+                                            filters.updateDraft("search", null);
+                                            return;
+                                        }
+                                        const n = parseFloat(raw);
+                                        filters.updateDraft("search", Number.isFinite(n) ? n : null);
                                     }}
                                 />
                             </div>
@@ -248,10 +244,8 @@ const Loads = ({
                                         optionValue={"ID"}
                                         searchQuery={"drivers"}
                                         label={"Driver"}
-                                        defaultValue={null}
-                                        onSelect={(driver: any) => {
-                                            setDriver(driver);
-                                        }}
+                                        defaultValue={draft.driver || null}
+                                        onSelect={(d: any) => filters.updateDraft("driver", d)}
                                     />
                                 </div>
                                 <div style={{width: "48%"}}>
@@ -260,10 +254,8 @@ const Loads = ({
                                         optionValue={"ID"}
                                         searchQuery={"trucks"}
                                         label={"Truck"}
-                                        defaultValue={null}
-                                        onSelect={(truck: any) => {
-                                            setTruck(truck);
-                                        }}
+                                        defaultValue={draft.truck || null}
+                                        onSelect={(t: any) => filters.updateDraft("truck", t)}
                                     />
                                 </div>
                             </div>
@@ -281,10 +273,8 @@ const Loads = ({
                                         optionValue={"ID"}
                                         searchQuery={"loadtypes"}
                                         label={"Load Type"}
-                                        defaultValue={null}
-                                        onSelect={(loadType: any) => {
-                                            setLoadType(loadType);
-                                        }}
+                                        defaultValue={draft.loadType || null}
+                                        onSelect={(lt: any) => filters.updateDraft("loadType", lt)}
                                     />
                                 </div>
                                 <div style={{width: "48%"}}>
@@ -293,10 +283,8 @@ const Loads = ({
                                         optionValue={"ID"}
                                         searchQuery={"deliverylocations"}
                                         label={"Delivery Location"}
-                                        defaultValue={null}
-                                        onSelect={(deliveryLocation: any) => {
-                                            setDeliveryLocation(deliveryLocation);
-                                        }}
+                                        defaultValue={draft.deliveryLocation || null}
+                                        onSelect={(dl: any) => filters.updateDraft("deliveryLocation", dl)}
                                     />
                                 </div>
                             </div>
@@ -318,15 +306,10 @@ const Loads = ({
                     initialLoad={chosenLoad}
                     refreshData={() => {
                         setPage(0);
-                        setCustomer(0);
-                        setDriver(0);
-                        setTruck(0);
-                        setLoadType(0);
-                        setDeliveryLocation(0);
-                        setSearch(null);
+                        filters.clear();
                         setShouldRefresh(true);
                         setSearchSet(false);
-                        setChosenLoad(null)
+                        setChosenLoad(null);
                     }}
                     selectedLoads={(chosenLoad && newData) ? newData.map((record) => {return {ID: record.ID, TicketNumber: record.TicketNumber}}) : []}
                 />

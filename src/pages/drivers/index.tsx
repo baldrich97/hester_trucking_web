@@ -51,8 +51,9 @@ const Drivers = ({states, drivers, count}: {states: StatesType[], drivers: Drive
         }
     }, [search])
 
-    const {data: queryData} = trpc.useQuery(['drivers.search', {search, page, orderBy, order}], {
+    const {data: queryData} = trpc.useQuery(['drivers.searchPage', {search, page, orderBy, order}], {
         enabled: shouldSearch,
+        refetchOnWindowFocus: false,
         onError(error) {
             console.warn(error.message)
             setShouldSearch(false)
@@ -61,7 +62,8 @@ const Drivers = ({states, drivers, count}: {states: StatesType[], drivers: Drive
 
     useEffect(() => {
         if (queryData) {
-            setData(queryData);
+            setData(queryData.rows);
+            setCount(queryData.count);
             setShouldSearch(false);
         }
     }, [queryData]);

@@ -1,10 +1,31 @@
 import {createRouter} from "./context";
 import {z} from "zod";
 import {SourcesModel} from "../../../prisma/zod";
+import {Sources, Prisma} from "@prisma/client";
+import {
+    SEARCH_SCAN_LIMIT,
+    OTHER_GROUP,
+    assembleDropdownResults,
+} from "./_dropdownSearch";
+
+/**
+ * `Source` dropdown groups:
+ *   - `LoadType`: sources linked to the selected load type
+ *   - `Other`: everything else (capped at `OTHER_GROUP_LIMIT`)
+ */
+const SOURCE_GROUPS = {
+    LOAD_TYPE: "LoadType",
+    OTHER: OTHER_GROUP,
+} as const;
 
 const activeLoadTypeWhere = {
     OR: [{Deleted: false}, {Deleted: null}],
 };
+
+function sourceSearchClause(trimmed: string): Prisma.SourcesWhereInput | undefined {
+    if (trimmed.length === 0) return undefined;
+    return {Name: {contains: trimmed}};
+}
 
 export const sourcesRouter = createRouter()
     .query("getAll", {
@@ -46,82 +67,81 @@ export const sourcesRouter = createRouter()
         },
     })
     .query("search", {
+        // Dropdown contract — see `_dropdownSearch.ts`. `LoadTypeID` only decides
+        // grouping; it does NOT widen the result set.
         input: z.object({
             search: z.string().optional(),
-            page: z.number().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional(),
             LoadTypeID: z.number().optional(),
         }),
         async resolve({ctx, input}) {
-            const {search, page, LoadTypeID} = input;
-            const order = input.order ?? "asc";
-            const orderBy = input.orderBy ?? "Name";
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            const orderObj: Record<string, string> = {};
-            orderObj[orderBy] = order;
+            const trimmed = (input.search ?? "").trim();
+            const searchClause = sourceSearchClause(trimmed);
+            const baseWhere: Prisma.SourcesWhereInput = searchClause ?? {};
 
-            const where = search && search.trim().length > 0
-                ? {Name: {contains: search.trim()}}
-                : {};
-
-            // When a LoadTypeID is provided, surface linked sources first, sorted by UseCount desc.
-            if (LoadTypeID) {
-                const linked = await ctx.prisma.sourceLoadTypes.findMany({
-                    where: {LoadTypeID},
-                    include: {Sources: true},
-                    orderBy: {UseCount: "desc"},
+            // Linked sources + their UseCount (for annotation).
+            const linkedUseCount = new Map<number, number>();
+            if (input.LoadTypeID) {
+                const rows = await ctx.prisma.sourceLoadTypes.findMany({
+                    where: {LoadTypeID: input.LoadTypeID},
+                    select: {SourceID: true, UseCount: true},
                 });
-
-                const linkedSources = linked
-                    .map((row) => ({
-                        ...row.Sources,
-                        Recommend: "Linked" as const,
-                        UseCount: row.UseCount,
-                    }))
-                    .filter((src) => {
-                        if (!search || search.trim().length === 0) {
-                            return true;
-                        }
-                        const needle = search.trim().toLowerCase();
-                        return src.Name.toLowerCase().includes(needle);
-                    });
-
-                const linkedIDs = linkedSources.map((s) => s.ID);
-                const remaining = await ctx.prisma.sources.findMany({
-                    where: {
-                        ...where,
-                        NOT: {ID: {in: linkedIDs}},
-                    },
-                    take: 50,
-                    orderBy: orderObj,
-                });
-
-                const remainingAnnotated = remaining.map((src) => ({
-                    ...src,
-                    Recommend: null,
-                    UseCount: 0,
-                }));
-
-                return [...linkedSources, ...remainingAnnotated];
+                for (const r of rows) {
+                    // `@@unique([SourceID, LoadTypeID])` guards duplicates, but
+                    // keep a "first wins" guard so we can never re-introduce them.
+                    if (linkedUseCount.has(r.SourceID)) continue;
+                    linkedUseCount.set(r.SourceID, r.UseCount);
+                }
             }
 
-            if (search && search.trim().length > 0) {
-                const data = await ctx.prisma.sources.findMany({
-                    where,
-                    take: 50,
-                    orderBy: orderObj,
-                });
-                return data.map((src) => ({...src, Recommend: null, UseCount: 0}));
-            }
-
-            const data = await ctx.prisma.sources.findMany({
-                take: 50,
-                skip: page ? page * 10 : 0,
-                orderBy: orderObj,
+            const searchHits = await ctx.prisma.sources.findMany({
+                where: baseWhere,
+                take: SEARCH_SCAN_LIMIT,
+                orderBy: {Name: "asc"},
             });
-            return data.map((src) => ({...src, Recommend: null, UseCount: 0}));
+
+            // Recover linked-AND-matching rows that fell outside the search window.
+            const seenInHits = new Set(searchHits.map((r) => r.ID));
+            const linkedIDsOutsideHits = Array.from(linkedUseCount.keys()).filter(
+                (id) => !seenInHits.has(id),
+            );
+            let recommendedExtras: Sources[] = [];
+            if (linkedIDsOutsideHits.length > 0) {
+                recommendedExtras = await ctx.prisma.sources.findMany({
+                    where: {
+                        AND: [
+                            {ID: {in: linkedIDsOutsideHits}},
+                            ...(searchClause ? [searchClause] : []),
+                        ],
+                    },
+                });
+            }
+
+            const allRows = [...searchHits, ...recommendedExtras];
+            const decorate = (row: Sources) => ({
+                ...row,
+                UseCount: linkedUseCount.get(row.ID) ?? 0,
+            });
+            const byUseCountThenName = (a: Sources, b: Sources) => {
+                const ua = linkedUseCount.get(a.ID) ?? 0;
+                const ub = linkedUseCount.get(b.ID) ?? 0;
+                if (ua !== ub) return ub - ua;
+                return a.Name.localeCompare(b.Name);
+            };
+
+            return assembleDropdownResults([
+                {
+                    group: SOURCE_GROUPS.LOAD_TYPE,
+                    rows: allRows
+                        .filter((r) => linkedUseCount.has(r.ID))
+                        .sort(byUseCountThenName),
+                    decorate,
+                },
+                {
+                    group: SOURCE_GROUPS.OTHER,
+                    rows: searchHits.filter((r) => !linkedUseCount.has(r.ID)),
+                    decorate,
+                },
+            ]);
         },
     })
     .query("searchPage", {

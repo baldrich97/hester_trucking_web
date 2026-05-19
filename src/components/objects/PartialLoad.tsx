@@ -195,78 +195,6 @@ function PartialLoad({
         initialLoad ? (initialLoad.LoadTypeID ? initialLoad.LoadTypeID : 0) : 0
     );
 
-    const [lttrpcData, ltsetData] = useState<CustomerLoadTypes[]>([]);
-
-    const [dltrpcData, dlsetData] = useState<CustomerDeliveryLocations[]>([]);
-
-    const [tdtrpcData, tdsetData] = useState<CompleteTrucksDriven[]>([]);
-
-    const [ltshouldRefresh, ltsetShouldRefresh] = useState(
-        () => Boolean(initialLoad?.CustomerID),
-    );
-
-    const [dlshouldRefresh, dlsetShouldRefresh] = useState(
-        () => Boolean(initialLoad?.CustomerID),
-    );
-
-    const [tdshouldRefresh, tdsetShouldRefresh] = useState(
-        () => Boolean(initialLoad?.TruckID || initialLoad?.DriverID),
-    );
-
-    const {data: ltQueryData} = trpc.useQuery(
-        ["loadtypes.search", {CustomerID: customer || undefined}],
-        {
-            enabled: ltshouldRefresh,
-            onError(error) {
-                console.warn(error.message);
-                ltsetShouldRefresh(false);
-            },
-        },
-    );
-
-    useEffect(() => {
-        if (ltQueryData) {
-            ltsetData(JSON.parse(JSON.stringify(ltQueryData)));
-            ltsetShouldRefresh(false);
-        }
-    }, [ltQueryData]);
-
-    const {data: dlQueryData} = trpc.useQuery(
-        ["deliverylocations.search", {CustomerID: customer || undefined}],
-        {
-            enabled: dlshouldRefresh,
-            onError(error) {
-                console.warn(error.message);
-                dlsetShouldRefresh(false);
-            },
-        },
-    );
-
-    useEffect(() => {
-        if (dlQueryData) {
-            dlsetData(JSON.parse(JSON.stringify(dlQueryData)));
-            dlsetShouldRefresh(false);
-        }
-    }, [dlQueryData]);
-
-    const {data: tdQueryData} = trpc.useQuery(
-        ["trucksdriven.search", {TruckID: truck, DriverID: driver}],
-        {
-            enabled: tdshouldRefresh,
-            onError(error) {
-                console.warn(error.message);
-                tdsetShouldRefresh(false);
-            },
-        },
-    );
-
-    useEffect(() => {
-        if (tdQueryData) {
-            tdsetData(JSON.parse(JSON.stringify(tdQueryData)));
-            tdsetShouldRefresh(false);
-        }
-    }, [tdQueryData]);
-
     React.useEffect(() => {
         const subscription = watch((value, {name, type}) => {
             if (name === "StartDate" && type === "change") {
@@ -298,30 +226,15 @@ function PartialLoad({
             }
             if (name === "CustomerID" && type === "change") {
                 setCustomer(value.CustomerID ?? 0);
-                dlsetData([]);
-                dlsetShouldRefresh(true);
-                ltsetData([]);
-                ltsetShouldRefresh(true);
             }
             if (name === "LoadTypeID" && type === "change") {
                 setLoadTypeSelected(value.LoadTypeID ?? 0);
             }
-            if ((name === "TruckID" || name === "DriverID") && type === "change") {
-                if (name === "TruckID") {
-                    //setValue("DriverID", 0)
-                    //setDriver(0)
-                    setTruck(value.TruckID ?? 0);
-                } else {
-                    //setValue("TruckID", 0)
-                    setDriver(value.DriverID ?? 0);
-                    //setTruck(0)
-                }
-                if (value.TruckID || value.DriverID) {
-                    tdsetData([]);
-                    tdsetShouldRefresh(true);
-                } else {
-                    tdsetData([]);
-                }
+            if (name === "TruckID" && type === "change") {
+                setTruck(value.TruckID ?? 0);
+            }
+            if (name === "DriverID" && type === "change") {
+                setDriver(value.DriverID ?? 0);
             }
         });
 
@@ -365,8 +278,10 @@ function PartialLoad({
             label: "Driver",
             searchQuery: "drivers",
             onlyActive: true,
-            groupBy: "Recommend",
-            groupByNames: "Has Driven Truck|New for Driver",
+            groupLabels: {
+                Truck: "Has Driven This Truck",
+                Other: "Other Drivers",
+            },
             enableOptionGroups: truck > 0,
         },
         {
@@ -377,8 +292,10 @@ function PartialLoad({
             label: "Truck",
             searchQuery: "trucks",
             onlyActive: true,
-            groupBy: "Recommend",
-            groupByNames: "Driven Before|New for Driver",
+            groupLabels: {
+                Driver: "Driven by This Driver",
+                Other: "Other Trucks",
+            },
             enableOptionGroups: driver > 0,
         },
         {
@@ -390,8 +307,12 @@ function PartialLoad({
             type: "select",
             label: "Load Type",
             searchQuery: "loadtypes",
-            groupBy: "Recommend",
-            groupByNames: "Customer=Used by Customer|Source=Linked to Source|Other",
+            groupLabels: {
+                CustomerAndSource: "Used with this Customer & Source",
+                Customer: "Used by this Customer",
+                Source: "Linked to this Source",
+                Other: "Other",
+            },
             enableOptionGroups: customer > 0,
         },
         {
@@ -401,8 +322,10 @@ function PartialLoad({
             type: "select",
             label: "Delivery Location",
             searchQuery: "deliverylocations",
-            groupBy: "Recommend",
-            groupByNames: "Used by Customer|New for Customer",
+            groupLabels: {
+                Customer: "Used by this Customer",
+                Other: "Other Delivery Locations",
+            },
             enableOptionGroups: customer > 0,
         },
         {
@@ -453,6 +376,9 @@ function PartialLoad({
         }
     ];
 
+    // All dropdowns are driven by the live `.search` query in RHAutocomplete. The fkey
+    // props (CustomerID / TruckID / DriverID) are passed only for grouping/annotation —
+    // the typed search text is always the authoritative filter.
     const selectData: SelectDataType = [
         {
             key: "CustomerID",
@@ -463,44 +389,28 @@ function PartialLoad({
         },
         {
             key: "LoadTypeID",
-            data: lttrpcData.length > 0 ? lttrpcData : [],
+            data: [],
             optionValue: "ID",
-            optionLabel: "Description",
+            optionLabel: "DisplayName",
             defaultValue: initialLoad ? initialLoad.LoadTypeID : null,
         },
         {
             key: "DeliveryLocationID",
-            data: dltrpcData.length > 0 ? dltrpcData : [],
+            data: [],
             optionValue: "ID",
             optionLabel: "Description",
             defaultValue: initialLoad ? initialLoad.DeliveryLocationID : null,
         },
         {
             key: "TruckID",
-            data:
-                tdtrpcData.length > 0
-                    ? (tdtrpcData
-                          .map((item) => item.Trucks)
-                          .filter((item) => item !== undefined)
-                          .filter((value, index, self) => {
-                              return index === self.findIndex((t) => t.ID === value.ID);
-                          }) as unknown as Record<string, unknown>[])
-                    : [],
+            data: [],
             optionValue: "ID",
             optionLabel: "Name+|+Notes",
             defaultValue: initialLoad ? initialLoad.TruckID : null,
         },
         {
             key: "DriverID",
-            data:
-                tdtrpcData.length > 0
-                    ? (tdtrpcData
-                          .map((item) => item.Drivers)
-                          .filter((item) => item !== undefined)
-                          .filter((value, index, self) => {
-                              return index === self.findIndex((t) => t.ID === value.ID);
-                          }) as unknown as Record<string, unknown>[])
-                    : [],
+            data: [],
             optionValue: "ID",
             optionLabel: "FirstName+LastName",
             defaultValue: initialLoad ? initialLoad.DriverID : null,

@@ -87,7 +87,6 @@ const GenericForm = ({
                                 <RHAutocomplete
                                     name={field.name}
                                     control={control}
-                                    data={data}
                                     optionLabel={optionLabel}
                                     optionValue={optionValue}
                                     defaultValue={defaultValue ?? null}
@@ -98,8 +97,7 @@ const GenericForm = ({
                                     )}
                                     errorMessage={field.errorMessage ?? ""}
                                     searchQuery={field.searchQuery ?? ""}
-                                    groupBy={field.groupBy}
-                                    groupByNames={field.groupByNames}
+                                    groupLabels={field.groupLabels}
                                     enableOptionGroups={field.enableOptionGroups}
                                     selectedCustomer={selectedCustomer}
                                     selectedSource={selectedSource}
@@ -109,6 +107,7 @@ const GenericForm = ({
                                     onlyActive={field.onlyActive}
                                     newOptionLabel={field.newOptionLabel}
                                     onNewOptionClick={field.onNewOptionClick}
+                                    data={data}
                                 />
                             </Grid2>
                         );

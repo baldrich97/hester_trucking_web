@@ -16,33 +16,58 @@ const loadsListInput = z.object({
     order: z.string().optional(),
     search: z.number().nullish().optional(),
     chosenLoad: z.any().optional(),
+    /**
+     * How the user-typed filter conditions combine:
+     *   - `"all"` (default, "Exact") — every active condition must match (AND).
+     *   - `"any"` ("Partial") — at least one active condition must match (OR).
+     * `chosenLoad`-derived constraints (rate windows, StartDate, Week) are
+     * always AND-ed in regardless of mode because they describe "loads similar
+     * to this one" and OR-ing them would be nonsensical.
+     */
+    matchMode: z.enum(["all", "any"]).optional(),
 });
 
+/**
+ * Build the Prisma `where` fragment for a load list filter modal. Returns an
+ * empty object if no user-driven conditions are active so a fresh page render
+ * isn't accidentally constrained.
+ */
 function buildLoadFilters(input: z.infer<typeof loadsListInput>) {
-    const {customer, driver, truck, loadType, deliveryLocation, search, chosenLoad} = input;
+    const {
+        customer, driver, truck, loadType, deliveryLocation, search, chosenLoad,
+        matchMode = "all",
+    } = input;
     const epsilon = 0.001;
-    return {
-        ...(customer && {CustomerID: customer}),
-        ...(driver && {DriverID: driver}),
-        ...(truck && {TruckID: truck}),
-        ...(loadType && {LoadTypeID: loadType}),
-        ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
-        ...(search && {TicketNumber: search}),
-        ...(chosenLoad?.MaterialRate && {
-            MaterialRate: {gte: chosenLoad.MaterialRate - epsilon, lte: chosenLoad.MaterialRate + epsilon},
-        }),
-        ...(chosenLoad?.TruckRate && {
-            TruckRate: {gte: chosenLoad.TruckRate - epsilon, lte: chosenLoad.TruckRate + epsilon},
-        }),
-        ...(chosenLoad?.DriverRate && {
-            DriverRate: {gte: chosenLoad.DriverRate - epsilon, lte: chosenLoad.DriverRate + epsilon},
-        }),
-        ...(chosenLoad?.TotalRate && {
-            TotalRate: {gte: chosenLoad.TotalRate - epsilon, lte: chosenLoad.TotalRate + epsilon},
-        }),
-        ...(chosenLoad?.StartDate && {StartDate: chosenLoad.StartDate}),
-        ...(chosenLoad?.Week && {Week: chosenLoad.Week}),
-    };
+
+    // User-driven, combinable conditions.
+    const conditions: Record<string, unknown>[] = [];
+    if (customer) conditions.push({CustomerID: customer});
+    if (driver) conditions.push({DriverID: driver});
+    if (truck) conditions.push({TruckID: truck});
+    if (loadType) conditions.push({LoadTypeID: loadType});
+    if (deliveryLocation) conditions.push({DeliveryLocationID: deliveryLocation});
+    if (search) conditions.push({TicketNumber: search});
+
+    // Mass-edit "similar loads" filters — always AND-ed.
+    const chosenFilters: Record<string, unknown> = {};
+    if (chosenLoad?.MaterialRate) {
+        chosenFilters.MaterialRate = {gte: chosenLoad.MaterialRate - epsilon, lte: chosenLoad.MaterialRate + epsilon};
+    }
+    if (chosenLoad?.TruckRate) {
+        chosenFilters.TruckRate = {gte: chosenLoad.TruckRate - epsilon, lte: chosenLoad.TruckRate + epsilon};
+    }
+    if (chosenLoad?.DriverRate) {
+        chosenFilters.DriverRate = {gte: chosenLoad.DriverRate - epsilon, lte: chosenLoad.DriverRate + epsilon};
+    }
+    if (chosenLoad?.TotalRate) {
+        chosenFilters.TotalRate = {gte: chosenLoad.TotalRate - epsilon, lte: chosenLoad.TotalRate + epsilon};
+    }
+    if (chosenLoad?.StartDate) chosenFilters.StartDate = chosenLoad.StartDate;
+    if (chosenLoad?.Week) chosenFilters.Week = chosenLoad.Week;
+
+    if (conditions.length === 0) return chosenFilters;
+    const combined = matchMode === "any" ? {OR: conditions} : {AND: conditions};
+    return {...combined, ...chosenFilters};
 }
 
 const loadListInclude = {
@@ -512,66 +537,15 @@ export const loadsRouter = createRouter()
         }
     })
     .query('getCount', {
-        input: z.object({
-            page: z.number().optional(),
-            customer: z.number().optional(),
-            truck: z.number().optional(),
-            driver: z.number().optional(),
-            loadType: z.number().optional(),
-            deliveryLocation: z.number().optional(),
-            search: z.number().nullish().optional(),
-            chosenLoad: z.any().optional()
-        }),
+        input: loadsListInput,
         async resolve({ctx, input}) {
-            const {customer, driver, truck, loadType, deliveryLocation, search, chosenLoad} = input;
-            const epsilon = 0.001;
-            const extra = {
-                ...(customer && {CustomerID: customer}),
-                ...(driver && {DriverID: driver}),
-                ...(truck && {TruckID: truck}),
-                ...(loadType && {LoadTypeID: loadType}),
-                ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
-                ...(search && {TicketNumber: search}),
-                ...(chosenLoad?.MaterialRate && {
-                    MaterialRate: {
-                        gte: chosenLoad.MaterialRate - epsilon,
-                        lte: chosenLoad.MaterialRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.TruckRate && {
-                    TruckRate: {
-                        gte: chosenLoad.TruckRate - epsilon,
-                        lte: chosenLoad.TruckRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.DriverRate && {
-                    DriverRate: {
-                        gte: chosenLoad.DriverRate - epsilon,
-                        lte: chosenLoad.DriverRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.TotalRate && {
-                    TotalRate: {
-                        gte: chosenLoad.TotalRate - epsilon,
-                        lte: chosenLoad.TotalRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.StartDate && {
-                    StartDate: chosenLoad.StartDate
-                }),
-                ...(chosenLoad?.Week && {
-                    Week: chosenLoad.Week
-                }),
-            };
-
             return ctx.prisma.loads.count({
                 where: {
                     ...activeLoadWhere,
-                    ...extra
-                }
+                    ...buildLoadFilters(input),
+                },
             });
-
-        }
+        },
     })
     .query('getUninvCount', {
         input: z.object({

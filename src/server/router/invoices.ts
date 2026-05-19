@@ -12,25 +12,40 @@ const invoiceListInput = z.object({
     search: z.number().nullish().optional(),
     orderBy: z.string().optional(),
     order: z.string().optional(),
+    /**
+     * How the user-typed filter conditions combine:
+     *   - `"all"` (default, "Exact") — every active condition must match (AND).
+     *   - `"any"` ("Partial") — at least one active condition must match (OR).
+     */
+    matchMode: z.enum(["all", "any"]).optional(),
 });
 
+/**
+ * Build the Prisma `where` fragment for an invoice list filter modal. Returns
+ * an empty object if no user-driven conditions are active. Note that the
+ * load-relation conditions (`loadType` and `deliveryLocation`) are wrapped
+ * separately so they don't clobber each other inside `Loads.some`.
+ */
 function buildInvoiceListFilters(input: z.infer<typeof invoiceListInput>) {
-    const {search, customer, loadType, deliveryLocation} = input;
-    return {
-        ...(search && search?.toString().length > 0 && {
+    const {search, customer, loadType, deliveryLocation, matchMode = "all"} = input;
+
+    const conditions: Record<string, unknown>[] = [];
+    if (search != null && search.toString().length > 0) {
+        conditions.push({
             OR: [
                 {TotalAmount: search},
-                ...(!search.toString().includes('.') ? [{Number: search}] : []),
+                ...(!search.toString().includes(".") ? [{Number: search}] : []),
             ],
-        }),
-        ...(customer !== 0 && {CustomerID: customer}),
-        ...(deliveryLocation && {
-            Loads: {some: {DeliveryLocationID: deliveryLocation}},
-        }),
-        ...(loadType && {
-            Loads: {some: {LoadTypeID: loadType}},
-        }),
-    };
+        });
+    }
+    if (customer && customer !== 0) conditions.push({CustomerID: customer});
+    if (loadType) conditions.push({Loads: {some: {LoadTypeID: loadType}}});
+    if (deliveryLocation) {
+        conditions.push({Loads: {some: {DeliveryLocationID: deliveryLocation}}});
+    }
+
+    if (conditions.length === 0) return {};
+    return matchMode === "any" ? {OR: conditions} : {AND: conditions};
 }
 
 function buildInvoiceOrder(orderBy: string | undefined, order: string | undefined) {
@@ -49,50 +64,13 @@ const invoiceListInclude = {
 
 export const invoicesRouter = createRouter()
     .query("getAllOverdue", {
-        input: z.object({
-            customer: z.number().optional(),
-            loadType: z.number().optional(),
-            deliveryLocation: z.number().optional(),
-            page: z.number().optional(),
-            search: z.number().nullish().optional(),
-            orderBy: z.string().optional(),
-            order: z.string().optional()
-        }),
+        input: invoiceListInput,
         async resolve({ctx, input}) {
-            const {search, customer, order, loadType, deliveryLocation, orderBy} = input;
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - 60);
 
-            const extra = {
-                ...(search && search?.toString().length > 0 && {
-                    OR: [
-                        {TotalAmount: search},
-                        ...(!search.toString().includes('.') ? [{Number: search}] : [])
-                    ]
-                }),
-                ...(customer !== 0 && {CustomerID: customer}),
-                ...(deliveryLocation && {
-                    Loads: {
-                        some: {
-                            DeliveryLocationID: deliveryLocation
-                        }
-                    }
-                }),
-                ...(loadType && {
-                    Loads: {
-                        some: {
-                            LoadTypeID: loadType
-                        }
-                    }
-                }),
-            };
-
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            const orderObj = {};
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            orderObj[orderBy] = order;
+            const extra = buildInvoiceListFilters(input);
+            const orderObj = buildInvoiceOrder(input.orderBy, input.order);
 
             return ctx.prisma.invoices.findMany({
                 where: {
@@ -100,15 +78,15 @@ export const invoicesRouter = createRouter()
                     InvoiceDate: {lte: cutoffDate},
                     // Multi-tenant TODO: add CompanyID filter from session/company context.
                     // CompanyID: activeCompanyId,
-                    ...extra
+                    ...extra,
                 },
                 include: {
                     Customers: true,
-                    Loads: true
+                    Loads: true,
                 },
                 take: 10,
                 orderBy: orderObj,
-                skip: input.page ? 10 * input.page : 0
+                skip: input.page ? 10 * input.page : 0,
             });
         },
     })
@@ -128,49 +106,25 @@ export const invoicesRouter = createRouter()
         },
     })
     .query("getOverdueFilteredCount", {
-        input: z.object({
-            customer: z.number().optional(),
-            loadType: z.number().optional(),
-            deliveryLocation: z.number().optional(),
-            search: z.number().nullish().optional(),
+        input: invoiceListInput.pick({
+            customer: true,
+            loadType: true,
+            deliveryLocation: true,
+            search: true,
+            matchMode: true,
         }),
         async resolve({ctx, input}) {
-            const {search, customer, loadType, deliveryLocation} = input;
             const cutoffDate = new Date();
             cutoffDate.setDate(cutoffDate.getDate() - 60);
-
-            const extra = {
-                ...(search && search?.toString().length > 0 && {
-                    OR: [
-                        {TotalAmount: search},
-                        ...(!search.toString().includes('.') ? [{Number: search}] : [])
-                    ]
-                }),
-                ...(customer !== 0 && {CustomerID: customer}),
-                ...(deliveryLocation && {
-                    Loads: {
-                        some: {
-                            DeliveryLocationID: deliveryLocation
-                        }
-                    }
-                }),
-                ...(loadType && {
-                    Loads: {
-                        some: {
-                            LoadTypeID: loadType
-                        }
-                    }
-                }),
-            };
-
+            const extra = buildInvoiceListFilters(input);
             return ctx.prisma.invoices.count({
                 where: {
                     Paid: {not: true},
                     InvoiceDate: {lte: cutoffDate},
                     // Multi-tenant TODO: add CompanyID filter from session/company context.
                     // CompanyID: activeCompanyId,
-                    ...extra
-                }
+                    ...extra,
+                },
             });
         },
     })
