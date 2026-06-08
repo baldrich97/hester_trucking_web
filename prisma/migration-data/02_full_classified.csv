@@ -1,0 +1,473 @@
+1,"1"" BASE (WS)",0,"1"" BASE","1"" BASE (WS",source,,,material,0
+2,"1"" MINUS",0,"1"" MINUS",,,,,material,0
+3,AGLIME (BASEROCK),0,AGLIME,AGLIME (BASEROCK,source,,,material,0
+4,SHINGLES,0,SHINGLES,,,,,material,0
+5,HOURLY (MILL),0,HOURLY,HOURLY (MILL,hourly_context,,,hourly_family,0
+6,"1"" MINUS (WS)",0,"1"" MINUS","1"" MINUS (WS",source,,,material,0
+7,"1"" CLEAN (CC)",0,"1"" CLEAN","1"" CLEAN (CC",source,,,material,0
+8,SAND (CERTAINTEED),0,SAND,SAND (CERTAINTEED,source,,,material,0
+9,"1"" MINUS BROWN (ARAB)",0,"1"" MINUS BROWN","1"" MINUS BROWN (ARAB",source,,,material,0
+10,"1/4"" MINUS (WS)",0,"1/4"" MINUS","1/4"" MINUS (WS",source,,,material,0
+11,"2"" CLEAN (WS)",0,"2"" CLEAN","2"" CLEAN (WS",source,,,material,0
+12,"1"" MINUS STOCKPILE",0,"1"" MINUS STOCKPILE",,,,,material,0
+13,"1/2"" MINUS (WS)",0,"1/2"" MINUS","1/2"" MINUS (WS",source,,,material,0
+14,"1"" CLEAN (DEXTER)",0,"1"" CLEAN","1"" CLEAN (DEXTER",source,,,material,0
+15,TOPSOIL,0,TOPSOIL,,,,,material,0
+16,"1"" BASE (CQ)",0,"1"" BASE","1"" BASE (CQ",source,,,material,0
+17,"1"" CLEAN (WS)",0,"1"" CLEAN","1"" CLEAN (WS",source,,,material,0
+18,ROCK,0,ROCK,,,,,material,0
+19,"2 2"" MINUS (WS)",0,"2 2"" MINUS","2 2"" MINUS (WS",source,,,material,0
+20,"2"" MINUS (WS)",0,"2"" MINUS","2"" MINUS (WS",source,,,material,0
+21,CONCRETE SAND,0,CONCRETE SAND,,,,,material,0
+22,RED LIME,0,RED LIME,,,,,material,0
+23,"1"" MINUS (CC)",0,"1"" MINUS","1"" MINUS (CC",source,,,material,0
+24,"1/2"" MINUS",0,"1/2"" MINUS",,,,,material,0
+25,"1"" CLEAN",0,"1"" CLEAN",,,,,material,0
+26,"1"" CLEAN (STOCKPILE)",0,"1"" CLEAN","1"" CLEAN (STOCKPILE",source,,,material,0
+27,"1"" CLEAN (SHOP)",0,"1"" CLEAN","1"" CLEAN (SHOP",source,,,material,0
+28,SHINGLES (PEACHSTREET),0,SHINGLES,SHINGLES (PEACHSTREET,source,,,material,0
+29,"1"" MINUS (BASE ROCK)",0,"1"" MINUS","1"" MINUS (BASE ROCK",source,,,material,0
+30,BUSTED CONCRETE,0,BUSTED CONCRETE,,,,,material,0
+31,"3"" CLEAN (ARAB)",0,"3"" CLEAN","3"" CLEAN (ARAB",source,,,material,0
+32,RED LIME (SCAGGS),0,RED LIME,RED LIME (SCAGGS,source,,,material,0
+33,HOURLY (ASPHALT),0,HOURLY,HOURLY (ASPHALT,hourly_context,,,hourly_family,0
+34,"1"" CLEAN (ARAB)",0,"1"" CLEAN","1"" CLEAN (ARAB",source,,,material,0
+35,MASONARY SAND (BK),0,MASONARY SAND,MASONARY SAND (BK,source,,,material,0
+36,OVERSIZED WASH GRAVEL,0,OVERSIZED WASH GRAVEL,,,,,material,0
+37,DIRT HAULING,0,DIRT HAULING,,,,,service_in_name,0
+38,ASPHALT,0,ASPHALT,,,,,material,0
+39,TYPE 5 (FISCHER),0,TYPE 5,TYPE 5 (FISCHER,source,,,material,0
+40,HOURLY (HAULBACK),0,HOURLY,HOURLY (HAULBACK,hourly_context,,,hourly_family,0
+41,"HOURLY (1"" BASE)",0,HOURLY,"HOURLY (1"" BASE",hourly_context,,,hourly_family,0
+42,WAITING TIME,0,WAITING TIME,,,,,material,0
+43,HOURLY (ROCK HAUL),0,HOURLY,HOURLY (ROCK HAUL,hourly_context,,,hourly_family,0
+44,RIP RAP (#90),0,RIP RAP,RIP RAP (#90,source,,,material,0
+45,"1/2"" CLEAN (WS)",0,"1/2"" CLEAN","1/2"" CLEAN (WS",source,,,material,0
+46,GRAVEL,0,GRAVEL,,,,,material,0
+47,SAWDUST,0,SAWDUST,,,,,material,0
+48,HOURLY,0,HOURLY,,,,,hourly_family,0
+49,GABIAN STONE,0,GABIAN STONE,,,,,material,0
+50,ROCK FROM STOCKPILE,0,ROCK FROM STOCKPILE,,,,,material,0
+51,HOURLY (RAP),0,HOURLY,HOURLY (RAP,hourly_context,,,hourly_family,0
+52,HOURLY (ASPH),0,HOURLY,HOURLY (ASPH,hourly_context,,,hourly_family,0
+53,HOURLY (MOVING PLANT),0,HOURLY,HOURLY (MOVING PLANT,hourly_context,,,hourly_family,0
+54,SAND (FRUITLAND ASPHALT),0,SAND,SAND (FRUITLAND ASPHALT,source,,,material,0
+55,MORTAR SAND (DEXTER),0,MORTAR SAND,MORTAR SAND (DEXTER,source,,,material,0
+56,AGLIME,0,AGLIME,,,,,material,0
+57,FUEL,0,FUEL,,,,,material,0
+58,HOURLY (DITCH REMOVAL),0,HOURLY,HOURLY (DITCH REMOVAL,hourly_context,,,hourly_family,0
+59,HOURLY (HAUL BACK),0,HOURLY,HOURLY (HAUL BACK,hourly_context,,,hourly_family,0
+60,HOURLY (MILL AND ROCK),0,HOURLY,HOURLY (MILL AND ROCK,hourly_context,,,hourly_family,0
+61,AGLIME (HL),0,AGLIME,AGLIME (HL,source,,,material,0
+62,AGLIME (WS),0,AGLIME,AGLIME (WS,source,,,material,0
+63,ASPHALT (ROBERTSON),0,ASPHALT,ASPHALT (ROBERTSON,source,,,material,0
+64,"1"" BASE (SHOP)",0,"1"" BASE","1"" BASE (SHOP",source,,,material,0
+65,RIP RAP (#50),0,RIP RAP,RIP RAP (#50,source,,,material,0
+66,HOURLY (DIRT HAUL OFF),0,HOURLY,HOURLY (DIRT HAUL OFF,hourly_context,,,hourly_family,0
+67,HOURLY (CONCRETE),0,HOURLY,HOURLY (CONCRETE,hourly_context,,,hourly_family,0
+68,MIX,0,MIX,,,,,material,0
+69,TYPE 1/5 BASE (CC),0,TYPE 1/5 BASE,TYPE 1/5 BASE (CC,source,,,material,0
+70,C. BALLAST,0,C. BALLAST,,,,,material,0
+71,AGLIME (STOCKPILE),0,AGLIME,AGLIME (STOCKPILE,source,,,material,0
+72,HOURLY (MILL AND FILL),0,HOURLY,HOURLY (MILL AND FILL,hourly_context,,,hourly_family,0
+73,GABION 4X6 (BR),0,GABION 4X6,GABION 4X6 (BR,source,,,material,0
+74,"3"" MINUS (CC)",0,"3"" MINUS","3"" MINUS (CC",source,,,material,0
+75,HOURLY (BUSTED ASPHALT),0,HOURLY,HOURLY (BUSTED ASPHALT,hourly_context,,,hourly_family,0
+76,"1/2"" MINUS (ARAB)",0,"1/2"" MINUS","1/2"" MINUS (ARAB",source,,,material,0
+77,CHAT,0,CHAT,,,,,material,0
+78,"3/4"" CLEAN (ARAB)",0,"3/4"" CLEAN","3/4"" CLEAN (ARAB",source,,,material,0
+79,"3/8"" CLEAN (ARAB)",0,"3/8"" CLEAN","3/8"" CLEAN (ARAB",source,,,material,0
+80,GABION STONE (WS),0,GABION STONE,GABION STONE (WS,source,,,material,0
+81,"1"" BASE (VB)",0,"1"" BASE","1"" BASE (VB",source,,,material,0
+82,HAULING BLOW SAND,0,HAULING BLOW SAND,,,,,service_in_name,0
+83,"1"" MINUS (WS)",0,"1"" MINUS","1"" MINUS (WS",source,,,material,0
+84,TOPSOIL (WS),0,TOPSOIL,TOPSOIL (WS,source,,,material,0
+85,SAND,0,SAND,,,,,material,0
+86,HOURLY (ASPHALT & ROCK),0,HOURLY,HOURLY (ASPHALT & ROCK,hourly_context,,,hourly_family,0
+87,HOURLY (CLEAN UP),0,HOURLY,HOURLY (CLEAN UP,hourly_context,,,hourly_family,0
+88,RIP RAP (#90) (WS),0,RIP RAP,RIP RAP (#90,source,(WS,source,material,0
+89,HOURLY (COLD MIX/HAUL BACK),0,HOURLY,HOURLY (COLD MIX/HAUL BACK,hourly_context,,,hourly_family,0
+90,LANDSCAPE BLEND (BRENDA),0,LANDSCAPE BLEND,LANDSCAPE BLEND (BRENDA,source,,,material,0
+91,HOURLY (MILL AND INTERSECTIONS),0,HOURLY,HOURLY (MILL AND INTERSECTIONS,hourly_context,,,hourly_family,0
+92,WASH MANUFACTURED (TRAP),0,WASH MANUFACTURED,WASH MANUFACTURED (TRAP,source,,,material,0
+93,DIRT (WS),0,DIRT,DIRT (WS,source,,,material,0
+94,"1"" MINUS (FISCHER QUARRY)",0,"1"" MINUS","1"" MINUS (FISCHER QUARRY",source,,,material,0
+95,"1/2"" CLEAN (SEMO)",0,"1/2"" CLEAN","1/2"" CLEAN (SEMO",source,,,material,0
+96,CLEAN UP,0,CLEAN UP,,,,,material,0
+97,"2"" MINUS (CC)",0,"2"" MINUS","2"" MINUS (CC",source,,,material,0
+98,"1"" BASE",0,"1"" BASE",,,,,material,0
+99,HOURLY (MAINTENANCE),0,HOURLY,HOURLY (MAINTENANCE,hourly_context,,,hourly_family,0
+100,FILL SAND,0,FILL SAND,,,,,material,0
+101,AGLIME (SPREADING AND HAULING),0,AGLIME,AGLIME (SPREADING AND HAULING,service,,,service_in_name,0
+103,"3/8"" CLEAN 3/4"" CLEAN",0,"3/8"" CLEAN 3/4"" CLEAN",,,,,material,0
+104,"3"" CLEAN (WS)",0,"3"" CLEAN","3"" CLEAN (WS",source,,,material,0
+106,PEA GRAVEL (DEXTER SAND),0,PEA GRAVEL,PEA GRAVEL (DEXTER SAND,source,,,material,0
+107,"1"" WHITE BASE (WS)",0,"1"" WHITE BASE","1"" WHITE BASE (WS",source,,,material,0
+108,WASTE ROCK,0,WASTE ROCK,,,,,material,0
+109,"1"" MINUS (STOCKPILE)",0,"1"" MINUS","1"" MINUS (STOCKPILE",source,,,material,0
+110,"2"" BASE (CAPITAL)",0,"2"" BASE","2"" BASE (CAPITAL",source,,,material,0
+111,"3"" MINUS (WS)",0,"3"" MINUS","3"" MINUS (WS",source,,,material,0
+112,MULCH,0,MULCH,,,,,material,0
+113,HOURLY (GABION STONE),0,HOURLY,HOURLY (GABION STONE,hourly_context,,,hourly_family,0
+114,FILL SAND (WS),0,FILL SAND,FILL SAND (WS,source,,,material,0
+115,HOURLY (MOVING),0,HOURLY,HOURLY (MOVING,hourly_context,,,hourly_family,0
+116,ASPHALT (FRUITLAND),0,ASPHALT,ASPHALT (FRUITLAND,source,,,material,0
+117,"1"" MINUS GRAY (ARAB)",0,"1"" MINUS GRAY","1"" MINUS GRAY (ARAB",source,,,material,0
+118,LANDSCAPE BLEND (BRENDA) 1 1/8,0,LANDSCAPE BLEND,LANDSCAPE BLEND (BRENDA,source,,,material,0
+119,MILLINGS,0,MILLINGS,,,,,material,0
+120,HOURLY (SHOULDERS),0,HOURLY,HOURLY (SHOULDERS,hourly_context,,,hourly_family,0
+121,HOURLY (DRY ROCK),0,HOURLY,HOURLY (DRY ROCK,hourly_context,,,hourly_family,0
+122,HOURLY (PLANTMOVE),0,HOURLY,HOURLY (PLANTMOVE,hourly_context,,,hourly_family,0
+123,HOURLY (BUSTED CONCRETE),0,HOURLY,HOURLY (BUSTED CONCRETE,hourly_context,,,hourly_family,0
+124,MILLINGS ESS PLANT SITE 25,0,MILLINGS ESS PLANT SITE 25,,,,,material,0
+125,"FR 1/4"" MINUS (SEMO)",0,"FR 1/4"" MINUS","FR 1/4"" MINUS (SEMO",source,,,material,0
+127,"FR 1/2"" (SEMO)",0,"FR 1/2""","FR 1/2"" (SEMO",source,,,material,0
+128,OVERSIZE LANDSCAPE GRAVEL,0,OVERSIZE LANDSCAPE GRAVEL,,,,,material,0
+129,WASTE CONCRETE (SEMO CONCRETE),0,WASTE CONCRETE,WASTE CONCRETE (SEMO CONCRETE,source,,,material,0
+130,HOURLY (ROCK),0,HOURLY,HOURLY (ROCK,hourly_context,,,hourly_family,0
+131,PLANT MOVE,0,PLANT MOVE,,,,,material,0
+132,SHOW UP,0,SHOW UP,,,,,material,0
+133,HOURLY (PATCHES),0,HOURLY,HOURLY (PATCHES,hourly_context,,,hourly_family,0
+134,AGLIME (HEARTLAND),0,AGLIME,AGLIME (HEARTLAND,source,,,material,0
+135,DIRT (SAND PIT),0,DIRT,DIRT (SAND PIT,source,,,material,0
+136,"6"" MINUS/HAULING ONLY",0,"6"" MINUS/HAULING ONLY",,,,,service_in_name,0
+137,SKID STEER WORK,0,SKID STEER WORK,,,,,material,0
+138,RAP,0,RAP,,,,,material,0
+139,ROCK (CANE CREEK),0,ROCK,ROCK (CANE CREEK,source,,,material,0
+140,PERMIT,0,PERMIT,,,,,material,0
+141,50# RIP RAP (WS),0,50# RIP RAP,50# RIP RAP (WS,source,,,material,0
+142,"3/4""",0,"3/4""",,,,,material,0
+143,"3/8""",0,"3/8""",,,,,material,0
+144,SCREENINGS,0,SCREENINGS,,,,,material,0
+145,"1/5"" BASE (WS)",0,"1/5"" BASE","1/5"" BASE (WS",source,,,material,0
+146,"1"" MINUS (SEMO STONE)",0,"1"" MINUS","1"" MINUS (SEMO STONE",source,,,material,0
+147,TYPE 1/5 BASE (WS),0,TYPE 1/5 BASE,TYPE 1/5 BASE (WS,source,,,material,0
+148,HOURLY (ENTRANCES),0,HOURLY,HOURLY (ENTRANCES,hourly_context,,,hourly_family,0
+149,ASPAHLT SAND (STATE),0,ASPAHLT SAND,ASPAHLT SAND (STATE,source,,,material,0
+150,ASPAHLT SAND (STATE) (BRENDA KAY),0,ASPAHLT SAND,ASPAHLT SAND (STATE,source,(BRENDA KAY,source,material,0
+151,AGLIME (WS) (SPREADING AND HAULING),0,AGLIME,AGLIME (WS,source,(SPREADING AND HAULING,service,material,0
+152,ASPAHLT,0,ASPAHLT,,,,,material,0
+153,HOURLY (OVER 20 TON),0,HOURLY,HOURLY (OVER 20 TON,hourly_context,,,hourly_family,0
+154,HOURLY (UNDER 18 TON),0,HOURLY,HOURLY (UNDER 18 TON,hourly_context,,,hourly_family,0
+155,AGLIME (HEARTLAND) (VBR),0,AGLIME,AGLIME (HEARTLAND,source,(VBR,source,material,0
+156,AGLIME (SPREADING AND HAULING) (STRAIGHT),0,AGLIME,AGLIME (SPREADING AND HAULING,service,(STRAIGHT,source,material,0
+158,AGLIME (SCAGGS),0,AGLIME,AGLIME (SCAGGS,source,,,material,0
+159,"1"" WHITE COMM BASE (WS)",0,"1"" WHITE COMM BASE","1"" WHITE COMM BASE (WS",source,,,material,0
+160,"GABION 4-6""",0,"GABION 4-6""",,,,,material,0
+161,ROCK (BASE ROCK),0,ROCK,ROCK (BASE ROCK,source,,,material,0
+162,ROCK (BUTLER),0,ROCK,ROCK (BUTLER,source,,,material,0
+163,ROCK (STOCKPILE),0,ROCK,ROCK (STOCKPILE,source,,,material,0
+164,MORTAR SAND (BRENDAKAY),0,MORTAR SAND,MORTAR SAND (BRENDAKAY,source,,,material,0
+165,ASPHALT (DELTA),0,ASPHALT,ASPHALT (DELTA,source,,,material,0
+166,HOURLY DIRT,0,HOURLY DIRT,,,,,hourly_family,0
+167,PERMITS,0,PERMITS,,,,,material,0
+168,400# RIP RAP,0,400# RIP RAP,,,,,material,0
+169,"2"" CLEAN (CC)",0,"2"" CLEAN","2"" CLEAN (CC",source,,,material,0
+170,R400,0,R400,,,,,material,0
+171,ASPHALT (BUTLERHILL),0,ASPHALT,ASPHALT (BUTLERHILL,source,,,material,0
+172,R400 (ARAB),0,R400,R400 (ARAB,source,,,material,0
+173,"1/2"" CLASS",0,"1/2"" CLASS",,,,,material,0
+174,RIP RAP #400,0,RIP RAP #400,,,,,material,0
+175,RIP RAP #400 (SEMO),0,RIP RAP #400,RIP RAP #400 (SEMO,source,,,material,0
+176,"6"" MINUS (WS)",0,"6"" MINUS","6"" MINUS (WS",source,,,material,0
+177,MAN SAND (WS),0,MAN SAND,MAN SAND (WS,source,,,material,0
+178,PEA GRAVEL,0,PEA GRAVEL,,,,,material,0
+179,"1/2"" CLEAN (ARAB)",0,"1/2"" CLEAN","1/2"" CLEAN (ARAB",source,,,material,0
+180,"1"" MINUS (SHOP)",0,"1"" MINUS","1"" MINUS (SHOP",source,,,material,0
+181,"1"" SCRAP ROCK (WS)",0,"1"" SCRAP ROCK","1"" SCRAP ROCK (WS",source,,,material,0
+182,"1"" MINUS (ARAB)",0,"1"" MINUS","1"" MINUS (ARAB",source,,,material,0
+183,DIRT (SHOP),0,DIRT,DIRT (SHOP,source,,,material,0
+184,"2"" CLEAN (ARAB)",0,"2"" CLEAN","2"" CLEAN (ARAB",source,,,material,0
+185,HOURLY (CONCRETE HAUL OFF),0,HOURLY,HOURLY (CONCRETE HAUL OFF,hourly_context,,,hourly_family,0
+186,BASE ROCK,0,BASE ROCK,,,,,material,0
+187,"1 1/2"" CLASS 7 (CQ)",0,"1 1/2"" CLASS 7","1 1/2"" CLASS 7 (CQ",source,,,material,0
+188,"1"" MINUS (SEMO)",0,"1"" MINUS","1"" MINUS (SEMO",source,,,material,0
+189,HAULING ROCK ONLY,0,HAULING ROCK ONLY,,,,,service_in_name,0
+190,SCRAP CONCRETE,0,SCRAP CONCRETE,,,,,material,0
+191,MASONARY SAND (DEXTER),0,MASONARY SAND,MASONARY SAND (DEXTER,source,,,material,0
+192,TYPE 2 DITCH LINER (ARAB),0,TYPE 2 DITCH LINER,TYPE 2 DITCH LINER (ARAB,source,,,material,0
+193,"6"" CLEAN COM TRAP",0,"6"" CLEAN COM TRAP",,,,,material,0
+194,"1/2"" MINUS (BASEROCK)",0,"1/2"" MINUS","1/2"" MINUS (BASEROCK",source,,,material,0
+195,OTHER,0,OTHER,,,,,material,0
+196,HOURLY (SHINGLE GRINDER MOVE),0,HOURLY,HOURLY (SHINGLE GRINDER MOVE,hourly_context,,,hourly_family,0
+197,"1"" CLEAN (HEARTLAND)",0,"1"" CLEAN","1"" CLEAN (HEARTLAND",source,,,material,0
+198,"1/2"" MINUS COMM BASE (HL)",0,"1/2"" MINUS COMM BASE","1/2"" MINUS COMM BASE (HL",source,,,material,0
+199,MATERIAL (WS),0,MATERIAL,MATERIAL (WS,service,,,material,0
+200,MATERIAL (BRENDAKAY),0,MATERIAL,MATERIAL (BRENDAKAY,service,,,material,0
+201,MATERIAL (HEARTLAND),0,MATERIAL,MATERIAL (HEARTLAND,service,,,material,0
+202,MATERIAL (ARAB),0,MATERIAL,MATERIAL (ARAB,service,,,material,0
+203,"1"" MINUS (WS & STRACK)",0,"1"" MINUS","1"" MINUS (WS & STRACK",source,,,material,0
+204,POTASH (DYERSBURG),0,POTASH,POTASH (DYERSBURG,source,,,material,0
+205,HOURLY (MILL AND ASPH),0,HOURLY,HOURLY (MILL AND ASPH,hourly_context,,,hourly_family,0
+206,"2 1/2"" CLEAN (ARAB)",0,"2 1/2"" CLEAN","2 1/2"" CLEAN (ARAB",source,,,material,0
+207,HOURLY (MILL AND ASPHALT),0,HOURLY,HOURLY (MILL AND ASPHALT,hourly_context,,,hourly_family,0
+208,"1/2"" M (BASEROCK)",0,"1/2"" M","1/2"" M (BASEROCK",source,,,material,0
+209,"6"" CLEAN COM TRAP (BUTLERHILL)",0,"6"" CLEAN COM TRAP","6"" CLEAN COM TRAP (BUTLERHILL",source,,,material,0
+210,DIRT (PITS),0,DIRT,DIRT (PITS,source,,,material,0
+211,HOURLY (HAUL OFF),0,HOURLY,HOURLY (HAUL OFF,hourly_context,,,hourly_family,0
+212,"3"" CLEAN (CC)",0,"3"" CLEAN","3"" CLEAN (CC",source,,,material,0
+213,LANDSCAPE BLEND,0,LANDSCAPE BLEND,,,,,material,0
+214,AGLIME (WS) (SANDP),0,AGLIME,AGLIME (WS,source,(SANDP,source,material,0
+215,"1 1/2"" CLEAN GRAVEL (WS)",0,"1 1/2"" CLEAN GRAVEL","1 1/2"" CLEAN GRAVEL (WS",source,,,material,0
+216,"6"" CLEAN (CQ)",0,"6"" CLEAN","6"" CLEAN (CQ",source,,,material,0
+217,"3/8"" PUGMILL AGGREGATE",0,"3/8"" PUGMILL AGGREGATE",,,,,material,0
+218,"1"" BASE (ARAB)",0,"1"" BASE","1"" BASE (ARAB",source,,,material,0
+219,ASPAHLT (ESS),0,ASPAHLT,ASPAHLT (ESS,source,,,material,0
+220,OVERSIZED WASH GRAVEL (WS),0,OVERSIZED WASH GRAVEL,OVERSIZED WASH GRAVEL (WS,source,,,material,0
+221,CONCRETE WASTE,0,CONCRETE WASTE,,,,,material,0
+222,"3/8"" CLEAN (CC)",0,"3/8"" CLEAN","3/8"" CLEAN (CC",source,,,material,0
+223,HOURLY (SKIDSTEER),0,HOURLY,HOURLY (SKIDSTEER,hourly_context,,,hourly_family,0
+224,HOURLY (ROCK),0,HOURLY,HOURLY (ROCK,hourly_context,,,hourly_family,0
+225,"2"" CLEAN BLACK (BUTLER HILL)",0,"2"" CLEAN BLACK","2"" CLEAN BLACK (BUTLER HILL",source,,,material,0
+226,HOURLY SKID STEER,0,HOURLY SKID STEER,,,,,hourly_family,0
+227,HEAVY DIRT,0,HEAVY DIRT,,,,,material,0
+228,"3"" CLEAN",0,"3"" CLEAN",,,,,material,0
+229,"3"" MINUS",0,"3"" MINUS",,,,,material,0
+231,1/5 BASE CC,0,1/5 BASE CC,,,,,material,0
+232,RIP RAP #50 (WS),0,RIP RAP #50,RIP RAP #50 (WS,source,,,material,0
+233,PEA GRAVEL (BK),0,PEA GRAVEL,PEA GRAVEL (BK,source,,,material,0
+234,CREEK GRAVEL (WS),0,CREEK GRAVEL,CREEK GRAVEL (WS,source,,,material,0
+235,"1/2"" CLEAN",0,"1/2"" CLEAN",,,,,material,0
+236,"1"" CLEAN (SEMO)",0,"1"" CLEAN","1"" CLEAN (SEMO",source,,,material,0
+237,EXCAVATOR WORK,0,EXCAVATOR WORK,,,,,material,0
+238,RIP RAP #200 (WS),0,RIP RAP #200,RIP RAP #200 (WS,source,,,material,0
+239,"1/2"" MINUS (CC)",0,"1/2"" MINUS","1/2"" MINUS (CC",source,,,material,0
+240,CLAY,0,CLAY,,,,,material,0
+241,D. BALLAST,0,D. BALLAST,,,,,material,0
+242,SAND (DONIPHAN/ICM),0,SAND,SAND (DONIPHAN/ICM,source,,,material,0
+243,90# RIP RAP (CQ),0,90# RIP RAP,90# RIP RAP (CQ,source,,,material,0
+244,"2 1/2"" BASE (ARAB)",0,"2 1/2"" BASE","2 1/2"" BASE (ARAB",source,,,material,0
+245,COLD MIX (WS),0,COLD MIX,COLD MIX (WS,source,,,material,0
+246,"2"" MINUS",0,"2"" MINUS",,,,,material,0
+247,AGLIME (STRACK),0,AGLIME,AGLIME (STRACK,source,,,material,0
+248,GUMBO,0,GUMBO,,,,,material,0
+249,JAW ROCK (ICM),0,JAW ROCK,JAW ROCK (ICM,source,,,material,0
+250,RIPRAP (CC),0,RIPRAP,RIPRAP (CC,source,,,material,0
+251,FILL SAND (BRENDA KAY),0,FILL SAND,FILL SAND (BRENDA KAY,source,,,material,0
+252,"1/2"" BASE (VBS)",0,"1/2"" BASE","1/2"" BASE (VBS",source,,,material,0
+253,"2"" BASE (VBS)",0,"2"" BASE","2"" BASE (VBS",source,,,material,0
+254,"2"" CLEAN (VBS)",0,"2"" CLEAN","2"" CLEAN (VBS",source,,,material,0
+266,EDGE TREATMENT,0,EDGE TREATMENT,,,,,material,0
+267,AG-LIME (HEARTLAND) HAULING & SPREADING,0,AG-LIME,AG-LIME (HEARTLAND,source,,,service_in_name,0
+268,TRIP PERMIT,0,TRIP PERMIT,,,,,material,0
+269,"6-8"" RIP RAP (GH)",0,"6-8"" RIP RAP","6-8"" RIP RAP (GH",source,,,material,0
+270,HRLY MILL (END DUMP),0,HRLY MILL,HRLY MILL (END DUMP,source,,,material,0
+271,HOURLY WORK TIME,0,HOURLY WORK TIME,,,,,hourly_family,0
+272,CONCRETE SAND (DEXTER),0,CONCRETE SAND,CONCRETE SAND (DEXTER,source,,,material,0
+273,GYPSUM,0,GYPSUM,,,,,material,0
+274,AG LIME (STRACK-RED),0,AG LIME,AG LIME (STRACK-RED,source,,,material,0
+275,200# RIP RAP,0,200# RIP RAP,,,,,material,0
+276,RAP (WP),0,RAP,RAP (WP,source,,,material,0
+277,SHINGLES (PB),0,SHINGLES,SHINGLES (PB,source,,,material,0
+278,SAND (BK),0,SAND,SAND (BK,source,,,material,0
+279,SCREENGINGS (ARAB),0,SCREENGINGS,SCREENGINGS (ARAB,source,,,material,0
+280,"2"" MINUS (CC-VB)",0,"2"" MINUS","2"" MINUS (CC-VB",source,,,material,0
+281,"1"" MINUS (CC-VB)",0,"1"" MINUS","1"" MINUS (CC-VB",source,,,material,0
+282,WASHED SAND (DONIPHAN),0,WASHED SAND,WASHED SAND (DONIPHAN,source,,,material,0
+283,TRAP SAND (BUTLER),0,TRAP SAND,TRAP SAND (BUTLER,source,,,material,0
+284,"1"" C (BACKHAUL)",0,"1"" C","1"" C (BACKHAUL",service,,,service_in_name,0
+285,HOURLY-TENDER TRLR,0,HOURLY-TENDER TRLR,,,,,hourly_family,0
+286,"2 1/2"" LATERAL (ICM-DNPHN)",0,"2 1/2"" LATERAL","2 1/2"" LATERAL (ICM-DNPHN",source,,,material,0
+287,"1"" M (BACKHAUL)",0,"1"" M","1"" M (BACKHAUL",service,,,service_in_name,0
+289,AG LIME (SPREADING ONLY),0,AG LIME,AG LIME (SPREADING ONLY,service,,,service_in_name,0
+290,SAND (BUTLER),0,SAND,SAND (BUTLER,source,,,material,0
+291,HOURLY EDGE TRTMNT,0,HOURLY EDGE TRTMNT,,,,,hourly_family,0
+292,SAND (MALDEN),0,SAND,SAND (MALDEN,source,,,material,0
+293,HAUL BACK,0,HAUL BACK,,,,,service_in_name,0
+294,"1"" CLN LNDSCP TRAP (CENTRAL STONE)",0,"1"" CLN LNDSCP TRAP","1"" CLN LNDSCP TRAP (CENTRAL STONE",source,,,material,0
+295,RIP RAP (ARAB),0,RIP RAP,RIP RAP (ARAB,source,,,material,0
+296,"1"" CLN BLK LNDSCAPE (CS)",0,"1"" CLN BLK LNDSCAPE","1"" CLN BLK LNDSCAPE (CS",source,,,material,0
+297,TYPE 1/5,0,TYPE 1/5,,,,,material,0
+299,RAP (PB),0,RAP,RAP (PB,source,,,material,0
+300,SHINGLES (ARAB),0,SHINGLES,SHINGLES (ARAB,source,,,material,0
+301,HRLY ASPH (HEAVY HAUL),0,HRLY ASPH,HRLY ASPH (HEAVY HAUL,source,,,material,0
+302,ADJUSTMENT-PMT,0,ADJUSTMENT-PMT,,,,,material,0
+303,SHINGLES (PB),0,SHINGLES,SHINGLES (PB,source,,,material,0
+304,RAP (WILLOW),0,RAP,RAP (WILLOW,source,,,material,0
+305,1 1/8 LNDSCP BLND (BK),0,1 1/8 LNDSCP BLND,1 1/8 LNDSCP BLND (BK,source,,,material,0
+306,"1.5"" GRAVEL (BK)",0,"1.5"" GRAVEL","1.5"" GRAVEL (BK",source,,,material,0
+307,"1"" CLN (ICM-DONIPHAN)",0,"1"" CLN","1"" CLN (ICM-DONIPHAN",source,,,material,0
+308,TYPE 1/5 (SEMO),0,TYPE 1/5,TYPE 1/5 (SEMO,source,,,material,0
+309,ADJ-ERROR,0,ADJ-ERROR,,,,,material,0
+310,"2 1/2"" LATERAL (ARAB)",0,"2 1/2"" LATERAL","2 1/2"" LATERAL (ARAB",source,,,material,0
+311,CREDIT CARD FEE,0,CREDIT CARD FEE,,,,,material,0
+312,CC FEE (3%),0,CC FEE,CC FEE (3%,source,,,material,0
+314,WASTE CONCRETE,0,WASTE CONCRETE,,,,,material,0
+315,"1/2"" CLEAN (DONIPHAN)",0,"1/2"" CLEAN","1/2"" CLEAN (DONIPHAN",source,,,material,0
+316,TIRE,0,TIRE,,,,,material,0
+317,SCREEINGS (DON),0,SCREEINGS,SCREEINGS (DON,source,,,material,0
+318,"1/2"" M (DON",0,"1/2"" M","1/2"" M (DON",source,,,material,0
+319,HOURLY (CALIBRATE),0,HOURLY,HOURLY (CALIBRATE,hourly_context,,,hourly_family,0
+320,SAND (WS),0,SAND,SAND (WS,source,,,material,0
+321,HOURLY (ENDDUMP),0,HOURLY,HOURLY (ENDDUMP,hourly_context,,,hourly_family,0
+322,RED LIME (COLT R & L),0,RED LIME,RED LIME (COLT R & L,source,,,material,0
+323,MISTAKE ON WRONG RATE FOR INVOICE#17863,0,MISTAKE ON WRONG RATE FOR INVOICE#17863,,,,,material,0
+324,DIRT (MATERIAL ONLY),0,DIRT,DIRT (MATERIAL ONLY,service,,,service_in_name,0
+325,RED LIME (SPREADING ONLY),,RED LIME,RED LIME (SPREADING ONLY,service,,,service_in_name,0
+326,WHITE LIME (SPREADING ONLY),,WHITE LIME,WHITE LIME (SPREADING ONLY,service,,,service_in_name,0
+327,SHOT ROCK HALED TO ARAB,,SHOT ROCK HALED TO ARAB,,,,,material,0
+328,MOVING LAB TRAILER,,MOVING LAB TRAILER,,,,,material,0
+329,TRADE (HAY BALES),,TRADE,TRADE (HAY BALES,source,,,material,0
+330,AG LIME (MAT & HAULING),,AG LIME,AG LIME (MAT & HAULING,service,,,service_in_name,0
+336,SCREENING (DONIPHAN),,SCREENING,SCREENING (DONIPHAN,source,,,material,0
+338,SCREENINGS (DONIPHAN),,SCREENINGS,SCREENINGS (DONIPHAN,source,,,material,0
+339,"3/4"" CLEAN (DONIPHAN)",,"3/4"" CLEAN","3/4"" CLEAN (DONIPHAN",source,,,material,0
+341,HOURLY (DITCH CHECK),,HOURLY,HOURLY (DITCH CHECK,hourly_context,,,hourly_family,0
+342,ASPHALT 614,,ASPHALT 614,,,,,material,0
+343,HOURLY (ROCK/SHOULDERS),,HOURLY,HOURLY (ROCK/SHOULDERS,hourly_context,,,hourly_family,0
+344,HOURLY (CLEAN UP PLANT),,HOURLY,HOURLY (CLEAN UP PLANT,hourly_context,,,hourly_family,0
+345,RAP  PB 614,,RAP  PB 614,,,,,material,0
+346,HOURLY (BRIDGE WORK),,HOURLY,HOURLY (BRIDGE WORK,hourly_context,,,hourly_family,0
+347,AG LIME (HEARTLAND),,AG LIME,AG LIME (HEARTLAND,source,,,material,0
+348,AGLIME (SPREADING ONLY)By The Acre,,AGLIME,AGLIME (SPREADING ONLY,service,,,service_in_name,0
+349,COLT R&L (MAT/HAUL/SPRDNG),,COLT R&L,COLT R&L (MAT/HAUL/SPRDNG,service,,,service_in_name,0
+351,HOURLY (WASTE ROCK),,HOURLY,HOURLY (WASTE ROCK,hourly_context,,,hourly_family,0
+352,"3/8"" PUG ROCK (CANE CREEK)",,"3/8"" PUG ROCK","3/8"" PUG ROCK (CANE CREEK",source,,,material,0
+353,HOURLY (DRIVEWAYS),,HOURLY,HOURLY (DRIVEWAYS,hourly_context,,,hourly_family,0
+354,3/8 CHIPS,,3/8 CHIPS,,,,,material,0
+355,HOURLY (REMOVING ASPHALT),,HOURLY,HOURLY (REMOVING ASPHALT,hourly_context,,,hourly_family,0
+359,"3/4"" DIRTY BASE (GADS HILL)",,"3/4"" DIRTY BASE","3/4"" DIRTY BASE (GADS HILL",source,,,material,0
+360,HOURLY JOB 23002.2 ACCIDENT 1000002,,HOURLY JOB 23002.2 ACCIDENT 1000002,,,,,hourly_family,0
+361,HOURLY ASPHALT SIDE ROADS,,HOURLY ASPHALT SIDE ROADS,,,,,hourly_family,0
+362,TRAP SAND (IRON MTN),,TRAP SAND,TRAP SAND (IRON MTN,source,,,material,0
+363,SHOP HOURS,,SHOP HOURS,,,,,material,0
+364,HOURLY  MILL DRIVEWAYS,,HOURLY  MILL DRIVEWAYS,,,,,hourly_family,0
+365,HOURLY MAN SAND (ICM-WS),,HOURLY MAN SAND,HOURLY MAN SAND (ICM-WS,hourly_context,,,hourly_family,0
+366,HOURLY ROCK (ICM-WP),,HOURLY ROCK,HOURLY ROCK (ICM-WP,hourly_context,,,hourly_family,0
+367,TYPE 5 BASE PERRYVILLE,,TYPE 5 BASE PERRYVILLE,,,,,material,0
+368,HOURLY REJECTED LOAD ,,HOURLY REJECTED LOAD,,,,,hourly_family,0
+369,HOURLY MAN SAND,,HOURLY MAN SAND,,,,,hourly_family,0
+370,"1"" BASE COLT",,"1"" BASE COLT",,,,,material,0
+371,TYPE V BASE (ICM-W. Plains),,TYPE V BASE,TYPE V BASE (ICM-W. Plains,source,,,material,0
+372,TYPE 1 BASE,,TYPE 1 BASE,,,,,material,0
+376,HOURLY (TRAILER MOVE),,HOURLY,HOURLY (TRAILER MOVE,hourly_context,,,hourly_family,0
+378,TYPE 5 (BASE ROCK FRT.LND.),,TYPE 5,TYPE 5 (BASE ROCK FRT.LND.,source,,,material,0
+379,CLAY STRIPPING (WS),,CLAY STRIPPING,CLAY STRIPPING (WS,source,,,material,0
+380,HOURLY (ASPHALT/PLANT DOWN),,HOURLY,HOURLY (ASPHALT/PLANT DOWN,hourly_context,,,hourly_family,0
+381,"3 3/8""CLEAN  (FARMINGTON)",,"3 3/8""CLEAN","3 3/8""CLEAN  (FARMINGTON",source,,,material,0
+382,HOURLY (DRIVWAY REPAIR & SHOULDER ROCK,,HOURLY,HOURLY (DRIVWAY REPAIR & SHOULDER ROCK,hourly_context,,,hourly_family,0
+383,MFG SAND (IRON MNT.),,MFG SAND,MFG SAND (IRON MNT.,source,,,material,0
+384,DRIVE TIME (PER KYLE),,DRIVE TIME,DRIVE TIME (PER KYLE,source,,,material,0
+385,HOURLY (STOCKPILING ROCK),,HOURLY,HOURLY (STOCKPILING ROCK,hourly_context,,,hourly_family,0
+386,TYPE 5 BASE (CAPITAL),,TYPE 5 BASE,TYPE 5 BASE (CAPITAL,source,,,material,0
+387,"3/4"" CLEAN (CC)",,"3/4"" CLEAN","3/4"" CLEAN (CC",source,,,material,0
+388,"43 1/2""X1/4"" (IRON MNT.)",,"43 1/2""X1/4""","43 1/2""X1/4"" (IRON MNT.",source,,,material,0
+389,WOOD CHIPS/MULCH (ELLSINORE),,WOOD CHIPS/MULCH,WOOD CHIPS/MULCH (ELLSINORE,source,,,material,0
+390,HOURLY (Stockpile),,HOURLY,HOURLY (Stockpile,hourly_context,,,hourly_family,0
+391,HOURLY (PLANT CLEAN OUT),,HOURLY,HOURLY (PLANT CLEAN OUT,hourly_context,,,hourly_family,0
+392,HOURLY (CLEAN UP/HAUL BACK),,HOURLY,HOURLY (CLEAN UP/HAUL BACK,hourly_context,,,hourly_family,0
+393,"3/4"" CLEAN (BLUEWING-PB)",,"3/4"" CLEAN","3/4"" CLEAN (BLUEWING-PB",source,,,material,0
+394,"3/8"" CLEAN (BLUEWING PB)",,"3/8"" CLEAN","3/8"" CLEAN (BLUEWING PB",source,,,material,0
+395,"1"" MINUS (BLUEWING PB)",,"1"" MINUS","1"" MINUS (BLUEWING PB",source,,,material,0
+396,"1"" CLEAN (BLUEWING PB)",,"1"" CLEAN","1"" CLEAN (BLUEWING PB",source,,,material,0
+397,HOURLY (SHOULDERS/DRIVEWAYS),,HOURLY,HOURLY (SHOULDERS/DRIVEWAYS,hourly_context,,,hourly_family,0
+398,OVERSIZED GRAVEL (DEXTER),,OVERSIZED GRAVEL,OVERSIZED GRAVEL (DEXTER,source,,,material,0
+399,"2"" MINUS (SEMO)",,"2"" MINUS","2"" MINUS (SEMO",source,,,material,0
+400,"1/2"" MINUS (BLUEWING PB)",,"1/2"" MINUS","1/2"" MINUS (BLUEWING PB",source,,,material,0
+401,STATE CONCRETE SAND (DEXTER),,STATE CONCRETE SAND,STATE CONCRETE SAND (DEXTER,source,,,material,0
+402,"FR 1/2"" DOLOMITE (SEMO)",,"FR 1/2"" DOLOMITE","FR 1/2"" DOLOMITE (SEMO",source,,,material,0
+404,"3"" MINUS (SEMO)",,"3"" MINUS","3"" MINUS (SEMO",source,,,material,0
+405,"3"" CLEAN (SEMO)",,"3"" CLEAN","3"" CLEAN (SEMO",source,,,material,0
+406,"1/4"" MINUS",,"1/4"" MINUS",,,,,material,0
+408,HOURLY (COLD MIX),,HOURLY,HOURLY (COLD MIX,hourly_context,,,hourly_family,0
+409,ASPHALT SAND (BRENDA KAY),,ASPHALT SAND,ASPHALT SAND (BRENDA KAY,source,,,material,0
+411,GYPSUM (Prairie State),,GYPSUM,GYPSUM (Prairie State,source,,,material,0
+412,TYPE 5 (BASE ROCK),,TYPE 5,TYPE 5 (BASE ROCK,source,,,material,0
+416,TYPE 5 (ICM-ARAB),,TYPE 5,TYPE 5 (ICM-ARAB,source,,,material,0
+417,HOURLY (HAULING MILLINGS),,HOURLY,HOURLY (HAULING MILLINGS,hourly_context,,,hourly_family,0
+418,OVERSIZE GRAVEL (WS),,OVERSIZE GRAVEL,OVERSIZE GRAVEL (WS,source,,,material,0
+419,SHINGLES (WEST PLAINS),,SHINGLES,SHINGLES (WEST PLAINS,source,,,material,0
+420,HOURLY (MOVING LIME GRAIN BINS TO FLD),,HOURLY,HOURLY (MOVING LIME GRAIN BINS TO FLD,hourly_context,,,hourly_family,0
+422,TYPE 5 BASE (MANSFIELD),,TYPE 5 BASE,TYPE 5 BASE (MANSFIELD,source,,,material,0
+423,"1"" BASE (WEST PLAINS)",,"1"" BASE","1"" BASE (WEST PLAINS",source,,,material,0
+424,"3"" CLEAN (BLUEWING)",,"3"" CLEAN","3"" CLEAN (BLUEWING",source,,,material,0
+425,"3/8"" CLEAN (FRUITLAND ASPHALT)",,"3/8"" CLEAN","3/8"" CLEAN (FRUITLAND ASPHALT",source,,,material,0
+427,HOURLY WORK TIME (PLANT),,HOURLY WORK TIME,HOURLY WORK TIME (PLANT,hourly_context,,,hourly_family,0
+429,SHOW UP/ MILL & FILL,,SHOW UP/ MILL & FILL,,,,,material,0
+430,"1"" BASE (ICM-Houston)",,"1"" BASE","1"" BASE (ICM-Houston",source,,,material,0
+431,"2"" MINUS (BLUEWING PB)",,"2"" MINUS","2"" MINUS (BLUEWING PB",source,,,material,0
+432,"1"" BASE (TAX EXEMPT) ICM-Arab",,"1"" BASE","1"" BASE (TAX EXEMPT",source,,,material,0
+433,OVERSIZE GRAVEL(BLUEWING),,OVERSIZE GRAVEL,OVERSIZE GRAVEL(BLUEWING,source,,,material,0
+434,"2"" CLEAN (BLUEWING PB)",,"2"" CLEAN","2"" CLEAN (BLUEWING PB",source,,,material,0
+435,HOURLY HAULING,,HOURLY HAULING,,,,,hourly_family,0
+436,"2 1/2"" BASE (ICM-DONIPHAN)",,"2 1/2"" BASE","2 1/2"" BASE (ICM-DONIPHAN",source,,,material,0
+437,"1/2"" CLEAN (ICM-DONIPHAN)",,"1/2"" CLEAN","1/2"" CLEAN (ICM-DONIPHAN",source,,,material,0
+438,Pea Gravel (DRTY) DXTR (Material Only),,Pea Gravel,Pea Gravel (DRTY,source,DXTR (Material Only,service,material,0
+439,Pea Gravel (CLN) DXTR SND (Material Only),,Pea Gravel,Pea Gravel (CLN,source,DXTR SND (Material Only,service,material,0
+440,BACK HAUL RAP/MILLING,,BACK HAUL RAP/MILLING,,,,,service_in_name,0
+441,"1"" MINUS (GRAY'S POINT) HAULING ONLY",,"1"" MINUS","1"" MINUS (GRAY'S POINT",source,,,service_in_name,0
+442,"2"" MINUS (STOCKPILE)",,"2"" MINUS","2"" MINUS (STOCKPILE",source,,,material,0
+443,HUB OIL (NAPA),,HUB OIL,HUB OIL (NAPA,source,,,material,0
+445,TYPE 1/5 BASE (VB),,TYPE 1/5 BASE,TYPE 1/5 BASE (VB,source,,,material,0
+446,CONCRETE SAND (BRENDA KAY),,CONCRETE SAND,CONCRETE SAND (BRENDA KAY,source,,,material,0
+447,BIT BASE (FRUITLAND),,BIT BASE,BIT BASE (FRUITLAND,source,,,material,0
+448,SERF LEVELING (FRUITLAND),,SERF LEVELING,SERF LEVELING (FRUITLAND,source,,,material,0
+449,"2"" MINUS (BASE ROCK)",,"2"" MINUS","2"" MINUS (BASE ROCK",source,,,material,0
+450,SLATE LANDSCAPING ROCK (SEMO Land Designs),,SLATE LANDSCAPING ROCK,SLATE LANDSCAPING ROCK (SEMO Land Designs,source,,,material,0
+451,"1/2"" CLEAN (ICM-HOUSTON)",,"1/2"" CLEAN","1/2"" CLEAN (ICM-HOUSTON",source,,,material,0
+452,HOURLY (WORK TIME),,HOURLY,HOURLY (WORK TIME,hourly_context,,,hourly_family,0
+453,HOURLY (MILLING-SHOULDERS),,HOURLY,HOURLY (MILLING-SHOULDERS,hourly_context,,,hourly_family,0
+456,HOURLY ASPHALT 18-20 Tons,,HOURLY ASPHALT 18-20 Tons,,,,,hourly_family,0
+457,HOURLY ASPHALT 21-24 Tons,,HOURLY ASPHALT 21-24 Tons,,,,,hourly_family,0
+459,MISC,,MISC,,,,,material,0
+460,HOURLY (SHOULDERS/RAMPS),,HOURLY,HOURLY (SHOULDERS/RAMPS,hourly_context,,,hourly_family,0
+461,SURF. LEVELING,,SURF. LEVELING,,,,,material,0
+463,LOADING DIRT,,LOADING DIRT,,,,,material,0
+464,"WASHED 1"" OPEN (DEXTER)",,"WASHED 1"" OPEN","WASHED 1"" OPEN (DEXTER",source,,,material,0
+465,"1/2"" MINUS (ICM-Doniphan)",,"1/2"" MINUS","1/2"" MINUS (ICM-Doniphan",source,,,material,0
+466,HOURLY (RAMP MATERIAL),,HOURLY,HOURLY (RAMP MATERIAL,hourly_context,,,hourly_family,0
+467,HOURLY EXCAVATOR,,HOURLY EXCAVATOR,,,,,hourly_family,0
+468,"5/8"" TRAP (BUTLER)",,"5/8"" TRAP","5/8"" TRAP (BUTLER",source,,,material,0
+469,HOURLY HOLD TIME ,,HOURLY HOLD TIME,,,,,hourly_family,0
+470,HOURLY (HAULING SHINGLES),,HOURLY,HOURLY (HAULING SHINGLES,hourly_context,,,hourly_family,0
+471,GABION STONE (BLUEWING),,GABION STONE,GABION STONE (BLUEWING,source,,,material,0
+472,"SCREENINGS/TURKEY GRIT (ICM) 1/4"" Minus",,SCREENINGS/TURKEY GRIT,SCREENINGS/TURKEY GRIT (ICM,source,,,material,1
+473,"1/4"" MINUS (STOCKPILE)",,"1/4"" MINUS","1/4"" MINUS (STOCKPILE",source,,,material,0
+474,"1/4
+1/4"" MINUS (BLUEWING PB)",,"1/4
+1/4"" MINUS","1/4
+1/4"" MINUS (BLUEWING PB",source,,,material,0
+475,HOURLY (DIRT HAUL),,HOURLY,HOURLY (DIRT HAUL,hourly_context,,,hourly_family,0
+476,"3/8"" MINUS (BLUEWING-PB)",,"3/8"" MINUS","3/8"" MINUS (BLUEWING-PB",source,,,material,0
+477,"1/2"" CLEAN (BLUEWING-PB)",,"1/2"" CLEAN","1/2"" CLEAN (BLUEWING-PB",source,,,material,0
+478,HAULING SAND,,HAULING SAND,,,,,service_in_name,0
+480,CLASS 7 BASE (BW),,CLASS 7 BASE,CLASS 7 BASE (BW,source,,,material,0
+481,HOURLY (SAND) FARMINGTON,,HOURLY,HOURLY (SAND,hourly_context,,,hourly_family,0
+483,HOURLY (CURB MIX),,HOURLY,HOURLY (CURB MIX,hourly_context,,,hourly_family,0
+484,HOURLY (SHINGLES) FARMINGTON,,HOURLY,HOURLY (SHINGLES,hourly_context,,,hourly_family,0
+485,ASPHALT (DELTA DEXTER),,ASPHALT,ASPHALT (DELTA DEXTER,source,,,material,0
+486,"3"" MINUS (BLUEWING)",,"3"" MINUS","3"" MINUS (BLUEWING",source,,,material,0
+487,"1"" CLEAN LANDSCAPE BLK (BUTLER HILL)",,"1"" CLEAN LANDSCAPE BLK","1"" CLEAN LANDSCAPE BLK (BUTLER HILL",source,,,material,0
+488,"3/8"" CLEAN (VB Bluewing)",,"3/8"" CLEAN","3/8"" CLEAN (VB Bluewing",source,,,material,0
+489,ASPHALT (MINERAL AREA),,ASPHALT,ASPHALT (MINERAL AREA,source,,,material,0
+490,TYPE 1/5 BASE (BW),,TYPE 1/5 BASE,TYPE 1/5 BASE (BW,source,,,material,0
+491,TYPE 1/5 (COLT),,TYPE 1/5,TYPE 1/5 (COLT,source,,,material,0
+492,"AG LIME (MAT, HAUL, SPRD) BaseRock",,AG LIME,"AG LIME (MAT, HAUL, SPRD",service,,,service_in_name,0
+493,HOURLY (CAREER DAY),,HOURLY,HOURLY (CAREER DAY,hourly_context,,,hourly_family,0
+494,ASPHALT (ROBERTSON),,ASPHALT,ASPHALT (ROBERTSON,source,,,material,0
+495,HOURLY (COAL HAUL),,HOURLY,HOURLY (COAL HAUL,hourly_context,,,hourly_family,0
+496,"2"" CLEAN (BASE ROCK)",,"2"" CLEAN","2"" CLEAN (BASE ROCK",source,,,material,0
+497,HAULING (ROCK),,HAULING,HAULING (ROCK,service,,,service_in_name,0
+498,"8"" BASE ROCK (BW)",,"8"" BASE ROCK","8"" BASE ROCK (BW",source,,,material,0
+499,Hourly(RipRap),,Hourly,Hourly(RipRap,hourly_context,,,hourly_family,0
+500,AG LIME (FISCHER QUARRY),,AG LIME,AG LIME (FISCHER QUARRY,source,,,material,0
+501,"1"" MINUS (BLUEWING-VB)",,"1"" MINUS","1"" MINUS (BLUEWING-VB",source,,,material,0
+502,"1"" CLEAN WASH ROCK (BLUEWING-DON)",,"1"" CLEAN WASH ROCK","1"" CLEAN WASH ROCK (BLUEWING-DON",source,,,material,0
+504,TYPE 2 ROCK BLANKET (BW),,TYPE 2 ROCK BLANKET,TYPE 2 ROCK BLANKET (BW,source,,,material,0
+505,Rip Rap #200 (BW),,Rip Rap #200,Rip Rap #200 (BW,source,,,material,0
+506,Bedding Material (BW),,Bedding Material,Bedding Material (BW,source,,,material,0
+507,"AG LIME (MAT, HAUL, SPRD) STOCKPILE",,AG LIME,"AG LIME (MAT, HAUL, SPRD",service,,,service_in_name,0
+508,"1"" WASHED GRAVEL (ICM DONIPHAN)",,"1"" WASHED GRAVEL","1"" WASHED GRAVEL (ICM DONIPHAN",source,,,material,0
+509,AGLIME (JACKSON QUARRY),,AGLIME,AGLIME (JACKSON QUARRY,source,,,material,0
+510,"1/2"" MINUS (CAPE QUARRY)",,"1/2"" MINUS","1/2"" MINUS (CAPE QUARRY",source,,,material,0
+511,TOPSOIL (ICM),,TOPSOIL,TOPSOIL (ICM,source,,,material,0
+512,"8"" CLN (CAP QUARRIES) Material Only",,"8"" CLN","8"" CLN (CAP QUARRIES",source,,,service_in_name,0
+513,WASHED PEA GRAVEL (ICM-DONIPHAN),,WASHED PEA GRAVEL,WASHED PEA GRAVEL (ICM-DONIPHAN,source,,,material,0
+514,"1"" CLEAN (ICM-DONIPHAN)",,"1"" CLEAN","1"" CLEAN (ICM-DONIPHAN",source,,,material,0
+515,"3/4"" CLEAN (ICM-DONIPHAN)",,"3/4"" CLEAN","3/4"" CLEAN (ICM-DONIPHAN",source,,,material,0
+516,COW MANURE,,COW MANURE,,,,,material,0
+517,HOURLY (INTERSECTION REPAIR),,HOURLY,HOURLY (INTERSECTION REPAIR,hourly_context,,,hourly_family,0
+518,CLAY BASE (ICM-ARAB),,CLAY BASE,CLAY BASE (ICM-ARAB,source,,,material,0
+519,HOURLY (ASPHALT/CLEAN UP),,HOURLY,HOURLY (ASPHALT/CLEAN UP,hourly_context,,,hourly_family,0
+520,HOURLY (INTERSECTION),,HOURLY,HOURLY (INTERSECTION,hourly_context,,,hourly_family,0
+521,ACCIDENT DOWN TIME,,ACCIDENT DOWN TIME,,,,,material,0

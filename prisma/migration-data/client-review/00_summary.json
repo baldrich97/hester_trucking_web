@@ -1,0 +1,12 @@
+{
+  "totalInScope": 470,
+  "uniqueBases": 250,
+  "uniqueSources": 96,
+  "uniqueServices": 6,
+  "hourlyVariants": 94,
+  "duplicateGroups": 22,
+  "weirdFlagged": 63,
+  "rowsWithoutService": 349,
+  "rowsWithService": 121,
+  "rowsWithSource": 254
+}
