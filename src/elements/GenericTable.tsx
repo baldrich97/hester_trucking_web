@@ -216,9 +216,6 @@ function cloneRows<T>(rows: T[]): T[] {
 }
 
 function getCellValue(row: any, columnName: string): unknown {
-  if (columnName.includes(".")) {
-    return columnName.split(".").reduce((o, key) => (o ? o[key] : undefined), row);
-  }
   if (columnName.includes("+")) {
     return columnName
       .split("+")
@@ -232,6 +229,9 @@ function getCellValue(row: any, columnName: string): unknown {
         return index + 1 === parts.length ? value : `${value ?? ""} `;
       })
       .join("");
+  }
+  if (columnName.includes(".")) {
+    return columnName.split(".").reduce((o, key) => (o ? o[key] : undefined), row);
   }
   return row[columnName];
 }

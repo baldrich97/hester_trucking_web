@@ -217,8 +217,12 @@ const RHAutocomplete: React.FC<RHAutocompleteProps> = ({
     // --- Selected-row hydration ---------------------------------------------
     // Fetches the currently-selected row so the input shows a label when the
     // menu is closed or the row isn't in the current search hits.
+    // NOTE: intentionally NOT gated behind `!disabled`. A disabled field still
+    // needs to hydrate its currently-selected row so the input renders the
+    // correct label (e.g. the read-only Driver field on the paystub detail
+    // page). Only live search is disabled for disabled fields.
     const canUseGet =
-        Boolean(searchQuery) && ROUTERS_WITH_GET.has(searchQuery) && !disabled;
+        Boolean(searchQuery) && ROUTERS_WITH_GET.has(searchQuery);
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore dynamic procedure path
     const selectedRowQuery = trpc.useQuery([`${searchQuery}.get`, {ID: parsedId!}], {
