@@ -1,7 +1,14 @@
-import React, {useRef, useState} from "react";
+import React, {useRef, useState, useMemo} from "react";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import Typography from "@mui/material/Typography";
+import Alert from "@mui/material/Alert";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Link from "@mui/material/Link";
 import {useForm} from "react-hook-form";
 import {z} from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
@@ -46,6 +53,7 @@ import Truck from "./Truck";
 import LoadType from "./LoadType";
 import DeliveryLocation from "./DeliveryLocation";
 import Source from "./Source";
+import {useSourcesCutover} from "../../hooks/useSourcesCutover";
 
 const today = new Date();
 const defaultWeek = formatDateToWeek(new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000));
@@ -326,7 +334,14 @@ function Load({
         initialLoad ? (initialLoad.TruckID ? initialLoad.TruckID : 0) : 0
     );
 
-    const [source, setSource] = useState(0);
+    const [source, setSource] = useState(
+        initialLoad && (initialLoad as {SourceID?: number}).SourceID
+            ? (initialLoad as {SourceID?: number}).SourceID!
+            : 0
+    );
+
+    const [forceNewWork, setForceNewWork] = useState(false);
+    const {active: cutoverActive} = useSourcesCutover();
 
     const [loadTypeSelected, setLoadTypeSelected] = useState(
         initialLoad ? (initialLoad.LoadTypeID ? initialLoad.LoadTypeID : 0) : 0
@@ -361,12 +376,50 @@ function Load({
         await router.replace("/loads");
     };
 
+    const watchWeek = watch("Week");
+    const watchDriverID = watch("DriverID");
+    const watchDeliveryLocationID = watch("DeliveryLocationID");
+
+    const openJobsQuery = trpc.useQuery(
+        [
+            "loads.openLegacyJobs",
+            {
+                DriverID: watchDriverID ?? 0,
+                Week: watchWeek ?? "",
+                CustomerID: customer || undefined,
+                DeliveryLocationID: watchDeliveryLocationID || undefined,
+            },
+        ],
+        {
+            enabled:
+                cutoverActive &&
+                !forceNewWork &&
+                Boolean(watchDriverID) &&
+                Boolean(watchWeek),
+        },
+    );
+
+    const openJobs = openJobsQuery.data ?? [];
+    const openJobLoadTypeIDs = useMemo(
+        () => openJobs.map((job) => job.LoadTypeID),
+        [openJobs],
+    );
+    const showLegacyPath = cutoverActive && !forceNewWork && openJobs.length > 0;
+    const showSourceField = cutoverActive && !showLegacyPath;
+    const loadTypeEra: "legacy" | "new" | undefined = cutoverActive
+        ? showLegacyPath
+            ? "legacy"
+            : "new"
+        : undefined;
+
     trpc.useQuery(
         [
             "loadtypes.search",
             {
                 CustomerID: customer || undefined,
                 SourceID: source || undefined,
+                era: loadTypeEra,
+                OpenJobLoadTypeIDs: openJobLoadTypeIDs.length > 0 ? openJobLoadTypeIDs : undefined,
             },
         ],
         {
@@ -490,6 +543,12 @@ function Load({
                     srcsetShouldRefresh(true);
                 }
             }
+            if (name === "DriverID" && type === "change") {
+                setForceNewWork(false);
+            }
+            if (name === "Week" && type === "change") {
+                setForceNewWork(false);
+            }
             if ((name === "TruckID" || name === "DriverID") && type === "change") {
                 if (name === "TruckID") {
                     //setValue("DriverID", 0)
@@ -516,6 +575,22 @@ function Load({
     const watchHours = watch("Hours");
     const watchWeight = watch("Weight");
 
+    const prefillOpenJob = (job: (typeof openJobs)[number]) => {
+        setValue("CustomerID", job.CustomerID);
+        setCustomer(job.CustomerID);
+        setValue("LoadTypeID", job.LoadTypeID);
+        setLoadTypeSelected(job.LoadTypeID);
+        setValue("DeliveryLocationID", job.DeliveryLocationID);
+        setValue("TruckRate", job.TruckingRate);
+        setValue("MaterialRate", job.MaterialRate);
+        setValue("DriverRate", job.DriverRate);
+        setValue("TotalRate", job.CompanyRate);
+        setValue("SourceID", null);
+        setSource(0);
+        dlsetShouldRefresh(true);
+        ltsetShouldRefresh(true);
+    };
+
     // React.useEffect(() => {
     //     if (initialLoad) {
     //         if (watchCustomerSelected !== initialLoad.CustomerID) {
@@ -529,7 +604,49 @@ function Load({
     //     setValue('LoadTypeID', undefined)
     // }, [setValue, watchCustomerSelected])
 
-    const fields: FormFieldsType = [
+    React.useEffect(() => {
+        ltsetShouldRefresh(true);
+    }, [cutoverActive, forceNewWork, openJobLoadTypeIDs.join(","), loadTypeEra]);
+
+    const baseFields: FormFieldsType = useMemo(() => {
+        const loadTypeField = {
+            name: "LoadTypeID",
+            size: showSourceField ? 6 : 6,
+            required: true,
+            shouldErrorOn: ["invalid_type"],
+            errorMessage: "Load type is required.",
+            type: "select" as const,
+            label: "Load Type",
+            searchQuery: "loadtypes",
+            groupBy: "Recommend",
+            groupByNames: showLegacyPath
+                ? "OpenJob=Open Job|Customer=Used by Customer|Source=Linked to Source|Other"
+                : "Customer=Used by Customer|Source=Linked to Source|Other",
+            enableOptionGroups: customer > 0 || showLegacyPath,
+            newOptionLabel: cutoverActive && !showLegacyPath ? undefined : "New Load Type",
+            onNewOptionClick:
+                cutoverActive && !showLegacyPath
+                    ? undefined
+                    : () => setNewObjectModalTarget("LoadTypeID"),
+        };
+
+        const sourceField = showSourceField
+            ? {
+                  name: "SourceID",
+                  size: 6,
+                  required: false,
+                  type: "select" as const,
+                  label: "Source",
+                  searchQuery: "sources",
+                  groupBy: "Recommend",
+                  groupByNames: "Linked=Linked to Load Type|Other",
+                  enableOptionGroups: loadTypeSelected > 0,
+                  newOptionLabel: "New Source",
+                  onNewOptionClick: () => setNewObjectModalTarget("SourceID"),
+              }
+            : null;
+
+        return [
         {
             name: "CustomerID",
             size: initialLoad ? 10 : 12,
@@ -570,36 +687,8 @@ function Load({
             newOptionLabel: "New Truck",
             onNewOptionClick: () => setNewObjectModalTarget("TruckID"),
         },
-        {
-            name: "LoadTypeID",
-            size: 6,
-            required: true,
-            shouldErrorOn: ["invalid_type"],
-            errorMessage: "Load type is required.",
-            type: "select",
-            label: "Load Type",
-            searchQuery: "loadtypes",
-            groupBy: "Recommend",
-            groupByNames: "Customer=Used by Customer|Source=Linked to Source|Other",
-            enableOptionGroups: customer > 0,
-            newOptionLabel: "New Load Type",
-            onNewOptionClick: () => setNewObjectModalTarget("LoadTypeID"),
-        },
-        // Uncomment Source select and keep `newOptionLabel` / `onNewOptionClick` for inline "New Source" creation:
-        // {
-        //     name: "SourceID",
-        //     size: 6,
-        //     required: false,
-        //     type: "select",
-        //     label: "Source (optional)",
-        //     searchQuery: "sources",
-        //     groupBy: "Recommend",
-        //     groupByNames: "Linked=Linked to Load Type|Other",
-        //     enableOptionGroups: loadTypeSelected > 0,
-        //     newOptionLabel: "New Source",
-        //     onNewOptionClick: () => setNewObjectModalTarget("SourceID"),
-        // },
-        // TODO when above is uncommented need to turn below into size 6
+        loadTypeField,
+        ...(sourceField ? [sourceField] : []),
         {
             name: "DeliveryLocationID",
             size: 6,
@@ -703,16 +792,21 @@ function Load({
             multiline: true,
         },
     ];
+    }, [showSourceField, showLegacyPath, cutoverActive, customer, loadTypeSelected, initialLoad]);
 
-    if (initialLoad) {
-        fields.splice(1, 0, {
-            name: "Invoiced",
-            size: 2,
-            required: false,
-            type: "checkbox",
-            disabled: true,
-        });
-    }
+    const fields = useMemo(() => {
+        const next = [...baseFields];
+        if (initialLoad) {
+            next.splice(1, 0, {
+                name: "Invoiced",
+                size: 2,
+                required: false,
+                type: "checkbox",
+                disabled: true,
+            });
+        }
+        return next;
+    }, [baseFields, initialLoad]);
 
     const selectData: SelectDataType = [
         {
@@ -806,6 +900,8 @@ function Load({
                     selectedLoadType={loadTypeSelected}
                     selectedTruck={truck}
                     selectedDriver={driver}
+                    loadTypeEra={loadTypeEra}
+                    openJobLoadTypeIDs={openJobLoadTypeIDs}
                     submitDisabled={
                         isSubmitting ||
                         addOrUpdateLoad.isLoading ||
@@ -834,6 +930,51 @@ function Load({
                             : null
                     }
                 />
+                {showLegacyPath && (
+                    <>
+                        <Alert severity="info" sx={{mt: 2}}>
+                            {openJobs.length} open job{openJobs.length === 1 ? "" : "s"} for this driver/week.
+                            Pick one below or choose an Open Job load type.{" "}
+                            <Link
+                                component="button"
+                                type="button"
+                                onClick={() => {
+                                    setForceNewWork(true);
+                                    setValue("SourceID", null);
+                                    setSource(0);
+                                    ltsetShouldRefresh(true);
+                                }}
+                            >
+                                New work instead
+                            </Link>
+                        </Alert>
+                        <Table size="small" sx={{mt: 1}}>
+                            <TableHead>
+                                <TableRow>
+                                    <TableCell>Customer</TableCell>
+                                    <TableCell>Load Type</TableCell>
+                                    <TableCell>Location</TableCell>
+                                    <TableCell>Company Rate</TableCell>
+                                </TableRow>
+                            </TableHead>
+                            <TableBody>
+                                {openJobs.map((job) => (
+                                    <TableRow
+                                        key={job.JobID}
+                                        hover
+                                        sx={{cursor: "pointer"}}
+                                        onClick={() => prefillOpenJob(job)}
+                                    >
+                                        <TableCell>{job.CustomerName}</TableCell>
+                                        <TableCell>{job.LoadTypeDescription}</TableCell>
+                                        <TableCell>{job.DeliveryLocationDescription}</TableCell>
+                                        <TableCell>{job.CompanyRate}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </>
+                )}
             </Box>
             <Modal open={newObjectModalTarget !== null} onClose={closeNewObjectModal}>
                 <Box sx={createModalStyle} onClick={(e) => e.stopPropagation()}>

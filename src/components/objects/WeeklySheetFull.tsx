@@ -13,6 +13,7 @@ import {
     CompleteCustomers, CompleteDeliveryLocations, CompleteLoadTypes
 } from "../../../prisma/zod";
 import moment from "moment/moment";
+import {formatMaterial} from "../../utils/formatMaterial";
 
 interface CustomerSheet extends CompleteWeeklies {
     Customers: CompleteCustomers,
@@ -54,7 +55,7 @@ const WeeklySheetFull = ({sheet, week, displayWeek, sums}: { sheet: CustomerShee
     return (
         <Document>
             <Page size='A4' style={styles.page} orientation={'landscape'}>
-                <WeeklyParts.Title customer={sheet.Customers.Name} material={sheet.LoadTypes.Description} location={sheet.DeliveryLocations.Description} week={displayWeek}/>
+                <WeeklyParts.Title customer={sheet.Customers.Name} material={formatMaterial({description: sheet.LoadTypes.Description, source: (sheet as {Sources?: {Name?: string; ShortName?: string}}).Sources})} location={sheet.DeliveryLocations.Description} week={displayWeek}/>
                 <Html>{linebreakhtml}</Html>
                 <WeeklyParts.Table jobs={sheet.Jobs} sums={sums} rate={sheet.CompanyRate ?? 0} week={week} revenue={sheet.Revenue ?? 0}/>
             </Page>

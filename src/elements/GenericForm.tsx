@@ -18,8 +18,10 @@ const GenericForm = ({
                          selectedSource = 0,
                          selectedLoadType = 0,
                          selectedTruck = 0,
-                         selectedDriver = 0,
-                         onDelete = null,
+    selectedDriver = 0,
+    loadTypeEra,
+    openJobLoadTypeIDs,
+    onDelete = null,
                          onReset = null,
                          submitDisabled = false,
                          deleteDisabled = false,
@@ -34,6 +36,8 @@ const GenericForm = ({
     selectedLoadType?: number | null;
     selectedTruck?: number | null;
     selectedDriver?: number | null;
+    loadTypeEra?: "legacy" | "new" | "all";
+    openJobLoadTypeIDs?: number[];
     onDelete?: any;
     onReset?: any;
     submitDisabled?: boolean;
@@ -106,6 +110,8 @@ const GenericForm = ({
                                     selectedLoadType={selectedLoadType}
                                     selectedTruck={selectedTruck}
                                     selectedDriver={selectedDriver}
+                                    loadTypeEra={field.searchQuery === "loadtypes" ? loadTypeEra : undefined}
+                                    openJobLoadTypeIDs={field.searchQuery === "loadtypes" ? openJobLoadTypeIDs : undefined}
                                     onlyActive={field.onlyActive}
                                     newOptionLabel={field.newOptionLabel}
                                     onNewOptionClick={field.onNewOptionClick}

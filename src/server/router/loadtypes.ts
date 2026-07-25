@@ -2,6 +2,22 @@ import {createRouter} from "./context";
 import {z} from "zod";
 import { LoadTypesModel } from '../../../prisma/zod';
 import { LoadTypes } from "@prisma/client";
+import {isSourcesCutoverActive, NEW_LOAD_TYPE_ID_THRESHOLD} from "../../config/sourcesCutover";
+
+const notDeletedWhere = {OR: [{Deleted: false}, {Deleted: null}]};
+
+function eraIdFilter(era?: "legacy" | "new" | "all") {
+    if (!isSourcesCutoverActive()) {
+        return {ID: {lt: NEW_LOAD_TYPE_ID_THRESHOLD}};
+    }
+    if (era === "new") {
+        return {ID: {gte: NEW_LOAD_TYPE_ID_THRESHOLD}};
+    }
+    if (era === "legacy") {
+        return {ID: {lt: NEW_LOAD_TYPE_ID_THRESHOLD}};
+    }
+    return {};
+}
 
 export const loadTypesRouter = createRouter()
     .query("getAll", {
@@ -39,10 +55,13 @@ export const loadTypesRouter = createRouter()
             page: z.number().optional(),
             CustomerID: z.number().optional(),
             SourceID: z.number().optional(),
+            OpenJobLoadTypeIDs: z.array(z.number()).optional(),
+            era: z.enum(["legacy", "new", "all"]).optional(),
             orderBy: z.string().optional(),
             order: z.string().optional()
         }),
         async resolve({ctx, input}) {
+            const openJobIDs = new Set(input.OpenJobLoadTypeIDs ?? []);
             const customerLinkedIDs = new Set<number>();
             if (input.CustomerID) {
                 const associated = await ctx.prisma.customerLoadTypes.findMany({
@@ -69,15 +88,25 @@ export const loadTypesRouter = createRouter()
             // @ts-ignore
             orderObj[orderBy] = order;
 
+            const baseWhere = {
+                ...notDeletedWhere,
+                ...eraIdFilter(input.era),
+            };
+
             // Pull all matching load types (including grouped ones; we'll re-sort below).
             let baseRows: LoadTypes[];
             if (input.search && input.search.length > 0) {
                 const formattedSearch = input.search.replace('"', '\"');
                 baseRows = await ctx.prisma.loadTypes.findMany({
                     where: {
-                        OR: [
-                            {Notes: {contains: formattedSearch}},
-                            {Description: {contains: formattedSearch}},
+                        AND: [
+                            baseWhere,
+                            {
+                                OR: [
+                                    {Notes: {contains: formattedSearch}},
+                                    {Description: {contains: formattedSearch}},
+                                ],
+                            },
                         ],
                     },
                     take: 100,
@@ -85,21 +114,27 @@ export const loadTypesRouter = createRouter()
                 });
             } else {
                 baseRows = await ctx.prisma.loadTypes.findMany({
+                    where: baseWhere,
                     take: 100,
                     orderBy: orderObj,
                     skip: input.page ? input.page * 10 : 0,
                 });
             }
 
-            // Make sure all customer-linked + source-linked load types are present even if they
-            // fell outside the page window above.
+            // Make sure all customer-linked + source-linked + open-job load types are present
             const baseIDs = new Set(baseRows.map((row) => row.ID));
             const missingIDs = Array.from(customerLinkedIDs)
                 .concat(Array.from(sourceLinkedIDs))
+                .concat(Array.from(openJobIDs))
                 .filter((id) => !baseIDs.has(id));
             if (missingIDs.length > 0) {
                 const extras = await ctx.prisma.loadTypes.findMany({
-                    where: {ID: {in: missingIDs}},
+                    where: {
+                        AND: [
+                            notDeletedWhere,
+                            {ID: {in: missingIDs}},
+                        ],
+                    },
                 });
                 baseRows = [...baseRows, ...extras];
             }
@@ -121,7 +156,7 @@ export const loadTypesRouter = createRouter()
             }
 
             type Annotated = LoadTypes & {
-                Recommend: "Customer" | "Source" | null;
+                Recommend: "OpenJob" | "Customer" | "Source" | null;
                 UseCount: number;
                 DisplayName: string;
             };
@@ -156,7 +191,9 @@ export const loadTypesRouter = createRouter()
                 const displayName = shortName ? `${row.Description} (${shortName})` : row.Description;
 
                 let recommend: Annotated["Recommend"] = null;
-                if (customerLinkedIDs.has(row.ID)) {
+                if (openJobIDs.has(row.ID)) {
+                    recommend = "OpenJob";
+                } else if (customerLinkedIDs.has(row.ID)) {
                     recommend = "Customer";
                 } else if (sourceLinkedIDs.has(row.ID)) {
                     recommend = "Source";
@@ -170,9 +207,10 @@ export const loadTypesRouter = createRouter()
                 };
             });
 
-            // Sort: Customer-grouped first, then Source-grouped (by UseCount desc), then everything else (by Description asc).
+            // Sort: OpenJob, Customer, Source, then everything else.
             annotated.sort((a, b) => {
-                const rank = (r: Annotated["Recommend"]) => (r === "Customer" ? 0 : r === "Source" ? 1 : 2);
+                const rank = (r: Annotated["Recommend"]) =>
+                    r === "OpenJob" ? 0 : r === "Customer" ? 1 : r === "Source" ? 2 : 3;
                 const ar = rank(a.Recommend);
                 const br = rank(b.Recommend);
                 if (ar !== br) return ar - br;

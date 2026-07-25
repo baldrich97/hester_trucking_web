@@ -43,6 +43,8 @@ const RHAutocomplete = ({
     onNewOptionClick,
     /** When true, `drivers.search` / `trucks.search` only return active entities (Load form). */
     onlyActive = false,
+    loadTypeEra,
+    openJobLoadTypeIDs,
 }: {
     name: string;
     control: Control<any>;
@@ -67,6 +69,8 @@ const RHAutocomplete = ({
     newOptionLabel?: string;
     onNewOptionClick?: () => void;
     onlyActive?: boolean;
+    loadTypeEra?: "legacy" | "new" | "all";
+    openJobLoadTypeIDs?: number[];
 }) => {
     const NEW_OPTION_VALUE = "__create_new_option__";
 
@@ -159,6 +163,8 @@ const RHAutocomplete = ({
             TruckID: selectedTruck || undefined,
             DriverID: selectedDriver || undefined,
             onlyActive: onlyActive ? true : undefined,
+            era: loadTypeEra,
+            OpenJobLoadTypeIDs: openJobLoadTypeIDs,
         }),
         [
             debouncedSearch,
@@ -168,6 +174,8 @@ const RHAutocomplete = ({
             selectedTruck,
             selectedDriver,
             onlyActive,
+            loadTypeEra,
+            openJobLoadTypeIDs,
         ]
     );
 

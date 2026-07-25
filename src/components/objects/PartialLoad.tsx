@@ -33,6 +33,7 @@ import {
     TrucksDriven,
 } from "@prisma/client";
 import {formatDateToWeek} from "../../utils/UtilityFunctions";
+import {useSourcesCutover} from "../../hooks/useSourcesCutover";
 import $ from "jquery";
 import Button from "@mui/material/Button";
 import NextLink from "next/link";
@@ -79,10 +80,11 @@ function PartialLoad({
     const forceUpdate = useForceUpdate();
 
     const router = useRouter();
+    const {active: cutoverActive} = useSourcesCutover();
 
     const validationSchema = initialLoad
-        ? LoadsModel
-        : LoadsModel.omit({ID: true});
+        ? LoadsModel.extend({SourceID: z.number().int().nullish()})
+        : LoadsModel.omit({ID: true}).extend({SourceID: z.number().int().nullish()});
 
     type ValidationSchema = z.infer<typeof validationSchema>;
 
@@ -195,6 +197,10 @@ function PartialLoad({
         initialLoad ? (initialLoad.LoadTypeID ? initialLoad.LoadTypeID : 0) : 0
     );
 
+    const [source, setSource] = useState(0);
+
+    const [srctrpcData, srcsetData] = useState<Record<string, unknown>[]>([]);
+
     const [lttrpcData, ltsetData] = useState<CustomerLoadTypes[]>([]);
 
     const [dltrpcData, dlsetData] = useState<CustomerDeliveryLocations[]>([]);
@@ -207,7 +213,9 @@ function PartialLoad({
 
     const [tdshouldRefresh, tdsetShouldRefresh] = useState(false);
 
-    trpc.useQuery(["loadtypes.search", {CustomerID: customer}], {
+    const [srcshouldRefresh, srcsetShouldRefresh] = useState(false);
+
+    trpc.useQuery(["loadtypes.search", {CustomerID: customer, era: cutoverActive ? "new" : undefined}], {
         enabled: ltshouldRefresh,
         onSuccess(data) {
             ltsetData(JSON.parse(JSON.stringify(data)));
@@ -217,6 +225,18 @@ function PartialLoad({
         onError(error) {
             console.warn(error.message);
             ltsetShouldRefresh(false);
+        },
+    });
+
+    trpc.useQuery(["sources.search", {LoadTypeID: loadTypeSelected || undefined}], {
+        enabled: cutoverActive && srcshouldRefresh && loadTypeSelected > 0,
+        onSuccess(data) {
+            srcsetData(JSON.parse(JSON.stringify(data)));
+            srcsetShouldRefresh(false);
+        },
+        onError(error) {
+            console.warn(error.message);
+            srcsetShouldRefresh(false);
         },
     });
 
@@ -282,6 +302,7 @@ function PartialLoad({
             }
             if (name === "LoadTypeID" && type === "change") {
                 setLoadTypeSelected(value.LoadTypeID ?? 0);
+                srcsetShouldRefresh(true);
             }
             if ((name === "TruckID" || name === "DriverID") && type === "change") {
                 if (name === "TruckID") {
@@ -370,6 +391,19 @@ function PartialLoad({
             groupByNames: "Customer=Used by Customer|Source=Linked to Source|Other",
             enableOptionGroups: customer > 0,
         },
+        ...(cutoverActive
+            ? [{
+                name: "SourceID",
+                size: 6,
+                required: false,
+                type: "select" as const,
+                label: "Source",
+                searchQuery: "sources",
+                groupBy: "Recommend",
+                groupByNames: "Linked|Other",
+                enableOptionGroups: loadTypeSelected > 0,
+            }]
+            : []),
         {
             name: "DeliveryLocationID",
             size: 6,
@@ -444,6 +478,15 @@ function PartialLoad({
             optionLabel: "Description",
             defaultValue: initialLoad ? initialLoad.LoadTypeID : null,
         },
+        ...(cutoverActive
+            ? [{
+                key: "SourceID",
+                data: srctrpcData,
+                optionValue: "ID",
+                optionLabel: "Name",
+                defaultValue: null,
+            }]
+            : []),
         {
             key: "DeliveryLocationID",
             data: dltrpcData.length > 0 ? dltrpcData : [],
@@ -504,6 +547,7 @@ function PartialLoad({
                     selectedLoadType={loadTypeSelected}
                     selectedTruck={truck}
                     selectedDriver={driver}
+                    loadTypeEra={cutoverActive ? "new" : undefined}
                     submitDisabled={doMassEdit.isLoading}
                     onReset={
                         resetButton

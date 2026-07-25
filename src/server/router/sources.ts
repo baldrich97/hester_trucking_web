@@ -1,6 +1,17 @@
 import {createRouter} from "./context";
 import {z} from "zod";
 import {SourcesModel} from "../../../prisma/zod";
+import {TRPCError} from "@trpc/server";
+import {isSourcesCutoverActive} from "../../config/sourcesCutover";
+
+function assertSourcesCutoverActive(): void {
+    if (!isSourcesCutoverActive()) {
+        throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "Sources admin is not available until the cutover date.",
+        });
+    }
+}
 
 const activeLoadTypeWhere = {
     OR: [{Deleted: false}, {Deleted: null}],
@@ -197,6 +208,7 @@ export const sourcesRouter = createRouter()
     .mutation("put", {
         input: SourcesModel.omit({ID: true}),
         async resolve({ctx, input}) {
+            assertSourcesCutoverActive();
             return ctx.prisma.sources.create({
                 data: input,
             });
@@ -205,6 +217,7 @@ export const sourcesRouter = createRouter()
     .mutation("post", {
         input: SourcesModel,
         async resolve({ctx, input}) {
+            assertSourcesCutoverActive();
             const {ID, ...data} = input;
             return ctx.prisma.sources.update({
                 where: {ID},
@@ -215,6 +228,7 @@ export const sourcesRouter = createRouter()
     .mutation("delete", {
         input: z.object({ID: z.number()}),
         async resolve({ctx, input}) {
+            assertSourcesCutoverActive();
             // SourceLoadTypes rows cascade-delete when the Source is removed
             // (see schema.prisma onDelete: Cascade). No manual cleanup required.
             return ctx.prisma.sources.delete({
@@ -228,6 +242,7 @@ export const sourcesRouter = createRouter()
             LoadTypeIDs: z.array(z.number()).min(1),
         }),
         async resolve({ctx, input}) {
+            assertSourcesCutoverActive();
             const result = await ctx.prisma.sourceLoadTypes.createMany({
                 data: input.LoadTypeIDs.map((LoadTypeID) => ({
                     SourceID: input.SourceID,
@@ -247,6 +262,7 @@ export const sourcesRouter = createRouter()
             LoadTypeID: z.number(),
         }),
         async resolve({ctx, input}) {
+            assertSourcesCutoverActive();
             return ctx.prisma.sourceLoadTypes.deleteMany({
                 where: {
                     SourceID: input.SourceID,

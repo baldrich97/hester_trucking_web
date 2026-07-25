@@ -29,6 +29,7 @@ import {
 import Button from "@mui/material/Button";
 import TableEntityLink from "../../elements/TableEntityLink";
 import {tableContainedNavButtonSx} from "../../theme/muiShared";
+import {formatMaterial} from "../../utils/formatMaterial";
 import NextLink from "next/link";
 import PayStub from "../objects/PayStub";
 import {formatDriverDisplayName} from "../../utils/entityDisplay";
@@ -252,7 +253,7 @@ function Row(props: {
                     padding={!readOnly ? "none" : "normal"}
                     size={"small"}
                 >
-                    {row.LoadTypes.Description}
+                    {formatMaterial({description: row.LoadTypes.Description, source: (row as {Sources?: {Name?: string; ShortName?: string}}).Sources})}
                 </TableCell>
                 <TableCell align="left" padding="normal" size={"small"}>
                     {row.DeliveryLocations.Description}

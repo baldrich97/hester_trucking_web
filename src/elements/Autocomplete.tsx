@@ -21,6 +21,10 @@ const BasicAutocomplete = ({
     optionValue,
     searchQuery,
     onSelect,
+    CustomerID,
+    SourceID,
+    LoadTypeID,
+    era,
 }: {
     defaultValue?: string | number | null;
     label: string;
@@ -29,6 +33,10 @@ const BasicAutocomplete = ({
     optionValue: string;
     searchQuery: string;
     onSelect: any;
+    CustomerID?: number;
+    SourceID?: number;
+    LoadTypeID?: number;
+    era?: "legacy" | "new" | "all";
 }) => {
     const formatOptionLabel = (lbl: string, item: any): string => {
         let returnable = "";
@@ -92,7 +100,16 @@ const BasicAutocomplete = ({
 
     const clientProvidedOptions = Array.isArray(data) && data.length > 0;
 
-    const searchInput = useMemo(() => ({search: debouncedSearch}), [debouncedSearch]);
+    const searchInput = useMemo(
+        () => ({
+            search: debouncedSearch,
+            CustomerID: CustomerID || undefined,
+            SourceID: SourceID || undefined,
+            LoadTypeID: LoadTypeID || undefined,
+            era,
+        }),
+        [debouncedSearch, CustomerID, SourceID, LoadTypeID, era],
+    );
 
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore dynamic procedure path

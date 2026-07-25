@@ -1,7 +1,7 @@
 import React from 'react';
 import {Text, View, StyleSheet} from '@react-pdf/renderer';
-import {CompleteInvoices, CompleteJobs, CompleteLoads, CompleteWeeklies} from "../../../prisma/zod";
 import moment from "moment/moment";
+import {formatMaterial} from "../../utils/formatMaterial";
 
 const styles = StyleSheet.create({
 
@@ -94,8 +94,9 @@ const TableRow = ({job, key}: { job: any, key: number }) => {
         return totalLoadValue * rate;
     }
 
-    function formatDescription(row: { LoadTypes: { Description: string; }; Customers: { Name: string; }; DeliveryLocations: { Description: string; }; }): string {
-        return ((row.LoadTypes?.Description ?? 'MISSING') + ' ' + (row.Customers?.Name ?? 'MISSING') + ' ' + (row.DeliveryLocations?.Description ?? 'MISSING'))
+    function formatDescription(row: { LoadTypes?: { Description?: string }; Sources?: { Name?: string; ShortName?: string }; Customers?: { Name?: string }; DeliveryLocations?: { Description?: string } }): string {
+        const material = formatMaterial({description: row.LoadTypes?.Description, source: row.Sources});
+        return `${material} ${row.Customers?.Name ?? 'MISSING'} ${row.DeliveryLocations?.Description ?? 'MISSING'}`;
     }
 
     function formatRate(row: { DriverRate: string; TruckingRate: string; }): number {

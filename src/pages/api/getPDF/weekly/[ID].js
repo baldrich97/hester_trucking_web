@@ -73,7 +73,8 @@ const processLoads = async (input) => {
                     },
                     Customers: true,
                     LoadTypes: true,
-                    DeliveryLocations: true
+                    DeliveryLocations: true,
+                    Sources: {select: {Name: true, ShortName: true}},
                 }
             });
 

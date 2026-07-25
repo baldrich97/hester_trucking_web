@@ -1,8 +1,8 @@
 import React from 'react';
 import {Text, View, StyleSheet} from '@react-pdf/renderer';
 import {CompleteJobs} from "../../../prisma/zod";
-import {z} from "zod";
 import moment from "moment";
+import {formatMaterial} from "../../utils/formatMaterial";
 
 const styles = StyleSheet.create({
 
@@ -52,7 +52,7 @@ const TableRow = ({job}: {job: CompleteJobs}) => {
                 return (
                     <View style={{...styles.container, borderTop: index === 0 ? 2 : 0, borderBottom: 2, borderBottomStyle: 'solid', borderBottomColor: 'black', minHeight: 30}} wrap={false} key={'row-' + index}>
                         <Text style={{width: '5%', ...styles.leftAlignNoPadding, ...styles.text, fontWeight: 'bold'}}>{moment.utc(load.StartDate, "YYYY-MM-DD").format('M/D')}</Text>
-                        <Text style={{width: '18%', textAlign: 'center', ...styles.padding, ...styles.text}}>{job.LoadTypes?.Description}</Text>
+                        <Text style={{width: '18%', textAlign: 'center', ...styles.padding, ...styles.text}}>{formatMaterial({description: job.LoadTypes?.Description, source: (job as {Sources?: {Name?: string; ShortName?: string}}).Sources ?? load.Sources})}</Text>
                         <Text style={{width: '18%', textAlign: 'center', ...styles.padding, ...styles.text}}>{job.Customers.Name}</Text>
                         <Text style={{width: '18%', textAlign: 'center', ...styles.padding, ...styles.text}}>{job.DeliveryLocations?.Description}</Text>
                         <Text style={{width: '15.5%', textAlign: 'center', ...styles.padding, ...styles.text}}>#{load.TicketNumber ? load.TicketNumber : 'N/A'}</Text>

@@ -24,6 +24,7 @@ import {
 } from "../../../prisma/zod";
 import Tooltip from '@mui/material/Tooltip';
 import {confirmDestructive, confirmProceed} from "../../utils/appConfirm";
+import {formatMaterial} from "../../utils/formatMaterial";
 import {trpc} from "../../utils/trpc";
 import {calendarNavButtonSx} from "../../theme/muiShared";
 import NextLink from "next/link";
@@ -341,7 +342,7 @@ const Sheet = ({weekly, week}: { weekly: CustomerSheet, week: string }) => {
                 paddingLeft: 5,
                 paddingRight: 5
             }}>
-                <b style={{fontSize: 22}}>Material Delivered - {weekly.LoadTypes?.Description}</b>
+                <b style={{fontSize: 22}}>Material Delivered - {formatMaterial({description: weekly.LoadTypes?.Description, source: (weekly as {Sources?: {Name?: string; ShortName?: string}}).Sources})}</b>
                 <b style={{fontSize: 22}}>Job Site - {weekly.DeliveryLocations?.Description}</b>
             </div>
 

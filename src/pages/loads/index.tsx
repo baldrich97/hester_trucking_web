@@ -16,14 +16,24 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
+import {formatMaterialFromLoad} from "../../utils/formatMaterial";
 
 type LoadsType = z.infer<typeof LoadsModel>;
+
+type LoadRow = LoadsType & {MaterialDisplay?: string};
+
+function withMaterialDisplay(rows: LoadsType[]): LoadRow[] {
+  return rows.map((row) => ({
+    ...row,
+    MaterialDisplay: formatMaterialFromLoad(row as Parameters<typeof formatMaterialFromLoad>[0]),
+  }));
+}
 
 const columns: TableColumnsType = [
   { name: "Customers.Name", as: "Customer", navigateTo: "customers/[ID]", column: 'CustomerID' },
   { name: "StartDate", as: "Start Date" },
   { name: "TotalAmount", as: "Total Amount" },
-  { name: "LoadTypes.Description", as: "Load Type", column: 'LoadTypeID'  },
+  { name: "MaterialDisplay", as: "Load Type", column: 'LoadTypeID'  },
   { name: "DeliveryLocations.Description", as: "Delivery Notes", column: 'DeliveryLocationID'  },
   { name: "TicketNumber", as: "Ticket #" },
   { name: "Invoiced" },
@@ -41,7 +51,7 @@ const uninvColumns: TableColumnsType = [
   { name: "Customers.Name", as: "Customer", navigateTo: "customers/[ID]", column: 'CustomerID' },
   { name: "StartDate", as: "Start Date" },
   { name: "TotalAmount", as: "Total Amount" },
-  { name: "LoadTypes.Description", as: "Load Type", column: 'LoadTypeID'  },
+  { name: "MaterialDisplay", as: "Load Type", column: 'LoadTypeID'  },
   { name: "DeliveryLocations.Description", as: "Delivery Notes", column: 'DeliveryLocationID'  },
   { name: "TicketNumber", as: "Ticket #" },
   { name: "ID", as: "", navigateTo: "/loads/" },
@@ -129,7 +139,7 @@ const Loads = ({
         enabled: shouldRefresh,
         refetchOnWindowFocus: false,
         onSuccess(data) {
-          setNewData(JSON.parse(JSON.stringify(data.rows)));
+          setNewData(withMaterialDisplay(JSON.parse(JSON.stringify(data.rows))));
           setNewCount(data.count);
           setShouldRefresh(false);
         },
@@ -149,7 +159,7 @@ const Loads = ({
         enabled: shouldRefresh,
         refetchOnWindowFocus: false,
         onSuccess(data) {
-          setNewUninvData(JSON.parse(JSON.stringify(data.rows)));
+          setNewUninvData(withMaterialDisplay(JSON.parse(JSON.stringify(data.rows))));
           setNewUninvCount(data.count);
           setShouldRefresh(false);
         },
@@ -373,6 +383,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     Drivers: true,
     LoadTypes: true,
     DeliveryLocations: true,
+    Sources: {select: {Name: true, ShortName: true}},
   } as const;
 
   const [count, uninvCount, loads, uninvLoads] = await Promise.all([
@@ -407,8 +418,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   return {
     props: {
-      loads: JSON.parse(JSON.stringify(loads)),
-      uninvLoads: JSON.parse(JSON.stringify(uninvLoads)),
+      loads: JSON.parse(JSON.stringify(withMaterialDisplay(loads))),
+      uninvLoads: JSON.parse(JSON.stringify(withMaterialDisplay(uninvLoads))),
       count,
       uninvCount,
     },

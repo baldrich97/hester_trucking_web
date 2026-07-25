@@ -15,6 +15,7 @@ type SourcesType = z.infer<typeof SourcesModel>;
 
 const defaultValues = {
     Name: "",
+    ShortName: "",
 };
 
 const Source = ({
@@ -66,11 +67,19 @@ const Source = ({
     const fields: FormFieldsType = [
         {
             name: "Name",
-            size: 12,
+            size: 6,
             required: true,
             shouldErrorOn: ["required", "too_small"],
             errorMessage: "Source name is required.",
             type: "textfield",
+            label: "Name",
+        },
+        {
+            name: "ShortName",
+            size: 6,
+            required: false,
+            type: "textfield",
+            label: "Short Name (for invoices/PDFs)",
         },
     ];
 

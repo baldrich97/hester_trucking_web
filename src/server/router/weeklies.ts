@@ -280,6 +280,7 @@ export const weekliesRouter = createRouter()
                 CustomerID: data.CustomerID,
                 LoadTypeID: data.LoadTypeID,
                 DeliveryLocationID: data.DeliveryLocationID,
+                ...(data.SourceID !== undefined ? {SourceID: data.SourceID} : {}),
             },
         });
 
@@ -292,6 +293,7 @@ export const weekliesRouter = createRouter()
                 CustomerID: data.CustomerID,
                 LoadTypeID: data.LoadTypeID,
                 DeliveryLocationID: data.DeliveryLocationID,
+                ...(data.SourceID !== undefined ? {SourceID: data.SourceID} : {}),
             },
         });
 

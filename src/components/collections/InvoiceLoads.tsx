@@ -18,6 +18,7 @@ import IconButton from "@mui/material/IconButton";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 import {formatDriverDisplayName, formatTruckDisplayName} from "../../utils/entityDisplay";
+import {formatMaterialFromLoad} from "../../utils/formatMaterial";
 
 interface Data {
   TicketNumber: number;
@@ -328,7 +329,7 @@ function Row(props: {
                       {formatTruckDisplayName(row.Trucks)}
                     </TableCell>
                     <TableCell align="left" padding="none" size={"small"}>
-                      {row.LoadTypes ? row.LoadTypes?.Description : "N/A"}
+                      {formatMaterialFromLoad(row)}
                     </TableCell>
                     <TableCell align="left" padding="none" size={"small"}>
                       {row.DeliveryLocations

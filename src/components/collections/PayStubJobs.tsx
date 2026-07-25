@@ -13,6 +13,7 @@ import Typography from "@mui/material/Typography";
 import Paper from "@mui/material/Paper";
 import Checkbox from "@mui/material/Checkbox";
 import { visuallyHidden } from "@mui/utils";
+import {formatMaterial} from "../../utils/formatMaterial";
 import Collapse from "@mui/material/Collapse";
 import IconButton from "@mui/material/IconButton";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -310,7 +311,7 @@ function Row(props: {
                     {formatDateRange(row.Loads ? row.Loads : [])}
                 </TableCell>
                 <TableCell align="center" padding="none" size={"small"}>
-                    {(row.LoadTypes?.Description ?? "MISSING") +
+                    {formatMaterial({description: row.LoadTypes?.Description, source: row.Sources}) +
                         " " +
                         (row.Customers?.Name ?? "MISSING") +
                         " " +
