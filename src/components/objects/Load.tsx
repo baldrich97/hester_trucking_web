@@ -9,6 +9,7 @@ import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Link from "@mui/material/Link";
+import Chip from "@mui/material/Chip";
 import {useForm} from "react-hook-form";
 import {z} from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
@@ -56,7 +57,7 @@ import Source from "./Source";
 import {useSourcesCutover} from "../../hooks/useSourcesCutover";
 
 const today = new Date();
-const defaultWeek = formatDateToWeek(new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000));
+const defaultWeek = formatDateToWeek(today);
 
 const defaultValues = {
     StartDate: undefined,
@@ -341,7 +342,9 @@ function Load({
     );
 
     const [forceNewWork, setForceNewWork] = useState(false);
-    const {active: cutoverActive} = useSourcesCutover();
+    const [activeOpenJobId, setActiveOpenJobId] = useState<number | null>(null);
+    const [weekFilterActive, setWeekFilterActive] = useState(() => Boolean(initialLoad?.Week));
+    const {active: cutoverActive, configMismatch} = useSourcesCutover();
 
     const [loadTypeSelected, setLoadTypeSelected] = useState(
         initialLoad ? (initialLoad.LoadTypeID ? initialLoad.LoadTypeID : 0) : 0
@@ -384,27 +387,34 @@ function Load({
         [
             "loads.openLegacyJobs",
             {
-                DriverID: watchDriverID ?? 0,
-                Week: watchWeek ?? "",
-                CustomerID: customer || undefined,
-                DeliveryLocationID: watchDeliveryLocationID || undefined,
+                ...(customer > 0 ? {CustomerID: customer} : {}),
+                ...(watchDriverID ? {DriverID: watchDriverID} : {}),
+                ...(weekFilterActive && watchWeek ? {Week: watchWeek} : {}),
             },
         ],
         {
             enabled:
                 cutoverActive &&
                 !forceNewWork &&
-                Boolean(watchDriverID) &&
-                Boolean(watchWeek),
+                (customer > 0 || Boolean(watchDriverID)),
         },
     );
 
     const openJobs = openJobsQuery.data ?? [];
-    const openJobLoadTypeIDs = useMemo(
-        () => openJobs.map((job) => job.LoadTypeID),
-        [openJobs],
+    const showOpenJobsTable =
+        cutoverActive && !forceNewWork && (customer > 0 || Boolean(watchDriverID));
+    const legacyCriteriaMet =
+        Boolean(watchDriverID) && weekFilterActive && Boolean(watchWeek);
+    const showLegacyPath =
+        cutoverActive && !forceNewWork && legacyCriteriaMet && openJobs.length > 0;
+    const activeOpenJob = useMemo(
+        () => openJobs.find((job) => job.JobID === activeOpenJobId) ?? null,
+        [openJobs, activeOpenJobId],
     );
-    const showLegacyPath = cutoverActive && !forceNewWork && openJobs.length > 0;
+    const openJobLoadTypeIDs = useMemo(
+        () => (showLegacyPath ? openJobs.map((job) => job.LoadTypeID) : []),
+        [openJobs, showLegacyPath],
+    );
     const showSourceField = cutoverActive && !showLegacyPath;
     const loadTypeEra: "legacy" | "new" | undefined = cutoverActive
         ? showLegacyPath
@@ -423,7 +433,7 @@ function Load({
             },
         ],
         {
-            enabled: ltshouldRefresh,
+            enabled: ltshouldRefresh && !cutoverActive,
             onSuccess(data) {
                 ltsetData(JSON.parse(JSON.stringify(data)));
                 ltsetShouldRefresh(false);
@@ -487,7 +497,11 @@ function Load({
                 toggleOverride(false)
             }
             if (name === "StartDate" && type === "change") {
+                setWeekFilterActive(true);
                 setValue("Week", formatDateToWeek(value.StartDate ? value.StartDate : new Date()))
+            }
+            if (name === "Week" && type === "change") {
+                setWeekFilterActive(true);
             }
             if (
                 ["MaterialRate", "TruckRate", "Hours", "Weight"].includes(name ?? "") &&
@@ -576,19 +590,30 @@ function Load({
     const watchWeight = watch("Weight");
 
     const prefillOpenJob = (job: (typeof openJobs)[number]) => {
+        setActiveOpenJobId(job.JobID);
         setValue("CustomerID", job.CustomerID);
         setCustomer(job.CustomerID);
         setValue("LoadTypeID", job.LoadTypeID);
         setLoadTypeSelected(job.LoadTypeID);
         setValue("DeliveryLocationID", job.DeliveryLocationID);
+        setValue("Week", job.Week);
+        setWeekFilterActive(true);
         setValue("TruckRate", job.TruckingRate);
         setValue("MaterialRate", job.MaterialRate);
         setValue("DriverRate", job.DriverRate);
         setValue("TotalRate", job.CompanyRate);
         setValue("SourceID", null);
         setSource(0);
+        setForceNewWork(false);
         dlsetShouldRefresh(true);
         ltsetShouldRefresh(true);
+    };
+
+    const formatOpenJobDate = (value: Date | string | null | undefined) => {
+        if (!value) {
+            return "—";
+        }
+        return new Date(value).toLocaleDateString("en-US", {timeZone: "UTC"});
     };
 
     // React.useEffect(() => {
@@ -605,8 +630,29 @@ function Load({
     // }, [setValue, watchCustomerSelected])
 
     React.useEffect(() => {
-        ltsetShouldRefresh(true);
+        if (activeOpenJobId == null) {
+            return;
+        }
+        // Don't clear mid-refetch: row clicks change the query key (week filter),
+        // and data is briefly undefined while the narrowed query loads.
+        if (openJobsQuery.isLoading || openJobsQuery.isFetching) {
+            return;
+        }
+        if (!openJobs.some((job) => job.JobID === activeOpenJobId)) {
+            setActiveOpenJobId(null);
+        }
+    }, [openJobs, activeOpenJobId, openJobsQuery.isLoading, openJobsQuery.isFetching]);
+
+    React.useEffect(() => {
+        if (!cutoverActive) return;
+        ltsetData([]);
     }, [cutoverActive, forceNewWork, openJobLoadTypeIDs.join(","), loadTypeEra]);
+
+    React.useEffect(() => {
+        if (!showLegacyPath) return;
+        setValue("SourceID", null);
+        setSource(0);
+    }, [showLegacyPath, setValue]);
 
     const baseFields: FormFieldsType = useMemo(() => {
         const loadTypeField = {
@@ -623,11 +669,8 @@ function Load({
                 ? "OpenJob=Open Job|Customer=Used by Customer|Source=Linked to Source|Other"
                 : "Customer=Used by Customer|Source=Linked to Source|Other",
             enableOptionGroups: customer > 0 || showLegacyPath,
-            newOptionLabel: cutoverActive && !showLegacyPath ? undefined : "New Load Type",
-            onNewOptionClick:
-                cutoverActive && !showLegacyPath
-                    ? undefined
-                    : () => setNewObjectModalTarget("LoadTypeID"),
+            newOptionLabel: "New Load Type",
+            onNewOptionClick: () => setNewObjectModalTarget("LoadTypeID"),
         };
 
         const sourceField = showSourceField
@@ -825,9 +868,11 @@ function Load({
         },
         {
             key: "LoadTypeID",
-            data: lttrpcData.length > 0 ? lttrpcData : [],
+            // When cutover is on, always let RHAutocomplete fetch with `loadTypeEra`
+            // (legacy vs new). Parent-cached rows blocked era updates in the dropdown.
+            data: cutoverActive ? [] : lttrpcData.length > 0 ? lttrpcData : [],
             optionValue: "ID",
-            optionLabel: lttrpcData.length > 0 ? "DisplayName" : "Description",
+            optionLabel: "DisplayName",
             defaultValue: inlineDefaultIds.LoadTypeID,
         },
         {
@@ -874,6 +919,7 @@ function Load({
         <>
             <Box
                 component="form"
+                data-testid="load-form"
                 autoComplete="off"
                 noValidate
                 onSubmit={(e) => {
@@ -930,51 +976,124 @@ function Load({
                             : null
                     }
                 />
-                {showLegacyPath && (
+                {configMismatch ? (
+                    <Alert severity="warning" sx={{mt: 2}}>
+                        Cutover UI is forced on the client (
+                        <code>NEXT_PUBLIC_SOURCES_CUTOVER_FORCE</code>) but the server does not have
+                        cutover active. Set <code>SOURCES_CUTOVER_FORCE=true</code> in{" "}
+                        <code>.env</code> and restart the dev server so open-job detection and
+                        new-era load types work.
+                    </Alert>
+                ) : null}
+                {showOpenJobsTable ? (
                     <>
                         <Alert severity="info" sx={{mt: 2}}>
-                            {openJobs.length} open job{openJobs.length === 1 ? "" : "s"} for this driver/week.
-                            Pick one below or choose an Open Job load type.{" "}
-                            <Link
-                                component="button"
-                                type="button"
-                                onClick={() => {
-                                    setForceNewWork(true);
-                                    setValue("SourceID", null);
-                                    setSource(0);
-                                    ltsetShouldRefresh(true);
-                                }}
-                            >
-                                New work instead
-                            </Link>
+                            {openJobsQuery.isLoading ? (
+                                "Loading open legacy jobs…"
+                            ) : openJobs.length > 0 ? (
+                                <>
+                                    {openJobs.length} open legacy job
+                                    {openJobs.length === 1 ? "" : "s"} matching your selections
+                                    {weekFilterActive ? "" : " (daily week not applied yet)"}.
+                                    {" "}
+                                    <strong>Click a row</strong> to fill the form and attach this
+                                    ticket to that job (Source field hidden).
+                                    {activeOpenJob ? (
+                                        <>
+                                            {" "}
+                                            <strong>Active:</strong> {activeOpenJob.CustomerName} —{" "}
+                                            {activeOpenJob.LoadTypeDescription} ({activeOpenJob.Week}).
+                                        </>
+                                    ) : null}{" "}
+                                    {openJobs.length > 0 ? (
+                                        <>
+                                            <Link
+                                                component="button"
+                                                type="button"
+                                                onClick={() => {
+                                                    setActiveOpenJobId(null);
+                                                    setForceNewWork(true);
+                                                    setValue("SourceID", null);
+                                                    setSource(0);
+                                                    ltsetShouldRefresh(true);
+                                                }}
+                                            >
+                                                New work instead
+                                            </Link>{" "}
+                                            starts a brand-new job with Source and clean load types.
+                                        </>
+                                    ) : null}
+                                </>
+                            ) : (
+                                <>
+                                    No open legacy jobs match your current selections
+                                    {legacyCriteriaMet ? " for this driver and week" : ""}
+                                    {customer > 0 ? " and customer" : ""}. Narrow or clear filters,
+                                    or use Source and clean load types.
+                                </>
+                            )}
                         </Alert>
-                        <Table size="small" sx={{mt: 1}}>
-                            <TableHead>
-                                <TableRow>
-                                    <TableCell>Customer</TableCell>
-                                    <TableCell>Load Type</TableCell>
-                                    <TableCell>Location</TableCell>
-                                    <TableCell>Company Rate</TableCell>
-                                </TableRow>
-                            </TableHead>
-                            <TableBody>
-                                {openJobs.map((job) => (
-                                    <TableRow
-                                        key={job.JobID}
-                                        hover
-                                        sx={{cursor: "pointer"}}
-                                        onClick={() => prefillOpenJob(job)}
-                                    >
-                                        <TableCell>{job.CustomerName}</TableCell>
-                                        <TableCell>{job.LoadTypeDescription}</TableCell>
-                                        <TableCell>{job.DeliveryLocationDescription}</TableCell>
-                                        <TableCell>{job.CompanyRate}</TableCell>
+                        {openJobs.length > 0 ? (
+                            <Table size="small" sx={{mt: 1}}>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell width={88} />
+                                        <TableCell>Customer</TableCell>
+                                        <TableCell>Load Type</TableCell>
+                                        <TableCell>Location</TableCell>
+                                        <TableCell>Week</TableCell>
+                                        <TableCell>Last Ticket</TableCell>
+                                        <TableCell>Company Rate</TableCell>
                                     </TableRow>
-                                ))}
-                            </TableBody>
-                        </Table>
+                                </TableHead>
+                                <TableBody>
+                                    {openJobs.map((job) => {
+                                        const isActive = activeOpenJobId === job.JobID;
+                                        return (
+                                        <TableRow
+                                            key={job.JobID}
+                                            hover={!isActive}
+                                            selected={isActive}
+                                            sx={{
+                                                cursor: "pointer",
+                                                ...(isActive
+                                                    ? {
+                                                          "&.Mui-selected": {
+                                                              backgroundColor: "primary.light",
+                                                          },
+                                                          "&.Mui-selected:hover": {
+                                                              backgroundColor: "primary.light",
+                                                          },
+                                                      }
+                                                    : {}),
+                                            }}
+                                            onClick={() => prefillOpenJob(job)}
+                                            aria-selected={isActive}
+                                        >
+                                            <TableCell padding="checkbox">
+                                                {isActive ? (
+                                                    <Chip
+                                                        label="Active"
+                                                        size="small"
+                                                        color="primary"
+                                                        sx={{fontWeight: 600}}
+                                                    />
+                                                ) : null}
+                                            </TableCell>
+                                            <TableCell>{job.CustomerName}</TableCell>
+                                            <TableCell>{job.LoadTypeDescription}</TableCell>
+                                            <TableCell>{job.DeliveryLocationDescription}</TableCell>
+                                            <TableCell>{job.Week}</TableCell>
+                                            <TableCell>{formatOpenJobDate(job.LastStartDate)}</TableCell>
+                                            <TableCell>{job.CompanyRate}</TableCell>
+                                        </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        ) : null}
                     </>
-                )}
+                ) : null}
             </Box>
             <Modal open={newObjectModalTarget !== null} onClose={closeNewObjectModal}>
                 <Box sx={createModalStyle} onClick={(e) => e.stopPropagation()}>

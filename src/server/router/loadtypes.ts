@@ -19,6 +19,29 @@ function eraIdFilter(era?: "legacy" | "new" | "all") {
     return {};
 }
 
+function loadTypeIdMatchesEra(
+    id: number,
+    era?: "legacy" | "new" | "all",
+    openJobIDs?: Set<number>,
+): boolean {
+    if (openJobIDs?.has(id)) {
+        return true;
+    }
+    if (!era || era === "all") {
+        return true;
+    }
+    if (!isSourcesCutoverActive()) {
+        return id < NEW_LOAD_TYPE_ID_THRESHOLD;
+    }
+    if (era === "new") {
+        return id >= NEW_LOAD_TYPE_ID_THRESHOLD;
+    }
+    if (era === "legacy") {
+        return id < NEW_LOAD_TYPE_ID_THRESHOLD;
+    }
+    return true;
+}
+
 export const loadTypesRouter = createRouter()
     .query("getAll", {
         async resolve({ctx}) {
@@ -126,13 +149,15 @@ export const loadTypesRouter = createRouter()
             const missingIDs = Array.from(customerLinkedIDs)
                 .concat(Array.from(sourceLinkedIDs))
                 .concat(Array.from(openJobIDs))
-                .filter((id) => !baseIDs.has(id));
+                .filter((id) => !baseIDs.has(id))
+                .filter((id) => loadTypeIdMatchesEra(id, input.era, openJobIDs));
             if (missingIDs.length > 0) {
                 const extras = await ctx.prisma.loadTypes.findMany({
                     where: {
                         AND: [
                             notDeletedWhere,
                             {ID: {in: missingIDs}},
+                            eraIdFilter(input.era),
                         ],
                     },
                 });
@@ -220,7 +245,9 @@ export const loadTypesRouter = createRouter()
                 return a.Description.localeCompare(b.Description);
             });
 
-            return annotated.slice(0, 100);
+            return annotated
+                .filter((row) => loadTypeIdMatchesEra(row.ID, input.era, openJobIDs))
+                .slice(0, 100);
         }
     })
     .query("searchPage", {
@@ -270,10 +297,19 @@ export const loadTypesRouter = createRouter()
         // validate input with Zod
         input: LoadTypesModel.omit({ID: true, Deleted: true}),
         async resolve({ctx, input}) {
-            // use your ORM of choice
+            if (isSourcesCutoverActive()) {
+                const maxId = await ctx.prisma.loadTypes.aggregate({_max: {ID: true}});
+                const nextId = Math.max(
+                    NEW_LOAD_TYPE_ID_THRESHOLD,
+                    (maxId._max.ID ?? 0) + 1,
+                );
+                return ctx.prisma.loadTypes.create({
+                    data: {...input, ID: nextId},
+                });
+            }
             return ctx.prisma.loadTypes.create({
-                data: input
-            })
+                data: input,
+            });
         },
     })
     .mutation('post', {

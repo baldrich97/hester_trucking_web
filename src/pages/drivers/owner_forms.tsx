@@ -21,8 +21,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             Carriers: {include: {States: true}},
             States: true,
             TrucksDriven: {
-                include: {
-                    Trucks: {include: {LicensedIn: true}},
+                distinct: ["TruckID"],
+                select: {
+                    TruckID: true,
+                    Trucks: true,
                 },
             },
         },

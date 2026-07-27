@@ -118,7 +118,7 @@ function Sidenav(props: any) {
     const selectedLink = pathToSideNavIndex(currentPath);
 
     const {data: compliance} = trpc.useQuery(["compliance.driverFormsSummary"], {
-        staleTime: 60 * 1000,
+        staleTime: 5 * 60 * 1000,
         refetchOnWindowFocus: false,
     });
     const complianceCount = compliance?.totalIssues ?? 0;
@@ -135,7 +135,7 @@ function Sidenav(props: any) {
     const [isReportsOpen, setReportsOpen] = React.useState<boolean>(false);
 
     const {data: overdueCount = 0} = trpc.useQuery(["invoices.getOverdueCount"], {
-        staleTime: 60 * 1000,
+        staleTime: 5 * 60 * 1000,
         refetchOnWindowFocus: false,
     });
 

@@ -345,8 +345,8 @@ export const loadsRouter = createRouter()
     })
     .query('openLegacyJobs', {
         input: z.object({
-            DriverID: z.number(),
-            Week: z.string(),
+            DriverID: z.number().optional(),
+            Week: z.string().optional(),
             CustomerID: z.number().optional(),
             DeliveryLocationID: z.number().optional(),
         }),
@@ -355,28 +355,46 @@ export const loadsRouter = createRouter()
                 return [];
             }
 
-            const daily = await ctx.prisma.dailies.findFirst({
-                where: {DriverID: input.DriverID, Week: input.Week},
-            });
-            if (!daily) {
+            if (
+                !input.DriverID &&
+                !input.CustomerID &&
+                !input.Week &&
+                !input.DeliveryLocationID
+            ) {
                 return [];
+            }
+
+            const dailiesFilter: {DriverID?: number; Week?: string} = {};
+            if (input.DriverID) {
+                dailiesFilter.DriverID = input.DriverID;
+            }
+            if (input.Week) {
+                dailiesFilter.Week = input.Week;
             }
 
             const jobs = await ctx.prisma.jobs.findMany({
                 where: {
-                    DailyID: daily.ID,
+                    ...(input.DriverID ? {DriverID: input.DriverID} : {}),
                     PaidOut: {not: true},
                     LoadTypeID: {lt: NEW_LOAD_TYPE_ID_THRESHOLD},
                     ...(input.CustomerID ? {CustomerID: input.CustomerID} : {}),
                     ...(input.DeliveryLocationID ? {DeliveryLocationID: input.DeliveryLocationID} : {}),
                     Weeklies: {InvoiceID: null},
+                    ...(Object.keys(dailiesFilter).length > 0 ? {Dailies: dailiesFilter} : {}),
                 },
                 include: {
                     Customers: {select: {ID: true, Name: true}},
                     LoadTypes: {select: {ID: true, Description: true}},
                     DeliveryLocations: {select: {ID: true, Description: true}},
+                    Dailies: {select: {Week: true}},
+                    Loads: {
+                        select: {StartDate: true},
+                        orderBy: {StartDate: "desc"},
+                        take: 1,
+                    },
                 },
-                orderBy: {ID: "asc"},
+                orderBy: {ID: "desc"},
+                take: 50,
             });
 
             return jobs.map((job) => ({
@@ -391,6 +409,8 @@ export const loadsRouter = createRouter()
                 MaterialRate: job.MaterialRate,
                 DriverRate: job.DriverRate,
                 CompanyRate: job.CompanyRate,
+                Week: job.Dailies.Week,
+                LastStartDate: job.Loads[0]?.StartDate ?? null,
             }));
         },
     })
@@ -570,7 +590,10 @@ export const loadsRouter = createRouter()
                 })
             }
 
-            if (!DriverID || !DeliveryLocationID || !LoadTypeID || !TruckID || !CustomerID) {
+            // TS narrowing only — the loop above already threw for these.
+            // Truck is intentionally NOT here: it's optional in the UI, and bailing on
+            // !TruckID silently returned undefined (client crashed reading .warnings).
+            if (!DriverID || !DeliveryLocationID || !LoadTypeID || !CustomerID) {
                 return;
             }
 

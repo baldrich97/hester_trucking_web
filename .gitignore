@@ -9,6 +9,8 @@
 
 # testing
 /coverage
+/tests/e2e/.auth/
+/tests/reports/
 
 # database
 /prisma/db.sqlite

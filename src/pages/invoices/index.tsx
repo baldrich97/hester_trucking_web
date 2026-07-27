@@ -755,7 +755,7 @@ const Invoices = ({
 export default Invoices;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    const invoiceInclude = {Customers: true, Loads: true} as const;
+    const invoiceListInclude = {Customers: {select: {Name: true}}} as const;
 
     const [
         countAll,
@@ -763,10 +763,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         countPaid,
         countConsolidated,
         lastInvoice,
-        invoicesAll,
         invoicesUnpaid,
-        invoicesConsolidated,
-        invoicesPaid,
     ] = await Promise.all([
         prisma.invoices.count(),
         prisma.invoices.count({
@@ -788,39 +785,11 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             },
         }),
         prisma.invoices.findMany({
-            include: invoiceInclude,
-            take: 10,
-            orderBy: {
-                ID: "desc",
-            },
-        }),
-        prisma.invoices.findMany({
             where: {
                 OR: [{Paid: false}, {Paid: null}],
                 AND: {Consolidated: false},
             },
-            include: invoiceInclude,
-            take: 10,
-            orderBy: {
-                ID: "desc",
-            },
-        }),
-        prisma.invoices.findMany({
-            where: {
-                OR: [{Paid: false}, {Paid: null}],
-                AND: {Consolidated: true},
-            },
-            include: invoiceInclude,
-            take: 10,
-            orderBy: {
-                ID: "desc",
-            },
-        }),
-        prisma.invoices.findMany({
-            where: {
-                Paid: true,
-            },
-            include: invoiceInclude,
+            include: invoiceListInclude,
             take: 10,
             orderBy: {
                 ID: "desc",
@@ -830,10 +799,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
     return {
         props: {
-            invoicesAll: JSON.parse(JSON.stringify(invoicesAll)),
+            invoicesAll: [],
             invoicesUnpaid: JSON.parse(JSON.stringify(invoicesUnpaid)),
-            invoicesPaid: JSON.parse(JSON.stringify(invoicesPaid)),
-            invoicesConsolidated: JSON.parse(JSON.stringify(invoicesConsolidated)),
+            invoicesPaid: [],
+            invoicesConsolidated: [],
             countAll,
             countUnpaid,
             countPaid,

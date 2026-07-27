@@ -187,7 +187,7 @@ const RHAutocomplete = ({
             menuOpen &&
             !clientProvidedOptions &&
             !disabled,
-        keepPreviousData: true,
+        keepPreviousData: false,
         staleTime: 30_000,
     });
 
@@ -204,6 +204,13 @@ const RHAutocomplete = ({
     });
 
     const selectedRow = selectedRowQuery.data;
+
+    useEffect(() => {
+        if (clientProvidedOptions) {
+            return;
+        }
+        setOptions(shouldShowNewOption ? withNewOption([]) : []);
+    }, [loadTypeEra, openJobLoadTypeIDs, clientProvidedOptions, shouldShowNewOption, withNewOption]);
 
     useEffect(() => {
         if (clientProvidedOptions) {

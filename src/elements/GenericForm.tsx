@@ -227,6 +227,7 @@ const GenericForm = ({
             <Grid2 xs={3}>
                 <Button
                     type="submit"
+                    data-testid="form-submit"
                     variant="contained"
                     color="primary"
                     disabled={submitDisabled}

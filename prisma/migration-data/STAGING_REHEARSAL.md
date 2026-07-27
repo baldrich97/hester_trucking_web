@@ -4,9 +4,10 @@ Run on staging with cutover forced on:
 
 ```env
 SOURCES_CUTOVER_FORCE=true
-# or client-only testing:
 NEXT_PUBLIC_SOURCES_CUTOVER_FORCE=true
 ```
+
+Both variables are required for local cutover testing. The client flag alone shows Sources in the sidenav but **does not** enable open-job detection or new-era load types — those are server-side.
 
 ## Pre-flight
 

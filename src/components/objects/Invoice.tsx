@@ -185,6 +185,10 @@ const Invoice = ({
 
   trpc.useQuery(["weeklies.getByCustomer", { customer }], {
     enabled: shouldFetchWeeklies,
+    // Must bypass the global 30s staleTime: after an invoice submit the cached
+    // list still contains the just-invoiced weekly, and the enabled-flag toggle
+    // only refetches when the cache is stale.
+    staleTime: 0,
     onSuccess(data) {
       setCustomerWeeklies(data);
       setShouldFetchWeeklies(false);
