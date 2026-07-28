@@ -76,6 +76,7 @@ export const ALL_PROCEDURES: ProcedureCase[] = [
     q("loads.getAll"),
     q("loads.getUninv"),
     q("loads.get", {ID: 1}),
+    q("loads.getByJobId", {jobId: 1}),
     q("loads.getByCustomer", {customer: 1}),
     q("loads.openLegacyJobs", {DriverID: 1, Week: week}, {cutover: true}),
     q("loads.getCount", {page: 0}),

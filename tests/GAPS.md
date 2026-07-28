@@ -16,12 +16,47 @@ Track what is **not yet covered** or only **shallowly covered**. Update this fil
 | `loads.post` single update | [x] | `tests/db/load-workflows.test.ts` |
 | `loads.post_mass_edit` | [x] | `load-lifecycle.test.ts` |
 | `loads.post_mass_edit` Source reassign (new-era) + job rematch | [x] | `load-lifecycle.test.ts` |
+| `loads.post` / `loads.post_mass_edit` company rate change → new weekly + job via rematch | [x] | `load-edit-rematch.test.ts` |
 | `loads.put_duplicate_checker` / `post_duplicate_checker` | [x] | `tests/db/load-workflows.test.ts` |
 | Open legacy jobs picker (`openLegacyJobs`) | [x] | mocked P0 + `load-workflows.test.ts`; progressive filters (driver/customer/week optional) in P0 |
 | Inline catalog create during load entry (`sources.put`, `loadtypes.put` auto-ID ≥ 10000) | [x] | `cutover-inline-create.test.ts` |
 | Weeklies `post` SourceID cascade | [x] | mocked P1 + `load-workflows.test.ts` |
 | Jobs `postClosed` / `postPaid` | [x] | `tests/db/load-workflows.test.ts` |
 | PaidOut job blocks rematch | [x] | `load-workflows.test.ts` (skips paid job, creates new) |
+
+---
+
+## Mass edit audit — traceability matrix (Jul 2026)
+
+**Intent:** Red arrow selects all loads on a `JobID` (multi-day, multi-truck). Mass apply identity FKs + rates + week. Preserve per-ticket fields (ticket, weight, hours, amount, start date, truck). Block edits when job `PaidOut`. Sync amounts on open sheets only; closed revenues frozen.
+
+**Non-goals:** Blocking edits on closed jobs/weeklies; hard-blocking `LastPrinted` dailies; orphan job cleanup.
+
+| ID | Scenario | File | Status |
+|----|----------|------|--------|
+| PO-01 | Mass edit on paid job → BAD_REQUEST | `load-sheet-sync.test.ts` | [x] |
+| PO-02 | `loads.post` on paid job → BAD_REQUEST | `load-sheet-sync.test.ts` | [x] |
+| PO-03 | `loads.post` update on paid job → BAD_REQUEST | `load-sheet-sync.test.ts` | [x] |
+| PO-04 | `loads.put` create on new unpaid job (regression) | `load-sheet-sync.test.ts` | [x] |
+| PO-U1–U3 | `assertLoadsNotPaidOut` unit cases | `loadSheetSync.test.ts` | [x] |
+| PO-R1 | Router calls guard before mass update | `mass-edit.test.ts` | [x] |
+| PO-E1 | E2E paid job error toast | `mass-edit-job-scope.spec.ts` | [x] |
+| JC-01–JC-04 | Closed job edit ok, revenues frozen | `load-sheet-sync.test.ts`, `load-edit-rematch.test.ts` | [x] |
+| JC-U1–U2 | Unit: no job revenue writes; load TotalAmount recalc | `loadSheetSync.test.ts` | [x] |
+| JC-E1 | E2E closed job mass edit | `mass-edit-job-scope.spec.ts` | [x] |
+| WC-01–WC-03 | Closed weekly edit ok, Revenue frozen | `load-sheet-sync.test.ts` | [x] |
+| WC-U1 | Unit: skip weekly Revenue write | `loadSheetSync.test.ts` | [x] |
+| WC-R1 | Rematch target weekly open | `load-sheet-sync.test.ts` (WC-03) | [x] |
+| WI-01–WI-03 | Invoiced weekly: no weekly writes | `load-sheet-sync.test.ts` | [x] |
+| WI-U1 | Unit: skip TotalWeight when invoiced | `loadSheetSync.test.ts` | [x] |
+| OS-01–OS-05 | Open sheet TotalAmount + TotalWeight sync | `load-sheet-sync.test.ts`, `mass-edit-selection.test.ts` | [x] |
+| OS-U1–U4 | Unit sync logic | `loadSheetSync.test.ts` | [x] |
+| LP-01–LP-02 | Daily LastPrinted warning only | `load-sheet-sync.test.ts` | [x] |
+| ME-01–ME-20 | JobID selection, fields, rematch | `mass-edit-selection.test.ts` | [x] |
+| ME-21–ME-22 | Router massData / getByJobId | `mass-edit.test.ts` | [x] |
+| ME-C1–ME-C6 | MassEditLoadsTable component | `MassEditLoadsTable.test.tsx` | [x] |
+| ME-C7–ME-C8 | PartialLoad no truck + confirm | `PartialLoad.test.tsx` | [x] |
+| ME-E1–ME-E9 | E2E discovery, arrow, table UX | `mass-edit-job-scope.spec.ts` | [x] |
 
 ---
 
@@ -83,8 +118,9 @@ Track what is **not yet covered** or only **shallowly covered**. Update this fil
 | 26 list-route smoke | [x] |
 | Shallow submit flows | [x] |
 | Full load submit (autocomplete) | [x] | `submit-flows.spec.ts` (legacy prefill or autocomplete fallback) |
-| Cutover load entry (seeded) | [x] | `cutover-load-entry.spec.ts`: progressive filter (customer only, week not applied), legacy row click → active flag → full submit → ticket attaches to seeded `JobID`, new-era submit with seeded clean load type (ID ≥ 10000) + inline Source create, seeded Source in dropdown. Seeds: `seedOpenLegacyJob` (dedicated `[TEST]` customer) + `seedNewEraCatalog` in `tests/e2e/helpers/dbSeed.ts` |
-| Mass edit apply | [x] | `submit-flows.spec.ts` |
+| Cutover load entry (seeded) | [x] | `cutover-load-entry.spec.ts`: progressive filter, legacy open-job submit, new-era seeded + inline Source, inline load type + Source submit, seeded Source in dropdown |
+| Loads form inline create (all "New …" options) | [x] | `load-inline-create.spec.ts`: New Customer/Driver/Truck/Source/Load Type/Delivery Location + full new-work submit without leaving `/loads` |
+| Mass edit apply | [x] | `submit-flows.spec.ts`, `mass-edit-job-scope.spec.ts` (JobID scope) |
 | Invoice create from weeklies | [x] | Full UI submit in `invoice-submit.spec.ts` against a seeded `[TEST]` customer + weekly (isolated, cleaned up); DB variant in `invoice-weekly-create.test.ts` |
 | Driver compliance flows | [x] | `compliance-flows.spec.ts`: w2_forms file + remove via modal/confirm, expiring-soon CDL listing, form-options edit + save (seeded `[TEST]` driver/form) |
 | Detail pages `/loads/[id]`, etc. | [x] | `tests/e2e/detail-pages.spec.ts` |
@@ -99,7 +135,7 @@ Track what is **not yet covered** or only **shallowly covered**. Update this fil
 |------|--------|
 | Load, GenericForm, Sidenav, RHAutocomplete, InvoiceLoads, AuditReportPage | [x] |
 | GenericTable (sort, filter modal, pagination) | [x] | `GenericTable.test.tsx` |
-| PartialLoad, PayStub, DailySheet, WeeklySheet | [x] | `PartialLoad.test.tsx` + `SheetComponents.test.tsx` (render, job-close confirm, empty-jobs skip, create form) |
+| PartialLoad, MassEditLoadsTable, PayStub, DailySheet, WeeklySheet | [x] | `PartialLoad.test.tsx`, `MassEditLoadsTable.test.tsx`, `SheetComponents.test.tsx` |
 | PDF printables (unit) | [x] | `PdfPrintables.test.tsx` renders real PDF buffers (paystub, invoice per-load/weekly/consolidated, source report) |
 | DriverForms (w2 + oo) + DriverFormsExpiringSoon | [x] | `DriverFormsCompliance.test.tsx`: checkbox states, missing-required marker, file-via-modal, remove confirm, carrier grouping, truck vitals expand, expiring groups/collapse/refresh |
 | Most object/collection components | [~] | Objects largely covered; remaining collections (`InvoiceWeeklies`, `ConsolidatedInvoices`) untested |

@@ -8,7 +8,7 @@ import {
     type NewEraCatalogSeed,
     type OpenLegacyJobSeed,
 } from "./helpers/dbSeed";
-import {selectAutocompleteOption} from "./helpers/forms";
+import {inlineCreateModal, pickInlineCreateOption, selectAutocompleteOption} from "./helpers/forms";
 
 /**
  * Cutover load-entry UX, end to end against seeded data:
@@ -137,6 +137,53 @@ test("new work path: seeded clean load type + inline-created source submit", asy
     expect(load).toBeTruthy();
     tracker.track("loads", load!.ID);
     expect(load!.LoadTypeID).toBe(newEraSeed.loadTypeId);
+    expect(load!.LoadTypeID).toBeGreaterThanOrEqual(10000);
+    expect(load!.SourceID).toBeTruthy();
+    expect(load!.JobID).not.toBe(legacySeed.jobId);
+});
+
+test("new work path: inline load type + inline source submit", async ({page}) => {
+    await page.goto("/loads");
+    const form = page.getByTestId("load-form");
+    await expect(form).toBeVisible({timeout: 15000});
+
+    await selectAutocompleteOption(page, "Driver", legacySeed.driverQuery, {root: form});
+    await expect(page.getByText("New work instead")).toBeVisible({timeout: 15000});
+    await page.getByText("New work instead").click();
+
+    const token = String(Date.now() % 100000);
+
+    await pickInlineCreateOption(page, "Source", "New Source", {root: form});
+    let modal = inlineCreateModal(page, "Source");
+    await modal.getByLabel("Name", {exact: true}).fill(`[TEST] E2E InlineSrc-${token}`);
+    await modal.getByLabel("Short Name (for invoices/PDFs)").fill(`IS-${token.slice(-4)}`);
+    await modal.getByRole("button", {name: "Create"}).click();
+    await expect(page.getByText(/Successfully Submitted/i)).toBeVisible({timeout: 15000});
+
+    await pickInlineCreateOption(page, "Load Type", "New Load Type", {root: form});
+    modal = inlineCreateModal(page, "Load Type");
+    await modal.getByLabel("Description", {exact: true}).fill(`[TEST] InlineType-${token}`);
+    await modal.getByRole("button", {name: "Create"}).click();
+    await expect(page.getByText(/Successfully Submitted/i)).toBeVisible({timeout: 15000});
+
+    await selectAutocompleteOption(page, "Customer", legacySeed.customerQuery, {root: form});
+    await selectAutocompleteOption(
+        page,
+        "Delivery Location",
+        legacySeed.deliveryLocationDescription,
+        {root: form},
+    );
+
+    const ticket = String(nextTestTicket(95));
+    await form.getByLabel(/Ticket Number/i).fill(ticket);
+    await form.getByLabel(/^Weight$/i).fill("20");
+    await form.getByLabel("Delivered On").fill(todayForDatePicker());
+    await page.getByTestId("form-submit").click();
+    await expect(page.getByText(/Successfully Submitted/i)).toBeVisible({timeout: 30000});
+
+    const load = await prisma.loads.findFirst({where: {TicketNumber: Number(ticket)}});
+    expect(load).toBeTruthy();
+    tracker.track("loads", load!.ID);
     expect(load!.LoadTypeID).toBeGreaterThanOrEqual(10000);
     expect(load!.SourceID).toBeTruthy();
     expect(load!.JobID).not.toBe(legacySeed.jobId);

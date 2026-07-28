@@ -4,8 +4,10 @@ import {LoadsModel} from '../../../prisma/zod';
 import {TRPCError} from "@trpc/server";
 import {isSourcesCutoverActive, NEW_LOAD_TYPE_ID_THRESHOLD} from "../../config/sourcesCutover";
 import {rematchLoadToJob} from "../loadRematch";
+import {buildLoadFilters} from "../loadListFilters";
+import {assertLoadsNotPaidOut, asArray, syncOpenSheetAmounts} from "../loadSheetSync";
 
-type loadType = z.infer<typeof LoadsModel>;
+export {buildLoadFilters} from "../loadListFilters";
 
 const loadsListInput = z.object({
     page: z.number().optional(),
@@ -19,33 +21,6 @@ const loadsListInput = z.object({
     search: z.number().nullish().optional(),
     chosenLoad: z.any().optional(),
 });
-
-function buildLoadFilters(input: z.infer<typeof loadsListInput>) {
-    const {customer, driver, truck, loadType, deliveryLocation, search, chosenLoad} = input;
-    const epsilon = 0.001;
-    return {
-        ...(customer && {CustomerID: customer}),
-        ...(driver && {DriverID: driver}),
-        ...(truck && {TruckID: truck}),
-        ...(loadType && {LoadTypeID: loadType}),
-        ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
-        ...(search && {TicketNumber: search}),
-        ...(chosenLoad?.MaterialRate && {
-            MaterialRate: {gte: chosenLoad.MaterialRate - epsilon, lte: chosenLoad.MaterialRate + epsilon},
-        }),
-        ...(chosenLoad?.TruckRate && {
-            TruckRate: {gte: chosenLoad.TruckRate - epsilon, lte: chosenLoad.TruckRate + epsilon},
-        }),
-        ...(chosenLoad?.DriverRate && {
-            DriverRate: {gte: chosenLoad.DriverRate - epsilon, lte: chosenLoad.DriverRate + epsilon},
-        }),
-        ...(chosenLoad?.TotalRate && {
-            TotalRate: {gte: chosenLoad.TotalRate - epsilon, lte: chosenLoad.TotalRate + epsilon},
-        }),
-        ...(chosenLoad?.StartDate && {StartDate: chosenLoad.StartDate}),
-        ...(chosenLoad?.Week && {Week: chosenLoad.Week}),
-    };
-}
 
 const loadListInclude = {
     Customers: {select: {Name: true}},
@@ -74,6 +49,21 @@ async function updateLoadAndRelations(
     ctx: any,
     mass_edit_ids: any = null
 ): Promise<void> {
+    const affectedLoadIds: number[] = mass_edit_ids?.length
+        ? mass_edit_ids
+        : input.ID
+          ? [input.ID]
+          : [];
+
+    let sourceJobIds: number[] = [];
+    if (affectedLoadIds.length) {
+        await assertLoadsNotPaidOut(ctx, affectedLoadIds);
+        const existing = asArray(await ctx.prisma.loads.findMany({
+            where: {ID: {in: affectedLoadIds}},
+            select: {JobID: true},
+        }));
+        sourceJobIds = existing.map((row: {JobID: number | null}) => row.JobID).filter(Boolean) as number[];
+    }
 
     const {ID, SourceID, ...rest} = input;
     const data = {...rest};
@@ -104,16 +94,18 @@ async function updateLoadAndRelations(
         if (isSourcesCutoverActive() && SourceID && input.LoadTypeID) {
             await upsertSourceLoadType(ctx, SourceID, input.LoadTypeID);
         }
+        await syncOpenSheetAmounts(ctx, {
+            loadIds: affectedLoadIds,
+            jobIds: [...new Set([...sourceJobIds, rematch.JobID])],
+        });
         return result;
     }
 
     const massData: Record<string, unknown> = {
         CustomerID: data.CustomerID,
         DriverID: data.DriverID,
-        TruckID: data.TruckID,
         LoadTypeID: data.LoadTypeID,
         DeliveryLocationID: data.DeliveryLocationID,
-        StartDate: data.StartDate,
         Week: data.Week,
         MaterialRate: data.MaterialRate,
         TruckRate: data.TruckRate,
@@ -132,6 +124,11 @@ async function updateLoadAndRelations(
     if (isSourcesCutoverActive() && SourceID && input.LoadTypeID) {
         await upsertSourceLoadType(ctx, SourceID, input.LoadTypeID);
     }
+
+    await syncOpenSheetAmounts(ctx, {
+        loadIds: affectedLoadIds,
+        jobIds: [...new Set([...sourceJobIds, rematch.JobID])],
+    });
 }
 
 export const loadsRouter = createRouter()
@@ -274,6 +271,24 @@ export const loadsRouter = createRouter()
             })
 
         }
+    })
+    .query("getByJobId", {
+        input: z.object({
+            jobId: z.number(),
+        }),
+        async resolve({ctx, input}) {
+            if (!input.jobId) {
+                return [];
+            }
+            return ctx.prisma.loads.findMany({
+                include: loadListInclude,
+                where: {
+                    ...activeLoadWhere,
+                    JobID: input.jobId,
+                },
+                orderBy: {ID: "desc"},
+            });
+        },
     })
     // .query('search', {
     //     input: z.object({
@@ -426,42 +441,7 @@ export const loadsRouter = createRouter()
             chosenLoad: z.any().optional()
         }),
         async resolve({ctx, input}) {
-            const {customer, driver, truck, loadType, deliveryLocation, search, chosenLoad} = input;
-            const epsilon = 0.001;
-            const extra = {
-                ...(customer && {CustomerID: customer}),
-                ...(driver && {DriverID: driver}),
-                ...(truck && {TruckID: truck}),
-                ...(loadType && {LoadTypeID: loadType}),
-                ...(deliveryLocation && {DeliveryLocationID: deliveryLocation}),
-                ...(search && {TicketNumber: search}),
-                ...(chosenLoad?.MaterialRate && {
-                    MaterialRate: {
-                        gte: chosenLoad.MaterialRate - epsilon,
-                        lte: chosenLoad.MaterialRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.TruckRate && {
-                    TruckRate: {
-                        gte: chosenLoad.TruckRate - epsilon,
-                        lte: chosenLoad.TruckRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.DriverRate && {
-                    DriverRate: {
-                        gte: chosenLoad.DriverRate - epsilon,
-                        lte: chosenLoad.DriverRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.TotalRate && {
-                    TotalRate: {
-                        gte: chosenLoad.TotalRate - epsilon,
-                        lte: chosenLoad.TotalRate + epsilon
-                    }
-                }),
-                ...(chosenLoad?.StartDate && {StartDate: chosenLoad.StartDate}),
-                ...(chosenLoad?.Week && {Week: chosenLoad.Week}),
-            };
+            const extra = buildLoadFilters(input);
 
             return ctx.prisma.loads.count({
                 where: {...activeLoadWhere, ...extra},
@@ -652,6 +632,11 @@ export const loadsRouter = createRouter()
             if (isSourcesCutoverActive() && SourceID && LoadTypeID) {
                 await upsertSourceLoadType(ctx, SourceID, LoadTypeID);
             }
+
+            await syncOpenSheetAmounts(ctx, {
+                loadIds: [data.ID],
+                jobIds: data.JobID ? [data.JobID] : [],
+            });
 
             return {data, warnings: ctx.warnings};
         },

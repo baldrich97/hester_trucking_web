@@ -1,6 +1,12 @@
-import {describe, expect, it, vi} from "vitest";
-import {render, screen} from "@testing-library/react";
+import {describe, expect, it, vi, beforeEach} from "vitest";
+import {render, screen, waitFor} from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import React from "react";
+
+const {confirmAlert, mutateAsync} = vi.hoisted(() => ({
+    confirmAlert: vi.fn(),
+    mutateAsync: vi.fn().mockResolvedValue(true),
+}));
 
 vi.mock("../../src/hooks/useSourcesCutover", () => ({
     useSourcesCutover: () => ({active: true, newLoadTypeIdThreshold: 10000}),
@@ -10,21 +16,37 @@ vi.mock("next/router", () => ({
 }));
 vi.mock("react-toastify", () => ({toast: vi.fn()}));
 vi.mock("../../src/utils/appConfirm", () => ({
-    confirmAlert: vi.fn(),
+    confirmAlert,
     confirmDestructive: vi.fn(),
 }));
 vi.mock("jquery", () => ({default: vi.fn()}));
 vi.mock("../../src/elements/GenericForm", () => ({
-    default: ({submitDisabled}: {submitDisabled?: boolean}) => (
-        <button type="submit" data-testid="form-submit" disabled={submitDisabled}>
-            Submit
-        </button>
+    default: ({
+        fields,
+        submitDisabled,
+    }: {
+        fields: Array<{name: string; size: number; label?: string}>;
+        submitDisabled?: boolean;
+    }) => (
+        <div data-testid="generic-form">
+            {fields.map((field) => (
+                <span
+                    key={field.name}
+                    data-testid={`field-${field.name}`}
+                    data-size={field.size}
+                    data-label={field.label}
+                />
+            ))}
+            <button type="submit" data-testid="form-submit" disabled={submitDisabled}>
+                Submit
+            </button>
+        </div>
     ),
 }));
 vi.mock("../../src/utils/trpc", () => ({
     trpc: {
         useQuery: () => ({data: [], isLoading: false}),
-        useMutation: () => ({mutateAsync: vi.fn(), isLoading: false}),
+        useMutation: () => ({mutateAsync, isLoading: false}),
     },
 }));
 
@@ -55,6 +77,10 @@ const initialLoad = {
 };
 
 describe("PartialLoad", () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
     it("renders mass-edit submit when initial load is provided", () => {
         render(
             <PartialLoad
@@ -64,5 +90,43 @@ describe("PartialLoad", () => {
             />,
         );
         expect(screen.getByTestId("form-submit")).toBeInTheDocument();
+    });
+
+    it("ME-C7: truck field not rendered; driver is full width", () => {
+        render(
+            <PartialLoad
+                initialLoad={initialLoad}
+                jobId={99}
+                selectedLoads={[{ID: 42, TicketNumber: 999501}]}
+                refreshData={vi.fn()}
+            />,
+        );
+        expect(screen.queryByTestId("field-TruckID")).not.toBeInTheDocument();
+        expect(screen.getByTestId("field-DriverID")).toHaveAttribute("data-size", "12");
+    });
+
+    it("ME-C8: confirm dialog lists tickets, job ID, and per-load preserve copy", async () => {
+        const user = userEvent.setup();
+        render(
+            <PartialLoad
+                initialLoad={initialLoad}
+                jobId={99}
+                selectedLoads={[
+                    {ID: 42, TicketNumber: 999501},
+                    {ID: 43, TicketNumber: 999502},
+                ]}
+                refreshData={vi.fn()}
+            />,
+        );
+
+        await user.click(screen.getByTestId("form-submit"));
+
+        await waitFor(() => expect(confirmAlert).toHaveBeenCalled());
+        const args = confirmAlert.mock.calls[0]![0] as {message: React.ReactElement};
+        const messageText = JSON.stringify(args.message);
+        expect(messageText).toMatch(/999501/);
+        expect(messageText).toMatch(/999502/);
+        expect(messageText).toMatch(/"children":\["#",99\]/);
+        expect(messageText).toMatch(/truck stay unchanged/i);
     });
 });

@@ -7,11 +7,9 @@ import {
     CustomersModel,
     InvoicesModel,
     LoadsModel,
-    TrucksModel,
     LoadTypesModel,
     DeliveryLocationsModel,
     DriversModel,
-    CompleteTrucksDriven,
 } from "../../../prisma/zod";
 import {trpc} from "../../utils/trpc";
 import {useRouter} from "next/router";
@@ -24,13 +22,11 @@ type LoadsType = z.infer<typeof LoadsModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
 type LoadTypesType = z.infer<typeof LoadTypesModel>;
 type DeliveryLocationsType = z.infer<typeof DeliveryLocationsModel>;
-type TrucksType = z.infer<typeof TrucksModel>;
 type DriversType = z.infer<typeof DriversModel>;
 import {FormFieldsType, SelectDataType} from "../../utils/types";
 import {
     CustomerDeliveryLocations,
     CustomerLoadTypes,
-    TrucksDriven,
 } from "@prisma/client";
 import {formatDateToWeek} from "../../utils/UtilityFunctions";
 import {useSourcesCutover} from "../../hooks/useSourcesCutover";
@@ -49,7 +45,6 @@ const defaultValues = {
     LoadTypeID: null,
     DeliveryDescriptionID: null,
     DriverID: null,
-    TruckID: null,
     Hours: undefined,
     TotalAmount: undefined,
     TotalRate: undefined,
@@ -63,11 +58,13 @@ const defaultValues = {
 
 function PartialLoad({
                          initialLoad = null,
+                         jobId = null,
                          refreshData,
                          resetButton = false,
                          selectedLoads = []
                      }: {
     initialLoad?: null | LoadsType;
+    jobId?: number | null;
     refreshData?: any;
     resetButton?: any;
     selectedLoads?: any[] | undefined;
@@ -119,10 +116,8 @@ function PartialLoad({
         const fieldsToValidate = [
             {key: "CustomerID", name: "Customer ID"},
             {key: "DriverID", name: "Driver ID"},
-            {key: "TruckID", name: "Truck ID"},
             {key: "LoadTypeID", name: "Load Type ID"},
             {key: "DeliveryLocationID", name: "Delivery Location ID"},
-            {key: "StartDate", name: "Start Date"},
             {key: "Week", name: "Week"},
             {key: "TotalRate", name: "Total Rate"},
         ];
@@ -148,10 +143,16 @@ function PartialLoad({
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             message: (<>
-                <p>Are you sure you want to change the following ticket numbers to match the form on the right?</p>
-                <p><b>Ticket Numbers:</b> {selectedLoads.map((record) => record.TicketNumber).join(', ')}</p>
-                <p>If any of these are incorrect, please close this and remove the incorrect tickets.</p>
-                <p style={{color: 'red', fontWeight: 'bold'}}>ALL FIELDS SHOWN WILL BE CHANGED!</p>
+                <p>
+                    Apply identity, rates, and week from this form to{" "}
+                    <b>{selectedLoads.length}</b> load{selectedLoads.length === 1 ? "" : "s"} on job{" "}
+                    <b>#{jobId ?? initialLoad?.JobID ?? "?"}</b>?
+                </p>
+                <p><b>Ticket numbers:</b> {selectedLoads.map((record) => record.TicketNumber).join(", ")}</p>
+                <p>
+                    Ticket number, weight, hours, amount, start date, and truck stay unchanged on each load.
+                    Remove incorrect tickets from the table before confirming.
+                </p>
             </>),
             buttons: [
                 {
@@ -189,10 +190,6 @@ function PartialLoad({
         initialLoad ? (initialLoad.DriverID ? initialLoad.DriverID : 0) : 0
     );
 
-    const [truck, setTruck] = useState(
-        initialLoad ? (initialLoad.TruckID ? initialLoad.TruckID : 0) : 0
-    );
-
     const [loadTypeSelected, setLoadTypeSelected] = useState(
         initialLoad ? (initialLoad.LoadTypeID ? initialLoad.LoadTypeID : 0) : 0
     );
@@ -205,13 +202,9 @@ function PartialLoad({
 
     const [dltrpcData, dlsetData] = useState<CustomerDeliveryLocations[]>([]);
 
-    const [tdtrpcData, tdsetData] = useState<CompleteTrucksDriven[]>([]);
-
     const [ltshouldRefresh, ltsetShouldRefresh] = useState(false);
 
     const [dlshouldRefresh, dlsetShouldRefresh] = useState(false);
-
-    const [tdshouldRefresh, tdsetShouldRefresh] = useState(false);
 
     const [srcshouldRefresh, srcsetShouldRefresh] = useState(false);
 
@@ -253,19 +246,6 @@ function PartialLoad({
         },
     });
 
-    trpc.useQuery(["trucksdriven.search", {TruckID: truck, DriverID: driver}], {
-        enabled: tdshouldRefresh,
-        onSuccess(data) {
-            tdsetData(JSON.parse(JSON.stringify(data)));
-            tdsetShouldRefresh(false);
-            //forceUpdate;
-        },
-        onError(error) {
-            console.warn(error.message);
-            tdsetShouldRefresh(false);
-        },
-    });
-
     React.useEffect(() => {
         const subscription = watch((value, {name, type}) => {
             if (name === "StartDate" && type === "change") {
@@ -304,21 +284,8 @@ function PartialLoad({
                 setLoadTypeSelected(value.LoadTypeID ?? 0);
                 srcsetShouldRefresh(true);
             }
-            if ((name === "TruckID" || name === "DriverID") && type === "change") {
-                if (name === "TruckID") {
-                    //setValue("DriverID", 0)
-                    //setDriver(0)
-                    setTruck(value.TruckID ?? 0);
-                } else {
-                    //setValue("TruckID", 0)
-                    setDriver(value.DriverID ?? 0);
-                    //setTruck(0)
-                }
-                if (value.TruckID || value.DriverID) {
-                    tdsetShouldRefresh(true);
-                } else {
-                    tdsetData([]);
-                }
+            if (name === "DriverID" && type === "change") {
+                setDriver(value.DriverID ?? 0);
             }
         });
 
@@ -356,27 +323,12 @@ function PartialLoad({
         },
         {
             name: "DriverID",
-            size: 6,
+            size: 12,
             required: false,
             type: "select",
             label: "Driver",
             searchQuery: "drivers",
             onlyActive: true,
-            groupBy: "Recommend",
-            groupByNames: "Has Driven Truck|New for Driver",
-            enableOptionGroups: truck > 0,
-        },
-        {
-            name: "TruckID",
-            size: 6,
-            required: false,
-            type: "select",
-            label: "Truck",
-            searchQuery: "trucks",
-            onlyActive: true,
-            groupBy: "Recommend",
-            groupByNames: "Driven Before|New for Driver",
-            enableOptionGroups: driver > 0,
         },
         {
             name: "LoadTypeID",
@@ -495,31 +447,8 @@ function PartialLoad({
             defaultValue: initialLoad ? initialLoad.DeliveryLocationID : null,
         },
         {
-            key: "TruckID",
-            data:
-                tdtrpcData.length > 0
-                    ? (tdtrpcData
-                          .map((item) => item.Trucks)
-                          .filter((item) => item !== undefined)
-                          .filter((value, index, self) => {
-                              return index === self.findIndex((t) => t.ID === value.ID);
-                          }) as unknown as Record<string, unknown>[])
-                    : [],
-            optionValue: "ID",
-            optionLabel: "Name+|+Notes",
-            defaultValue: initialLoad ? initialLoad.TruckID : null,
-        },
-        {
             key: "DriverID",
-            data:
-                tdtrpcData.length > 0
-                    ? (tdtrpcData
-                          .map((item) => item.Drivers)
-                          .filter((item) => item !== undefined)
-                          .filter((value, index, self) => {
-                              return index === self.findIndex((t) => t.ID === value.ID);
-                          }) as unknown as Record<string, unknown>[])
-                    : [],
+            data: [],
             optionValue: "ID",
             optionLabel: "FirstName+LastName",
             defaultValue: initialLoad ? initialLoad.DriverID : null,
@@ -545,7 +474,6 @@ function PartialLoad({
                     selectData={selectData}
                     selectedCustomer={customer}
                     selectedLoadType={loadTypeSelected}
-                    selectedTruck={truck}
                     selectedDriver={driver}
                     loadTypeEra={cutoverActive ? "new" : undefined}
                     submitDisabled={doMassEdit.isLoading}

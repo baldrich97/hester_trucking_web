@@ -86,7 +86,7 @@ describe("load lifecycle (dev DB via tRPC)", () => {
         expect(load?.SourceID).toBe(sourceId);
     });
 
-    it("loads.post_mass_edit updates selected loads", async () => {
+    it("loads.post_mass_edit updates selected loads (identity fields, not TruckID)", async () => {
         const entities = await getBaseEntities(prisma);
         const ctx = await createTestContextWithPrisma(prisma);
 
@@ -95,8 +95,14 @@ describe("load lifecycle (dev DB via tRPC)", () => {
         await trackLoadGraph(prisma, tracker, a.loadId);
         await trackLoadGraph(prisma, tracker, b.loadId);
 
-        const newTruckId = entities.truckB.ID;
-        const massData = buildLoadPutInput(entities, nextTestTicket(34), {TruckID: newTruckId});
+        const beforeA = await prisma.loads.findUnique({where: {ID: a.loadId}});
+        const beforeB = await prisma.loads.findUnique({where: {ID: b.loadId}});
+        const newDriverId = entities.driverB.ID;
+        const massData = buildLoadPutInput(entities, nextTestTicket(34), {
+            DriverID: newDriverId,
+            TruckID: entities.truckB.ID,
+            Week: beforeA!.Week,
+        });
 
         await callTrpcMutation(
             "loads.post_mass_edit",
@@ -106,8 +112,10 @@ describe("load lifecycle (dev DB via tRPC)", () => {
 
         const updatedA = await prisma.loads.findUnique({where: {ID: a.loadId}});
         const updatedB = await prisma.loads.findUnique({where: {ID: b.loadId}});
-        expect(updatedA?.TruckID).toBe(newTruckId);
-        expect(updatedB?.TruckID).toBe(newTruckId);
+        expect(updatedA?.DriverID).toBe(newDriverId);
+        expect(updatedB?.DriverID).toBe(newDriverId);
+        expect(updatedA?.TruckID).toBe(beforeA?.TruckID);
+        expect(updatedB?.TruckID).toBe(beforeB?.TruckID);
     });
 
     it("loads.post_mass_edit reassigns SourceID on new-era loads and rematches the job", async () => {

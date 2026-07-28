@@ -364,3 +364,153 @@ export async function seedNewEraCatalog(
         loadTypeQuery,
     };
 }
+
+export type MassEditJobSeed = {
+    jobId: number;
+    loads: Array<{
+        id: number;
+        ticket: number;
+        truckId: number;
+        startDate: Date;
+    }>;
+    anchorTicket: number;
+};
+
+/** Multi-load job for mass-edit E2E: same JobID, different trucks and delivery days. */
+export async function seedMassEditJob(
+    prisma: PrismaClient,
+    tracker: TestRunTracker,
+    token: string,
+    loadCount = 3,
+): Promise<MassEditJobSeed> {
+    const state = await prisma.states.findFirst({orderBy: {ID: "asc"}});
+    const drivers = await prisma.drivers.findMany({where: {Active: true}, take: 1, orderBy: {ID: "asc"}});
+    const trucks = await prisma.trucks.findMany({where: {Active: true}, take: 2, orderBy: {ID: "asc"}});
+    const deliveryLocation = await prisma.deliveryLocations.findFirst({orderBy: {ID: "asc"}});
+    const loadType = await prisma.loadTypes.findFirst({
+        where: {OR: [{Deleted: false}, {Deleted: null}]},
+        orderBy: {ID: "asc"},
+    });
+    if (!state || !drivers[0] || trucks.length < 2 || !deliveryLocation || !loadType) {
+        throw new Error("Dev DB missing base fixtures for mass-edit seed.");
+    }
+
+    const customer = await prisma.customers.create({
+        data: {
+            Name: `${TEST_NAME_PREFIX} MassEdit-${token}`,
+            Street: "200 Test Lane",
+            City: "MassTown",
+            State: state.ID,
+            ZIP: "99999",
+            Deleted: false,
+        },
+    });
+    tracker.track("customers", customer.ID);
+
+    const daily = await prisma.dailies.create({
+        data: {DriverID: drivers[0].ID, Week: E2E_SEED_WEEK},
+    });
+    tracker.track("dailies", daily.ID);
+
+    const weekly = await prisma.weeklies.create({
+        data: {
+            Week: E2E_SEED_WEEK,
+            CustomerID: customer.ID,
+            LoadTypeID: loadType.ID,
+            DeliveryLocationID: deliveryLocation.ID,
+            CompanyRate: 17,
+        },
+    });
+    tracker.track("weeklies", weekly.ID);
+
+    const job = await prisma.jobs.create({
+        data: {
+            DriverID: drivers[0].ID,
+            DailyID: daily.ID,
+            WeeklyID: weekly.ID,
+            CustomerID: customer.ID,
+            LoadTypeID: loadType.ID,
+            DeliveryLocationID: deliveryLocation.ID,
+            TruckingRate: 11,
+            MaterialRate: 6,
+            DriverRate: 9,
+            CompanyRate: 17,
+            PaidOut: false,
+        },
+    });
+    tracker.track("jobs", job.ID);
+
+    const loads: MassEditJobSeed["loads"] = [];
+    for (let i = 0; i < loadCount; i++) {
+        const ticket = e2eSeedTicket() + i;
+        const truckId = i % 2 === 0 ? trucks[0]!.ID : trucks[1]!.ID;
+        const startDate = new Date(`2099-02-${String(3 + i).padStart(2, "0")}T12:00:00.000Z`);
+        const load = await prisma.loads.create({
+            data: {
+                TicketNumber: ticket,
+                DriverID: drivers[0].ID,
+                TruckID: truckId,
+                CustomerID: customer.ID,
+                LoadTypeID: loadType.ID,
+                DeliveryLocationID: deliveryLocation.ID,
+                Week: E2E_SEED_WEEK,
+                StartDate: startDate,
+                Created: new Date("2099-02-03T12:00:00.000Z"),
+                JobID: job.ID,
+                Weight: 20 + i,
+                TruckRate: 11,
+                MaterialRate: 6,
+                DriverRate: 9,
+                TotalRate: 17,
+                TotalAmount: (20 + i) * 17,
+            },
+        });
+        tracker.track("loads", load.ID);
+        loads.push({id: load.ID, ticket, truckId, startDate});
+    }
+
+    return {jobId: job.ID, loads, anchorTicket: loads[0]!.ticket};
+}
+
+export type MassEditPaidJobSeed = {
+    jobId: number;
+    loadId: number;
+    ticket: number;
+};
+
+export async function seedMassEditPaidJob(
+    prisma: PrismaClient,
+    tracker: TestRunTracker,
+): Promise<MassEditPaidJobSeed> {
+    const seed = await seedMassEditJob(prisma, tracker, `paid-${Date.now() % 10000}`, 1);
+    await prisma.jobs.update({where: {ID: seed.jobId}, data: {PaidOut: true}});
+    return {jobId: seed.jobId, loadId: seed.loads[0]!.id, ticket: seed.loads[0]!.ticket};
+}
+
+export type MassEditClosedJobSeed = {
+    jobId: number;
+    loadId: number;
+    ticket: number;
+    truckingRevenue: number;
+    companyRevenue: number;
+};
+
+export async function seedMassEditClosedJob(
+    prisma: PrismaClient,
+    tracker: TestRunTracker,
+): Promise<MassEditClosedJobSeed> {
+    const seed = await seedMassEditJob(prisma, tracker, `closed-${Date.now() % 10000}`, 1);
+    const truckingRevenue = 400;
+    const companyRevenue = 800;
+    await prisma.jobs.update({
+        where: {ID: seed.jobId},
+        data: {TruckingRevenue: truckingRevenue, CompanyRevenue: companyRevenue},
+    });
+    return {
+        jobId: seed.jobId,
+        loadId: seed.loads[0]!.id,
+        ticket: seed.loads[0]!.ticket,
+        truckingRevenue,
+        companyRevenue,
+    };
+}
