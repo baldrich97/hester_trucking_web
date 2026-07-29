@@ -124,3 +124,31 @@ test("form-options shows the seeded form and saves a change", async ({page}) => 
     const option = await prisma.formOptions.findFirst({where: {Form: seed.formId}});
     expect(option?.OOVisible).toBe(true);
 });
+
+test("driver profile Forms tab files a form via card UI", async ({page}) => {
+    await page.goto(`/drivers/${seed.driverId}?tab=forms`);
+    const formsTab = page.getByRole("tab", {name: /Forms/i});
+    await expect(formsTab).toBeVisible({timeout: 15000});
+    await formsTab.click();
+    await expect(page.getByRole("heading", {name: "Required forms"})).toBeVisible({timeout: 15000});
+
+    const medCardRow = page.locator(".MuiPaper-root").filter({hasText: seed.formName}).first();
+    await expect(medCardRow).toBeVisible({timeout: 15000});
+
+    const markButton = medCardRow.getByRole("button", {name: /Mark on file|Update date/i});
+    await markButton.click();
+
+    const dateInput = page.getByLabel("Expiration date");
+    await expect(dateInput).toBeVisible({timeout: 10000});
+    await dateInput.click();
+    await dateInput.pressSequentially("12/31/2099");
+    await page.getByRole("button", {name: "Save"}).click();
+    await expect(page.getByText(/Successfully submitted/i)).toBeVisible({timeout: 30000});
+
+    await expect(medCardRow.getByText("On file")).toBeVisible({timeout: 15000});
+
+    const filed = await prisma.driverForms.findFirst({
+        where: {Driver: seed.driverId, Form: seed.formId},
+    });
+    expect(filed).toBeTruthy();
+});

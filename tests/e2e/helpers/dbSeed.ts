@@ -514,3 +514,109 @@ export async function seedMassEditClosedJob(
         companyRevenue,
     };
 }
+
+export type SourceReportSeed = NewEraCatalogSeed & {
+    ticket: number;
+    loadId: number;
+    customerId: number;
+    customerQuery: string;
+    loadDate: string;
+};
+
+/** Isolated source + customer + load for source/customer report E2E. */
+export async function seedSourceReportFixture(
+    prisma: PrismaClient,
+    tracker: TestRunTracker,
+    token: string = String(Date.now() % 100000),
+): Promise<SourceReportSeed> {
+    const catalog = await seedNewEraCatalog(prisma, tracker, token);
+    const state = await prisma.states.findFirst({orderBy: {ID: "asc"}});
+    const driver = await prisma.drivers.findFirst({where: {Active: true}, orderBy: {ID: "asc"}});
+    const truck = await prisma.trucks.findFirst({where: {Active: true}, orderBy: {ID: "asc"}});
+    const deliveryLocation = await prisma.deliveryLocations.findFirst({orderBy: {ID: "asc"}});
+    if (!state || !driver || !truck || !deliveryLocation) {
+        throw new Error("Dev DB missing base fixtures for source report seed.");
+    }
+
+    const customerQuery = `RepCust-${token}`;
+    const customer = await prisma.customers.create({
+        data: {
+            Name: `${TEST_NAME_PREFIX} ${customerQuery}`,
+            Street: "1 Report Way",
+            City: "Reportville",
+            State: state.ID,
+            ZIP: "99999",
+            Deleted: false,
+        },
+    });
+    tracker.track("customers", customer.ID);
+
+    const loadDate = new Date("2099-03-06T12:00:00.000Z");
+    const week = formatDateToWeek(loadDate);
+
+    const daily = await prisma.dailies.create({
+        data: {DriverID: driver.ID, Week: week},
+    });
+    tracker.track("dailies", daily.ID);
+
+    const weekly = await prisma.weeklies.create({
+        data: {
+            Week: week,
+            CustomerID: customer.ID,
+            LoadTypeID: catalog.loadTypeId,
+            DeliveryLocationID: deliveryLocation.ID,
+            CompanyRate: 17,
+        },
+    });
+    tracker.track("weeklies", weekly.ID);
+
+    const job = await prisma.jobs.create({
+        data: {
+            DriverID: driver.ID,
+            DailyID: daily.ID,
+            WeeklyID: weekly.ID,
+            CustomerID: customer.ID,
+            LoadTypeID: catalog.loadTypeId,
+            DeliveryLocationID: deliveryLocation.ID,
+            TruckingRate: 11,
+            MaterialRate: 6,
+            DriverRate: 9,
+            CompanyRate: 17,
+            PaidOut: false,
+        },
+    });
+    tracker.track("jobs", job.ID);
+
+    const ticket = e2eSeedTicket();
+    const load = await prisma.loads.create({
+        data: {
+            TicketNumber: ticket,
+            DriverID: driver.ID,
+            TruckID: truck.ID,
+            CustomerID: customer.ID,
+            LoadTypeID: catalog.loadTypeId,
+            DeliveryLocationID: deliveryLocation.ID,
+            SourceID: catalog.sourceId,
+            Week: week,
+            StartDate: loadDate,
+            Created: loadDate,
+            JobID: job.ID,
+            Weight: 20,
+            TruckRate: 11,
+            MaterialRate: 6,
+            DriverRate: 9,
+            TotalRate: 17,
+            TotalAmount: 340,
+        },
+    });
+    tracker.track("loads", load.ID);
+
+    return {
+        ...catalog,
+        ticket,
+        loadId: load.ID,
+        customerId: customer.ID,
+        customerQuery,
+        loadDate: "2099-03-06",
+    };
+}

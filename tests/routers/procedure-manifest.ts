@@ -199,6 +199,7 @@ export const ALL_PROCEDURES: ProcedureCase[] = [
     m("formsCatalog.createWithOptions", {
         formName: "[TEST] Form", displayName: "[TEST]", w2Visible: true, ooVisible: false,
     }),
+    m("formsCatalog.deleteWithOptions", {formOptionId: 1}),
     q("formOptions.getAll"),
     m("formOptions.update", {ID: 1, W2Visible: true, OOVisible: true}),
 

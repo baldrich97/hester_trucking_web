@@ -4,6 +4,7 @@ import {
     isDriverFormRecordCompliant,
     isDriverFormExpiringSoon,
     isDriverLicenseExpiringSoon,
+    isOoFormRequired,
     startOfDay,
 } from "../../src/utils/driverFormCompliance";
 
@@ -74,5 +75,42 @@ describe("driverFormCompliance", () => {
     it("detects form expiring soon within window", () => {
         const record = {Created: new Date("2024-06-01"), Expiration: new Date("2024-06-25")};
         expect(isDriverFormExpiringSoon(record, "EXPIRATION_DATE", null, 30, now)).toBe(true);
+    });
+
+    it("CALENDAR_MONTH expiring soon near month end", () => {
+        const juneNow = new Date(2024, 5, 15, 12, 0, 0);
+        const record = {Created: new Date(2024, 5, 1, 12, 0, 0), Expiration: null};
+        expect(isDriverFormExpiringSoon(record, "CALENDAR_MONTH", null, 30, juneNow)).toBe(true);
+    });
+
+    it("CALENDAR_YEAR expiring soon in December", () => {
+        const decNow = new Date(2024, 11, 10, 12, 0, 0);
+        const record = {Created: new Date(2024, 0, 15, 12, 0, 0), Expiration: null};
+        expect(isDriverFormExpiringSoon(record, "CALENDAR_YEAR", null, 30, decNow)).toBe(true);
+        expect(isDriverFormExpiringSoon(record, "CALENDAR_YEAR", null, 30, now)).toBe(false);
+    });
+
+    it("NONE never appears as expiring soon", () => {
+        const record = {Created: new Date("2024-01-01"), Expiration: null};
+        expect(isDriverFormExpiringSoon(record, "NONE", null, 30, now)).toBe(false);
+    });
+
+    it("fleet-wide OO required only when entity has more than one truck", () => {
+        const fleetWide = {
+            OOVisible: true,
+            OORequired: true,
+            FleetWide: true,
+            W2Visible: false,
+            W2Required: false,
+            Form: 1,
+            ExpiryCadence: "EXPIRATION_DATE" as const,
+            ValidityMonths: null,
+        };
+        expect(isOoFormRequired(fleetWide, 1)).toBe(false);
+        expect(isOoFormRequired(fleetWide, 2)).toBe(true);
+
+        const ooOnly = {...fleetWide, FleetWide: false};
+        expect(isOoFormRequired(ooOnly, 1)).toBe(true);
+        expect(isOoFormRequired(ooOnly, 2)).toBe(true);
     });
 });

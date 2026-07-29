@@ -18,7 +18,10 @@ import Select from "@mui/material/Select";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Tooltip from "@mui/material/Tooltip";
+import IconButton from "@mui/material/IconButton";
+import CloseIcon from "@mui/icons-material/Close";
 import {toast} from "react-toastify";
+import {confirmDestructive} from "../../utils/appConfirm";
 
 type FormOptionsRow = z.infer<typeof FormOptionsModel> & {
     Forms: { Name: string; DisplayName: string };
@@ -63,10 +66,31 @@ function RowEditor({row, onSaved}: {row: FormOptionsRow; onSaved: () => void}) {
         },
     });
 
+    const remove = trpc.useMutation("formsCatalog.deleteWithOptions", {
+        onSuccess() {
+            toast.success("Form deleted");
+            onSaved();
+        },
+        onError(e) {
+            toast.error(e.message);
+        },
+    });
+
     const setField =
         <K extends keyof FormOptionsRow>(key: K) =>
         (value: FormOptionsRow[K]) => {
             setDraft((d) => ({...d, [key]: value}));
+        };
+
+    const pdfLocked = draft.W2Required || draft.OORequired;
+
+    const setRequired =
+        (key: "W2Required" | "OORequired") => (value: boolean) => {
+            setDraft((d) => ({
+                ...d,
+                [key]: value,
+                IncludeInPdf: value ? true : d.IncludeInPdf,
+            }));
         };
 
     return (
@@ -99,7 +123,7 @@ function RowEditor({row, onSaved}: {row: FormOptionsRow; onSaved: () => void}) {
                 <Tooltip title="Mark this form as required for W2 compliance.">
                     <Checkbox
                         checked={draft.W2Required}
-                        onChange={(_, v) => setField("W2Required")(v)}
+                        onChange={(_, v) => setRequired("W2Required")(v)}
                     />
                 </Tooltip>
             </TableCell>
@@ -107,7 +131,7 @@ function RowEditor({row, onSaved}: {row: FormOptionsRow; onSaved: () => void}) {
                 <Tooltip title="Mark this form as required for Non-W2 / owner-operator compliance.">
                     <Checkbox
                         checked={draft.OORequired}
-                        onChange={(_, v) => setField("OORequired")(v)}
+                        onChange={(_, v) => setRequired("OORequired")(v)}
                     />
                 </Tooltip>
             </TableCell>
@@ -162,39 +186,67 @@ function RowEditor({row, onSaved}: {row: FormOptionsRow; onSaved: () => void}) {
                 />
             </TableCell>
             <TableCell>
-                <Tooltip title="Include this form as a column in the printable Driver Forms PDF.">
-                    <Checkbox
-                        checked={draft.IncludeInPdf}
-                        onChange={(_, v) => setField("IncludeInPdf")(v)}
-                    />
+                <Tooltip
+                    title={
+                        pdfLocked
+                            ? "Required forms must appear on the printable driver-forms PDF and cannot be excluded."
+                            : "Include this form as a column in the printable Driver Forms PDF."
+                    }
+                >
+                    <span>
+                        <Checkbox
+                            checked={draft.IncludeInPdf || pdfLocked}
+                            disabled={pdfLocked}
+                            onChange={(_, v) => setField("IncludeInPdf")(v)}
+                        />
+                    </span>
                 </Tooltip>
             </TableCell>
             <TableCell>
-                <Button
-                    size="small"
-                    variant="contained"
-                    onClick={() =>
-                        update.mutate(
-                            FormOptionsModel.parse({
-                                ID: draft.ID,
-                                Form: draft.Form,
-                                W2Visible: draft.W2Visible,
-                                OOVisible: draft.OOVisible,
-                                W2Required: draft.W2Required,
-                                OORequired: draft.OORequired,
-                                FleetWide: draft.FleetWide,
-                                ExpiryCadence: draft.ExpiryCadence,
-                                ValidityMonths: draft.ValidityMonths,
-                                PdfOrder: draft.PdfOrder,
-                                PdfColumnLabel: draft.PdfColumnLabel,
-                                IncludeInPdf: draft.IncludeInPdf,
-                            }),
-                        )
-                    }
-                    disabled={update.isLoading}
-                >
-                    Save
-                </Button>
+                <Box sx={{display: "flex", gap: 0.5, alignItems: "center"}}>
+                    <Button
+                        size="small"
+                        variant="contained"
+                        onClick={() =>
+                            update.mutate(
+                                FormOptionsModel.parse({
+                                    ID: draft.ID,
+                                    Form: draft.Form,
+                                    W2Visible: draft.W2Visible,
+                                    OOVisible: draft.OOVisible,
+                                    W2Required: draft.W2Required,
+                                    OORequired: draft.OORequired,
+                                    FleetWide: draft.FleetWide,
+                                    ExpiryCadence: draft.ExpiryCadence,
+                                    ValidityMonths: draft.ValidityMonths,
+                                    PdfOrder: draft.PdfOrder,
+                                    PdfColumnLabel: draft.PdfColumnLabel,
+                                    IncludeInPdf: pdfLocked ? true : draft.IncludeInPdf,
+                                }),
+                            )
+                        }
+                        disabled={update.isLoading}
+                    >
+                        Save
+                    </Button>
+                    <Tooltip title="Delete this form option and all driver filings for it">
+                        <IconButton
+                            size="small"
+                            aria-label="Delete form"
+                            disabled={remove.isLoading}
+                            onClick={() =>
+                                confirmDestructive({
+                                    title: "Delete form?",
+                                    message: `Deleting "${row.Forms.DisplayName}" removes this form from compliance tracking and permanently deletes every driver filing recorded for it. This cannot be undone.`,
+                                    confirmLabel: "Delete",
+                                    onConfirm: () => remove.mutate({formOptionId: row.ID}),
+                                })
+                            }
+                        >
+                            <CloseIcon fontSize="small" />
+                        </IconButton>
+                    </Tooltip>
+                </Box>
             </TableCell>
         </TableRow>
     );
