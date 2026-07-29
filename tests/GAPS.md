@@ -30,7 +30,7 @@ Track what is **not yet covered** or only **shallowly covered**. Update this fil
 
 **Intent:** Red arrow selects all loads on a `JobID` (multi-day, multi-truck). Mass apply identity FKs + rates + week. Preserve per-ticket fields (ticket, weight, hours, amount, start date, truck). Block edits when job `PaidOut`. Sync amounts on open sheets only; closed revenues frozen.
 
-**Non-goals:** Blocking edits on closed jobs/weeklies; hard-blocking `LastPrinted` dailies; orphan job cleanup.
+**Non-goals:** Blocking edits on closed jobs/weeklies (except invoiced loads); hard-blocking `LastPrinted` dailies; orphan job DB cleanup (UI hides empty jobs).
 
 | ID | Scenario | File | Status |
 |----|----------|------|--------|
@@ -47,8 +47,13 @@ Track what is **not yet covered** or only **shallowly covered**. Update this fil
 | WC-01–WC-03 | Closed weekly edit ok, Revenue frozen | `load-sheet-sync.test.ts` | [x] |
 | WC-U1 | Unit: skip weekly Revenue write | `loadSheetSync.test.ts` | [x] |
 | WC-R1 | Rematch target weekly open | `load-sheet-sync.test.ts` (WC-03) | [x] |
-| WI-01–WI-03 | Invoiced weekly: no weekly writes | `load-sheet-sync.test.ts` | [x] |
-| WI-U1 | Unit: skip TotalWeight when invoiced | `loadSheetSync.test.ts` | [x] |
+| WI-01 | Invoiced load edit/mass edit blocked | `load-sheet-sync.test.ts` | [x] |
+| WI-U1–U2 | Unit: assertLoadsNotInvoiced | `loadSheetSync.test.ts` | [x] |
+| ME-23 | Empty `selectedLoads` → BAD_REQUEST | `mass-edit.test.ts` | [x] |
+| WR-01 | Closed weekly cascade requires `confirmCascade` | `load-workflows.test.ts` | [x] |
+| WR-02 | `jobs.postClosed` double-close rejected | `load-workflows.test.ts` | [x] |
+| WR-03 | Paystub PDF footer recalc from live jobs | `paystubRevenue.test.ts` | [x] |
+| WR-04 | Hours-first `loadQuantity` alignment | `loadSheetSync.test.ts` | [x] |
 | OS-01–OS-05 | Open sheet TotalAmount + TotalWeight sync | `load-sheet-sync.test.ts`, `mass-edit-selection.test.ts` | [x] |
 | OS-U1–U4 | Unit sync logic | `loadSheetSync.test.ts` | [x] |
 | LP-01–LP-02 | Daily LastPrinted warning only | `load-sheet-sync.test.ts` | [x] |

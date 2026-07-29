@@ -183,7 +183,7 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
                 }}
             >
                 <HeaderRow/>
-                {daily.Jobs?.map(
+                {daily.Jobs?.filter((job: CompleteJobs) => (job.Loads?.length ?? 0) > 0).map(
                     (job: CompleteJobs) =>
                         <Job job={job} key={"job-" + job.ID} ownerOperator={daily.Drivers.OwnerOperator}
                              toInvoiceButton={toInvoiceButton}/>

@@ -5,7 +5,8 @@ import {TRPCError} from "@trpc/server";
 import {isSourcesCutoverActive, NEW_LOAD_TYPE_ID_THRESHOLD} from "../../config/sourcesCutover";
 import {rematchLoadToJob} from "../loadRematch";
 import {buildLoadFilters} from "../loadListFilters";
-import {assertLoadsNotPaidOut, asArray, syncOpenSheetAmounts} from "../loadSheetSync";
+import {assertLoadsNotInvoiced, assertLoadsNotPaidOut, asArray, syncOpenSheetAmounts} from "../loadSheetSync";
+import {syncLoadRelationalRecords} from "../loadRelationalSync";
 
 export {buildLoadFilters} from "../loadListFilters";
 
@@ -48,7 +49,7 @@ async function updateLoadAndRelations(
     input: any,
     ctx: any,
     mass_edit_ids: any = null
-): Promise<void> {
+): Promise<any> {
     const affectedLoadIds: number[] = mass_edit_ids?.length
         ? mass_edit_ids
         : input.ID
@@ -56,13 +57,19 @@ async function updateLoadAndRelations(
           : [];
 
     let sourceJobIds: number[] = [];
+    let beforeLoad: Awaited<ReturnType<typeof ctx.prisma.loads.findUnique>> = null;
     if (affectedLoadIds.length) {
         await assertLoadsNotPaidOut(ctx, affectedLoadIds);
+        await assertLoadsNotInvoiced(ctx, affectedLoadIds);
         const existing = asArray(await ctx.prisma.loads.findMany({
             where: {ID: {in: affectedLoadIds}},
             select: {JobID: true},
         }));
         sourceJobIds = existing.map((row: {JobID: number | null}) => row.JobID).filter(Boolean) as number[];
+
+        if (!mass_edit_ids && input.ID) {
+            beforeLoad = await ctx.prisma.loads.findUnique({where: {ID: input.ID}});
+        }
     }
 
     const {ID, SourceID, ...rest} = input;
@@ -87,18 +94,30 @@ async function updateLoadAndRelations(
     }
 
     if (!mass_edit_ids) {
-        const result = await ctx.prisma.loads.update({
+        await ctx.prisma.loads.update({
             where: {ID},
             data,
         });
         if (isSourcesCutoverActive() && SourceID && input.LoadTypeID) {
             await upsertSourceLoadType(ctx, SourceID, input.LoadTypeID);
         }
+        if (beforeLoad) {
+            await syncLoadRelationalRecords(ctx, beforeLoad, {
+                ID: beforeLoad.ID,
+                DriverID: data.DriverID ?? beforeLoad.DriverID,
+                TruckID: data.TruckID ?? beforeLoad.TruckID,
+                StartDate: data.StartDate ?? beforeLoad.StartDate,
+                CustomerID: data.CustomerID ?? beforeLoad.CustomerID,
+                LoadTypeID: data.LoadTypeID ?? beforeLoad.LoadTypeID,
+                DeliveryLocationID: data.DeliveryLocationID ?? beforeLoad.DeliveryLocationID,
+            });
+        }
         await syncOpenSheetAmounts(ctx, {
             loadIds: affectedLoadIds,
             jobIds: [...new Set([...sourceJobIds, rematch.JobID])],
         });
-        return result;
+        const updated = await ctx.prisma.loads.findUnique({where: {ID}});
+        return {data: updated, warnings: ctx.warnings};
     }
 
     const massData: Record<string, unknown> = {
@@ -129,6 +148,7 @@ async function updateLoadAndRelations(
         loadIds: affectedLoadIds,
         jobIds: [...new Set([...sourceJobIds, rematch.JobID])],
     });
+    return true;
 }
 
 export const loadsRouter = createRouter()
@@ -501,27 +521,14 @@ export const loadsRouter = createRouter()
             if (!input.data) {
                 return false;
             }
-            // await ctx.prisma.loads.updateMany({
-            //     where: {
-            //         ID: { in: input.selectedLoads }
-            //     },
-            //     data: {
-            //         CustomerID: input.data.CustomerID,
-            //         DriverID: input.data.DriverID,
-            //         TruckID: input.data.TruckID,
-            //         LoadTypeID: input.data.LoadTypeID,
-            //         DeliveryLocationID: input.data.DeliveryLocationID,
-            //         StartDate: input.data.StartDate,
-            //         Week: input.data.Week,
-            //         MaterialRate: input.data.MaterialRate,
-            //         TruckRate: input.data.TruckRate,
-            //         DriverRate: input.data.DriverRate,
-            //         TotalRate: input.data.TotalRate,
-            //     },
-            // });
+            if (!input.selectedLoads?.length) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "No loads selected for mass edit.",
+                });
+            }
 
-            //Also need to update the Weekly/Daily/Job
-            await updateLoadAndRelations(input.data, ctx, input.selectedLoads)
+            await updateLoadAndRelations(input.data, ctx, input.selectedLoads);
 
             return true;
         }
@@ -649,7 +656,8 @@ export const loadsRouter = createRouter()
                 CustomerID,
                 LoadTypeID,
                 DeliveryLocationID,
-
+                Weight,
+                Hours,
             } = input;
 
             if (!DriverID) {
@@ -677,6 +685,13 @@ export const loadsRouter = createRouter()
                 })
             }
 
+            if (!Weight && !Hours) {
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'This load is missing either weight or hours.',
+                });
+            }
+
             return await updateLoadAndRelations(input, ctx);
 
         },
@@ -685,8 +700,21 @@ export const loadsRouter = createRouter()
         input: LoadsModel,
         async resolve({ctx, input}) {
             const {ID} = input;
-            // use your ORM of choice
-            return await ctx.prisma.loads.delete({where: {ID: ID}})
+            await assertLoadsNotPaidOut(ctx, [ID]);
+            await assertLoadsNotInvoiced(ctx, [ID]);
+
+            const existing = await ctx.prisma.loads.findUnique({
+                where: {ID},
+                select: {JobID: true},
+            });
+
+            await ctx.prisma.loads.delete({where: {ID}});
+
+            if (existing?.JobID) {
+                await syncOpenSheetAmounts(ctx, {jobIds: [existing.JobID]});
+            }
+
+            return true;
         },
     });
 

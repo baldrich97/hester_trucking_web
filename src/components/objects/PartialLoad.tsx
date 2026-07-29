@@ -35,7 +35,7 @@ import Button from "@mui/material/Button";
 import NextLink from "next/link";
 
 const today = new Date();
-const defaultWeek = formatDateToWeek(new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000));
+const defaultWeek = formatDateToWeek(today);
 
 const defaultValues = {
     StartDate: undefined,
@@ -194,7 +194,11 @@ function PartialLoad({
         initialLoad ? (initialLoad.LoadTypeID ? initialLoad.LoadTypeID : 0) : 0
     );
 
-    const [source, setSource] = useState(0);
+    const [source, setSource] = useState(
+        initialLoad && "SourceID" in initialLoad
+            ? ((initialLoad as {SourceID?: number | null}).SourceID ?? 0)
+            : 0,
+    );
 
     const [srctrpcData, srcsetData] = useState<Record<string, unknown>[]>([]);
 
@@ -436,7 +440,10 @@ function PartialLoad({
                 data: srctrpcData,
                 optionValue: "ID",
                 optionLabel: "Name",
-                defaultValue: null,
+                defaultValue:
+                    initialLoad && "SourceID" in initialLoad
+                        ? ((initialLoad as {SourceID?: number | null}).SourceID ?? null)
+                        : null,
             }]
             : []),
         {

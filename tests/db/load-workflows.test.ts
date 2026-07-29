@@ -203,6 +203,64 @@ describe("weekly and job mutations (dev DB via tRPC)", () => {
         expect(updatedLoad?.SourceID).toBe(sourceB.ID);
     });
 
+    it("weeklies.post on closed weekly requires confirmCascade", async () => {
+        const entities = await getBaseEntities(prisma);
+        const ctx = await createTestContextWithPrisma(prisma);
+        const graph = await createJobGraph(prisma, tracker, {
+            week: TEST_WEEK,
+            driverId: entities.driver.ID,
+            customerId: entities.customer.ID,
+            loadTypeId: entities.legacyLoadType.ID,
+            deliveryLocationId: entities.deliveryLocation.ID,
+            truckId: entities.truck.ID,
+            ticket: nextTestTicket(60),
+        });
+        await prisma.weeklies.update({
+            where: {ID: graph.weeklyId},
+            data: {Revenue: 500},
+        });
+        const weekly = await prisma.weeklies.findUnique({where: {ID: graph.weeklyId}});
+
+        await expect(
+            callTrpcMutation("weeklies.post", {...weekly!}, ctx),
+        ).rejects.toThrow(/closed or invoiced/i);
+
+        await callTrpcMutation(
+            "weeklies.post",
+            {...weekly!, confirmCascade: true},
+            ctx,
+        );
+    });
+
+    it("jobs.postClosed rejects double close", async () => {
+        const entities = await getBaseEntities(prisma);
+        const ctx = await createTestContextWithPrisma(prisma);
+        const graph = await createJobGraph(prisma, tracker, {
+            week: TEST_WEEK,
+            driverId: entities.driver.ID,
+            customerId: entities.customer.ID,
+            loadTypeId: entities.legacyLoadType.ID,
+            deliveryLocationId: entities.deliveryLocation.ID,
+            truckId: entities.truck.ID,
+            ticket: nextTestTicket(61),
+        });
+
+        const job = await prisma.jobs.findUnique({where: {ID: graph.jobId}});
+        await callTrpcMutation(
+            "jobs.postClosed",
+            {...job!, TruckingRevenue: 300, CompanyRevenue: 600},
+            ctx,
+        );
+
+        await expect(
+            callTrpcMutation(
+                "jobs.postClosed",
+                {...job!, TruckingRevenue: 400, CompanyRevenue: 700},
+                ctx,
+            ),
+        ).rejects.toThrow(/already closed/i);
+    });
+
     it("jobs.postClosed persists trucking and company revenue", async () => {
         const entities = await getBaseEntities(prisma);
         const ctx = await createTestContextWithPrisma(prisma);

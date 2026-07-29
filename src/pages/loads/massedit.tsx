@@ -318,7 +318,8 @@ const Loads = ({
 export default Loads;
 
 export const getServerSideProps: GetServerSideProps = async () => {
-    const count = await prisma.loads.count();
+    const activeLoadWhere = {OR: [{Deleted: false}, {Deleted: null}]};
+    const count = await prisma.loads.count({where: activeLoadWhere});
 
     const loads = await prisma.loads.findMany({
         include: {
@@ -328,6 +329,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
             LoadTypes: true,
             DeliveryLocations: true,
         },
+        where: activeLoadWhere,
         take: 10,
         orderBy: {
             ID: "desc",

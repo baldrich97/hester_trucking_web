@@ -2,18 +2,25 @@ import {afterEach, describe, expect, it, vi} from "vitest";
 import {TRPCError} from "@trpc/server";
 import {buildLoadFilters} from "../../src/server/loadListFilters";
 import {
+    assertLoadsNotInvoiced,
     assertLoadsNotPaidOut,
+    loadQuantity,
     loadTotalAmount,
     roundMoney,
     syncOpenSheetAmounts,
 } from "../../src/server/loadSheetSync";
 
 describe("loadSheetSync", () => {
-    describe("loadTotalAmount / roundMoney", () => {
+    describe("loadTotalAmount / roundMoney / loadQuantity", () => {
         it("OS-U1: recalcs TotalAmount from weight and rate", () => {
             expect(loadTotalAmount(20, null, 17)).toBe(340);
             expect(loadTotalAmount(null, 5, 10)).toBe(50);
             expect(roundMoney(10.005)).toBe(10.01);
+        });
+
+        it("hours win when both weight and hours are set", () => {
+            expect(loadQuantity(20, 5)).toBe(5);
+            expect(loadTotalAmount(20, 5, 10)).toBe(50);
         });
     });
 
@@ -79,6 +86,34 @@ describe("loadSheetSync", () => {
             expect(findMany).toHaveBeenCalledWith(
                 expect.objectContaining({where: {ID: {in: [3, 4, 5]}}}),
             );
+        });
+    });
+
+    describe("assertLoadsNotInvoiced", () => {
+        it("WI-U1: rejects when load is invoiced", async () => {
+            const ctx = {
+                prisma: {
+                    loads: {
+                        findMany: vi.fn().mockResolvedValue([
+                            {Invoiced: true, InvoiceID: 10},
+                        ]),
+                    },
+                },
+            };
+            await expect(assertLoadsNotInvoiced(ctx, [1])).rejects.toThrow(/invoiced/i);
+        });
+
+        it("WI-U2: allows uninvoiced loads", async () => {
+            const ctx = {
+                prisma: {
+                    loads: {
+                        findMany: vi.fn().mockResolvedValue([
+                            {Invoiced: false, InvoiceID: null},
+                        ]),
+                    },
+                },
+            };
+            await expect(assertLoadsNotInvoiced(ctx, [1])).resolves.toBeUndefined();
         });
     });
 

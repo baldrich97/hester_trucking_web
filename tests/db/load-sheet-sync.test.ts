@@ -251,7 +251,7 @@ describe("load sheet sync and paid-out guards (dev DB via tRPC)", () => {
         expect(closedWeekly?.Revenue).toBe(700);
     });
 
-    it("WI-01 / WI-02 / WI-03: invoiced weekly edit succeeds without weekly writes", async () => {
+    it("WI-01: invoiced load mass edit is rejected", async () => {
         const entities = await getBaseEntities(prisma);
         const ctx = await createTestContextWithPrisma(prisma);
         const graph = await createJobGraph(prisma, tracker, {
@@ -275,11 +275,13 @@ describe("load sheet sync and paid-out guards (dev DB via tRPC)", () => {
         const snapshot = await prisma.weeklies.findUnique({where: {ID: graph.weeklyId}});
 
         const massData = buildLoadPutInput(entities, nextTestTicket(332), {...RATES, TotalRate: 22});
-        await callTrpcMutation(
-            "loads.post_mass_edit",
-            {selectedLoads: [graph.loadId!], data: massData},
-            ctx,
-        );
+        await expect(
+            callTrpcMutation(
+                "loads.post_mass_edit",
+                {selectedLoads: [graph.loadId!], data: massData},
+                ctx,
+            ),
+        ).rejects.toThrow(/invoiced/i);
 
         const after = await prisma.weeklies.findUnique({where: {ID: graph.weeklyId}});
         expect(after?.Revenue).toBe(snapshot?.Revenue);

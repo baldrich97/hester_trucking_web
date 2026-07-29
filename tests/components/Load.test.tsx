@@ -212,6 +212,31 @@ describe("Load cutover UI", () => {
         expect(screen.getByRole("row", {selected: true})).toBeInTheDocument();
     });
 
+    it("hides open jobs table when editing an existing load", () => {
+        useSourcesCutoverMock.mockReturnValue({
+            active: true,
+            newLoadTypeIdThreshold: 10000,
+            configMismatch: false,
+            serverActive: true,
+            clientForce: false,
+        });
+        setupTrpcQueries([openJob]);
+        useQueryMock.mockClear();
+        render(
+            <Load
+                initialLoad={
+                    {...driverWeekDefaults, ID: 42, CustomerID: openJob.CustomerID} as never
+                }
+            />,
+        );
+        expect(screen.queryByText(/open legacy job/i)).not.toBeInTheDocument();
+        expect(screen.queryByText("ASPHALT (FRUITLAND)")).not.toBeInTheDocument();
+        const openJobsCall = useQueryMock.mock.calls.find(
+            (call) => Array.isArray(call[0]) && call[0][0] === "loads.openLegacyJobs",
+        );
+        expect(openJobsCall?.[1]?.enabled).toBe(false);
+    });
+
     it("does not apply week filter until the week field is touched", () => {
         useSourcesCutoverMock.mockReturnValue({
             active: true,

@@ -4,13 +4,22 @@ export function roundMoney(value: number): number {
     return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
+/** Billable quantity: hours win when > 0, else weight. */
+export function loadQuantity(
+    weight: number | null | undefined,
+    hours: number | null | undefined,
+): number {
+    const h = hours ?? 0;
+    const w = weight ?? 0;
+    return h > 0 ? h : w;
+}
+
 export function loadTotalAmount(
     weight: number | null | undefined,
     hours: number | null | undefined,
     totalRate: number | null | undefined,
 ): number {
-    const quantity = weight ?? hours ?? 0;
-    return roundMoney(quantity * (totalRate ?? 0));
+    return roundMoney(loadQuantity(weight, hours) * (totalRate ?? 0));
 }
 
 const activeLoadWhere = {OR: [{Deleted: false}, {Deleted: null}]};
@@ -19,7 +28,7 @@ function asArray<T>(value: T[] | null | undefined): T[] {
     return Array.isArray(value) ? value : [];
 }
 
-export {asArray};
+export {asArray, activeLoadWhere};
 
 /** Reject edits when any load belongs to a paid-out job. */
 export async function assertLoadsNotPaidOut(ctx: any, loadIds: number[]): Promise<void> {
@@ -37,6 +46,27 @@ export async function assertLoadsNotPaidOut(ctx: any, loadIds: number[]): Promis
             throw new TRPCError({
                 code: "BAD_REQUEST",
                 message: "This job has already been paid out.",
+            });
+        }
+    }
+}
+
+/** Reject edits when any load has been invoiced. */
+export async function assertLoadsNotInvoiced(ctx: any, loadIds: number[]): Promise<void> {
+    if (!loadIds.length) {
+        return;
+    }
+
+    const loads = asArray(await ctx.prisma.loads.findMany({
+        where: {ID: {in: loadIds}},
+        select: {Invoiced: true, InvoiceID: true},
+    }));
+
+    for (const load of loads) {
+        if (load.Invoiced === true || load.InvoiceID != null) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "This load has been invoiced and cannot be edited.",
             });
         }
     }
@@ -112,7 +142,7 @@ export async function syncOpenSheetAmounts(ctx: any, options: SyncOpenSheetAmoun
         let totalWeight = 0;
         for (const job of jobsOnWeekly) {
             for (const load of job.Loads ?? []) {
-                totalWeight += load.Weight ?? load.Hours ?? 0;
+                totalWeight += loadQuantity(load.Weight, load.Hours);
             }
         }
 

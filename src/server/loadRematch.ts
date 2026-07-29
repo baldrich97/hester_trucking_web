@@ -5,6 +5,9 @@ import {
     NEW_LOAD_TYPE_ID_THRESHOLD,
 } from "../config/sourcesCutover";
 
+export const CLOSED_JOB_REMATCH_WARNING =
+    "This load matches a closed/paid out job. A new job has been made, please close the job/weekly if there are no other tickets for this job so it can be invoiced.";
+
 export function assertCutoverLoadTypeAllowed(loadTypeId: number | null | undefined): void {
     if (!isSourcesCutoverActive()) {
         if (loadTypeId != null && loadTypeId >= NEW_LOAD_TYPE_ID_THRESHOLD) {
@@ -53,7 +56,44 @@ export type RematchResult = {
     SourceID: number | null;
 };
 
-export async function rematchLoadToJob(ctx: any, input: RematchInput): Promise<RematchResult> {
+type JobCandidate = {
+    ID: number;
+    TruckingRate: number;
+    MaterialRate: number;
+    DriverRate: number;
+    CompanyRate: number;
+    PaidOut: boolean;
+    TruckingRevenue: number | null;
+    CompanyRevenue: number | null;
+};
+
+function ratesMatchJob(
+    item: JobCandidate,
+    TruckRate: number | null | undefined,
+    MaterialRate: number | null | undefined,
+    DriverRate: number | null | undefined,
+    TotalRate: number | null | undefined,
+): boolean {
+    return (
+        compareRates(item.TruckingRate, TruckRate) &&
+        compareRates(item.MaterialRate, MaterialRate) &&
+        compareRates(item.DriverRate, DriverRate) &&
+        compareRates(item.CompanyRate, TotalRate)
+    );
+}
+
+function isJobClosed(job: JobCandidate): boolean {
+    return job.TruckingRevenue !== null || job.CompanyRevenue !== null;
+}
+
+function pushClosedJobWarning(ctx: any, week: string, customerId: number): void {
+    if (Array.isArray(ctx.warnings) && !ctx.warnings.includes(CLOSED_JOB_REMATCH_WARNING)) {
+        ctx.warnings.push(CLOSED_JOB_REMATCH_WARNING, week, customerId.toString());
+    }
+}
+
+async function rematchWithClient(ctx: any, input: RematchInput): Promise<RematchResult> {
+    const prisma = ctx.prisma;
     const {
         DriverID,
         CustomerID,
@@ -67,7 +107,6 @@ export async function rematchLoadToJob(ctx: any, input: RematchInput): Promise<R
         SourceID,
     } = input;
 
-    assertCutoverLoadTypeAllowed(LoadTypeID);
     const effectiveSourceId = resolveSourceIdForRematch(LoadTypeID, SourceID);
 
     const weeklyWhere: Record<string, unknown> = {
@@ -82,17 +121,17 @@ export async function rematchLoadToJob(ctx: any, input: RematchInput): Promise<R
         weeklyWhere.SourceID = effectiveSourceId;
     }
 
-    const daily = await ctx.prisma.dailies.findFirst({where: {DriverID, Week}});
+    const daily = await prisma.dailies.findFirst({where: {DriverID, Week}});
 
     if (daily) {
-        const weeklies = await ctx.prisma.weeklies.findMany({where: weeklyWhere});
+        const weeklies = await prisma.weeklies.findMany({where: weeklyWhere});
 
         let weekly = weeklies.find((w: {CompanyRate: number | null}) =>
             compareRates(w.CompanyRate, TotalRate),
         );
 
         if (!weekly) {
-            weekly = await ctx.prisma.weeklies.create({
+            weekly = await prisma.weeklies.create({
                 data: {
                     Week,
                     CustomerID,
@@ -117,32 +156,30 @@ export async function rematchLoadToJob(ctx: any, input: RematchInput): Promise<R
             jobWhere.SourceID = effectiveSourceId;
         }
 
-        const jobs = await ctx.prisma.jobs.findMany({where: jobWhere});
+        const jobs: JobCandidate[] = await prisma.jobs.findMany({where: jobWhere});
 
-        const job = jobs.find((item: {
-            TruckingRate: number;
-            MaterialRate: number;
-            DriverRate: number;
-            CompanyRate: number;
-            PaidOut: boolean;
-        }) =>
-            compareRates(item.TruckingRate, TruckRate) &&
-            compareRates(item.MaterialRate, MaterialRate) &&
-            compareRates(item.DriverRate, DriverRate) &&
-            compareRates(item.CompanyRate, TotalRate),
+        const openJob = jobs.find(
+            (item) => ratesMatchJob(item, TruckRate, MaterialRate, DriverRate, TotalRate) && !isJobClosed(item),
         );
 
-        if (job) {
-            if (job.PaidOut) {
+        if (openJob) {
+            if (openJob.PaidOut) {
                 throw new TRPCError({
                     code: "BAD_REQUEST",
                     message: "This job has already been paid out.",
                 });
             }
-            return {JobID: job.ID, SourceID: effectiveSourceId};
+            return {JobID: openJob.ID, SourceID: effectiveSourceId};
         }
 
-        const newJob = await ctx.prisma.jobs.create({
+        const closedMatch = jobs.find(
+            (item) => ratesMatchJob(item, TruckRate, MaterialRate, DriverRate, TotalRate) && isJobClosed(item),
+        );
+        if (closedMatch) {
+            pushClosedJobWarning(ctx, Week, CustomerID);
+        }
+
+        const newJob = await prisma.jobs.create({
             data: {
                 DriverID,
                 DailyID: daily.ID,
@@ -161,9 +198,9 @@ export async function rematchLoadToJob(ctx: any, input: RematchInput): Promise<R
         return {JobID: newJob.ID, SourceID: effectiveSourceId};
     }
 
-    const newDaily = await ctx.prisma.dailies.create({data: {DriverID, Week}});
+    const newDaily = await prisma.dailies.create({data: {DriverID, Week}});
 
-    const newWeekly = await ctx.prisma.weeklies.create({
+    const newWeekly = await prisma.weeklies.create({
         data: {
             Week,
             CustomerID,
@@ -174,7 +211,7 @@ export async function rematchLoadToJob(ctx: any, input: RematchInput): Promise<R
         },
     });
 
-    const newJob = await ctx.prisma.jobs.create({
+    const newJob = await prisma.jobs.create({
         data: {
             DriverID,
             DailyID: newDaily.ID,
@@ -191,4 +228,11 @@ export async function rematchLoadToJob(ctx: any, input: RematchInput): Promise<R
     });
 
     return {JobID: newJob.ID, SourceID: effectiveSourceId};
+}
+
+export async function rematchLoadToJob(ctx: any, input: RematchInput): Promise<RematchResult> {
+    assertCutoverLoadTypeAllowed(input.LoadTypeID);
+    return ctx.prisma.$transaction(async (tx: typeof ctx.prisma) =>
+        rematchWithClient({...ctx, prisma: tx}, input),
+    );
 }

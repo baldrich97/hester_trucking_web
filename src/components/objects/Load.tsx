@@ -383,6 +383,8 @@ function Load({
     const watchDriverID = watch("DriverID");
     const watchDeliveryLocationID = watch("DeliveryLocationID");
 
+    const isEditingExistingLoad = Boolean(initialLoad?.ID);
+
     const openJobsQuery = trpc.useQuery(
         [
             "loads.openLegacyJobs",
@@ -396,13 +398,17 @@ function Load({
             enabled:
                 cutoverActive &&
                 !forceNewWork &&
+                !isEditingExistingLoad &&
                 (customer > 0 || Boolean(watchDriverID)),
         },
     );
 
     const openJobs = openJobsQuery.data ?? [];
     const showOpenJobsTable =
-        cutoverActive && !forceNewWork && (customer > 0 || Boolean(watchDriverID));
+        cutoverActive &&
+        !forceNewWork &&
+        !isEditingExistingLoad &&
+        (customer > 0 || Boolean(watchDriverID));
     const legacyCriteriaMet =
         Boolean(watchDriverID) && weekFilterActive && Boolean(watchWeek);
     const showLegacyPath =

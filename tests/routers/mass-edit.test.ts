@@ -11,6 +11,7 @@ vi.mock("../../src/server/loadSheetSync", async (importOriginal) => {
     return {
         ...actual,
         assertLoadsNotPaidOut: vi.fn().mockResolvedValue(undefined),
+        assertLoadsNotInvoiced: vi.fn().mockResolvedValue(undefined),
         syncOpenSheetAmounts: vi.fn().mockResolvedValue(undefined),
     };
 });
@@ -23,7 +24,7 @@ vi.mock("../../src/server/loadRematch", async (importOriginal) => {
     };
 });
 
-import {assertLoadsNotPaidOut, syncOpenSheetAmounts} from "../../src/server/loadSheetSync";
+import {assertLoadsNotInvoiced, assertLoadsNotPaidOut, syncOpenSheetAmounts} from "../../src/server/loadSheetSync";
 
 describe("mass-edit router contracts", () => {
     const env = process.env;
@@ -90,6 +91,7 @@ describe("mass-edit router contracts", () => {
         );
 
         expect(assertLoadsNotPaidOut).toHaveBeenCalledWith(ctx, [10, 11]);
+        expect(assertLoadsNotInvoiced).toHaveBeenCalledWith(ctx, [10, 11]);
         expect(syncOpenSheetAmounts).toHaveBeenCalled();
         const updateData = prisma.loads.updateMany.mock.calls[0]![0].data as Record<string, unknown>;
         expect(updateData.TruckID).toBeUndefined();
@@ -97,5 +99,37 @@ describe("mass-edit router contracts", () => {
         expect(updateData.CustomerID).toBe(1);
         expect(updateData.TotalRate).toBe(17);
         expect(updateData.JobID).toBe(99);
+    });
+
+    it("ME-23: post_mass_edit rejects empty selectedLoads", async () => {
+        const prisma = createPrismaMock();
+        configurePrismaMockDefaults(prisma);
+        const ctx = await createTestContext(prisma, {session: fakeSession});
+
+        await expect(
+            callTrpcMutation(
+                "loads.post_mass_edit",
+                {
+                    selectedLoads: [],
+                    data: {
+                        TicketNumber: 999001,
+                        CustomerID: 1,
+                        DriverID: 2,
+                        LoadTypeID: 4,
+                        DeliveryLocationID: 5,
+                        StartDate: new Date(),
+                        Week: "2099-W01",
+                        MaterialRate: 6,
+                        TruckRate: 11,
+                        DriverRate: 9,
+                        TotalRate: 17,
+                        Weight: 20,
+                        TotalAmount: 340,
+                        Created: new Date(),
+                    },
+                },
+                ctx,
+            ),
+        ).rejects.toThrow(/no loads selected/i);
     });
 });

@@ -12,6 +12,11 @@ import TableHeader from "./TableHeader";
 import TableRow from "./TableRow";
 import TableFooter from "./TableFooter";
 import BlankRow from "./BlankRow";
+import {
+    calculatePaystubGross,
+    calculatePaystubNetTotal,
+    calculatePaystubTakeHome,
+} from "../../utils/paystubRevenue";
 import {z} from "zod";
 import Html from "react-pdf-html";
 import ReactDOMServer from "react-dom/server";
@@ -55,6 +60,10 @@ const linebreak = <br/>;
 const linebreakhtml = ReactDOMServer.renderToStaticMarkup(linebreak);
 
 const Table = ({jobs, payStub}: { jobs: any[], payStub: PayStubsType }) => {
+    const gross = calculatePaystubGross(jobs);
+    const netTotal = calculatePaystubNetTotal(gross, payStub.Percentage);
+    const takeHome = calculatePaystubTakeHome(netTotal, payStub.Deductions, payStub.Additions);
+
     return (
         <View style={styles.container}>
             <TableHeader/>
@@ -66,7 +75,7 @@ const Table = ({jobs, payStub}: { jobs: any[], payStub: PayStubsType }) => {
                 <BlankRow key={index}/>
             ))}
 
-            <TableFooter payStub={payStub}/>
+            <TableFooter gross={gross}/>
             <View style={{
                 flexDirection: 'row',
                 width: '100%',
@@ -113,7 +122,7 @@ const Table = ({jobs, payStub}: { jobs: any[], payStub: PayStubsType }) => {
                     borderBottomWidth: 1.5,
                     borderRightWidth: 1.5,
                     borderColor: 'black',
-                }}>{payStub.NetTotal}</Text>
+                }}>{netTotal}</Text>
             </View>
 
 
@@ -218,7 +227,7 @@ const Table = ({jobs, payStub}: { jobs: any[], payStub: PayStubsType }) => {
                             borderRightWidth: 1,
                             textAlign: 'center'
                         }}>
-                            <Text style={{...styles.text}}>{payStub.TakeHome}</Text>
+                            <Text style={{...styles.text}}>{takeHome}</Text>
                         </View>
                     </View>
                 </View>

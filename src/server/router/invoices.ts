@@ -687,35 +687,38 @@ export const invoicesRouter = createRouter()
         input: InvoicesModel,
         async resolve({ctx, input}) {
             const {ID} = input;
-            //make related consolidated invoices unlinked if needed
-            if (input.Consolidated) {
-                const consolidatedChildren = await ctx.prisma.invoices.findMany({where: {ConsolidatedID: ID}})
-                await Promise.all(consolidatedChildren.map(async (consInv) => {
-                    await ctx.prisma.invoices.update({
-                        where: {
-                            ID: consInv.ID
-                        }, data: {
-                            ConsolidatedID: null
-                        }
-                    })
-                }))
-            }
-            //make related loads available again
-            await ctx.prisma.loads.findMany({where: {InvoiceID: ID}}).then(async (loads) => {
-                await Promise.all(loads.map(async (load) => {
-                    ctx.prisma.loads.update({where: {ID: load.ID}, data: {Invoiced: false, InvoiceID: null}}).then();
-                }))
+
+            await ctx.prisma.$transaction(async (tx) => {
+                if (input.Consolidated) {
+                    const consolidatedChildren = await tx.invoices.findMany({where: {ConsolidatedID: ID}});
+                    for (const consInv of consolidatedChildren) {
+                        await tx.invoices.update({
+                            where: {ID: consInv.ID},
+                            data: {ConsolidatedID: null},
+                        });
+                    }
+                }
+
+                const loads = await tx.loads.findMany({where: {InvoiceID: ID}});
+                for (const load of loads) {
+                    await tx.loads.update({
+                        where: {ID: load.ID},
+                        data: {Invoiced: false, InvoiceID: null},
+                    });
+                }
+
+                const weeklies = await tx.weeklies.findMany({where: {InvoiceID: ID}});
+                for (const weekly of weeklies) {
+                    await tx.weeklies.update({
+                        where: {ID: weekly.ID},
+                        data: {InvoiceID: null},
+                    });
+                }
+
+                await tx.invoices.delete({where: {ID}});
             });
 
-            //make related weeklies available again
-            await ctx.prisma.weeklies.findMany({where: {InvoiceID: ID}}).then(async (weeklies) => {
-                await Promise.all(weeklies.map(async (weekly) => {
-                    ctx.prisma.weeklies.update({where: {ID: weekly.ID}, data: {InvoiceID: null}}).then();
-                }))
-            });
-
-            // use your ORM of choice
-            return await ctx.prisma.invoices.delete({where: {ID: ID}})
+            return true;
         },
     });
 
