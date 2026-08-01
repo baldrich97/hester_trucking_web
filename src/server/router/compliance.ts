@@ -6,6 +6,8 @@ import type {FormExpiryCadence} from "@prisma/client";
 
 import {
 
+    dateOnlyToLocalDay,
+
     driverMissingRequiredForm,
 
     entityDistinctTruckCount,
@@ -21,8 +23,6 @@ import {
     ooEntityKey,
 
     ooEntityTrucksVitalOk,
-
-    startOfDay,
 
     type DriverComplianceShape,
 
@@ -219,7 +219,10 @@ export const complianceRouter = createRouter()
 
                         DriverForms: true,
 
-                        TrucksDriven: {include: {Trucks: true}},
+                        TrucksDriven: {
+                            distinct: ["TruckID"],
+                            select: {TruckID: true, Trucks: true},
+                        },
 
                     },
 
@@ -436,7 +439,10 @@ export const complianceRouter = createRouter()
 
                         DriverForms: true,
 
-                        TrucksDriven: {include: {Trucks: true}},
+                        TrucksDriven: {
+                            distinct: ["TruckID"],
+                            select: {TruckID: true, Trucks: true},
+                        },
 
                         Carriers: {include: {States: true}},
 
@@ -548,7 +554,7 @@ export const complianceRouter = createRouter()
                     d.LicenseExpiration &&
                     isDriverLicenseExpiringSoon(d.LicenseExpiration, daysAhead)
                 ) {
-                    const end = startOfDay(new Date(d.LicenseExpiration));
+                    const end = dateOnlyToLocalDay(new Date(d.LicenseExpiration));
                     rows.push({
                         formId: -1000,
                         formName: "Driver license (CDL)",
@@ -680,7 +686,7 @@ export const complianceRouter = createRouter()
                         ed.LicenseExpiration &&
                         isDriverLicenseExpiringSoon(ed.LicenseExpiration, daysAhead)
                     ) {
-                        const end = startOfDay(new Date(ed.LicenseExpiration));
+                        const end = dateOnlyToLocalDay(new Date(ed.LicenseExpiration));
                         rows.push({
                             formId: -1000,
                             formName: "Driver license (CDL)",

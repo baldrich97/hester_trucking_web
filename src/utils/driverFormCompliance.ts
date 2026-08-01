@@ -7,6 +7,15 @@ export function startOfDay(d: Date): Date {
 }
 
 /**
+ * Date-only DB columns (`@db.Date`, e.g. LicenseExpiration) come back as UTC midnight.
+ * Local `startOfDay` would shift them a day earlier in timezones west of UTC, so read
+ * the UTC calendar day and pin it to local midnight instead.
+ */
+export function dateOnlyToLocalDay(d: Date): Date {
+    return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+}
+
+/**
  * Last calendar day on which this filing is still compliant (inclusive), or `null` if it does not expire (`NONE`).
  * Aligns with `isDriverFormRecordCompliant` and `DriverForms` cadence copy.
  */
@@ -48,7 +57,7 @@ export function isDriverLicenseExpiringSoon(
     now = new Date(),
 ): boolean {
     if (!licenseExpiration) return false;
-    const end = startOfDay(new Date(licenseExpiration));
+    const end = dateOnlyToLocalDay(new Date(licenseExpiration));
     const today = startOfDay(now);
     if (end < today) return false;
     const windowEnd = startOfDay(new Date(today));

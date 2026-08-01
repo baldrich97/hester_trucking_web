@@ -1,6 +1,7 @@
 // src/server/router/index.ts
 import {createRouter} from "./context";
 import superjson from "superjson";
+import {recordTrpcTiming, timingEnabled} from "./timing";
 
 import {trucksRouter} from "./trucks";
 import {customersRouter} from './customers';
@@ -24,10 +25,26 @@ import {formOptionsRouter} from "./formOptions";
 import {complianceRouter} from "./compliance";
 import {sourcesRouter} from "./sources";
 import {reportsRouter} from "./reports";
+import {configRouter} from "./config";
 import {protectedExampleRouter} from "./protected-example-router";
 
 export const appRouter = createRouter()
     .transformer(superjson)
+    // Middlewares on the parent apply to all merged sub-routers (trpc v9), so
+    // this times every procedure exactly once. No-op in production (timing.ts).
+    .middleware(async ({path, type, next}) => {
+        if (!timingEnabled()) return next();
+        const start = Date.now();
+        const result = await next();
+        recordTrpcTiming({
+            path,
+            type,
+            durationMs: Date.now() - start,
+            ok: result.ok,
+            at: start,
+        });
+        return result;
+    })
     .merge("customers.", customersRouter)
     .merge('trucks.', trucksRouter)
     .merge('drivers.', driversRouter)
@@ -50,6 +67,7 @@ export const appRouter = createRouter()
     .merge("compliance.", complianceRouter)
     .merge("sources.", sourcesRouter)
     .merge("reports.", reportsRouter)
+    .merge("config.", configRouter)
     .merge("auth.", protectedExampleRouter);
 
 // export type definition of API

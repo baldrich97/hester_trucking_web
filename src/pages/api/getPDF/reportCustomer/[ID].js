@@ -3,6 +3,7 @@ import stream from "stream";
 import {renderToStream} from "@react-pdf/renderer";
 import SourceReportPrintable from "../../../../components/objects/SourceReportPrintable";
 import {prisma} from "../../../../server/db/client";
+import {formatMaterial} from "../../../../utils/formatMaterial";
 
 const pipeline = promisify(stream.pipeline);
 
@@ -61,6 +62,7 @@ const handler = async (req, res) => {
             Customers: {select: {Name: true}},
             LoadTypes: {select: {Description: true}},
             DeliveryLocations: {select: {Description: true}},
+            Sources: {select: {Name: true, ShortName: true}},
         },
         orderBy: [{StartDate: "asc"}, {ID: "asc"}],
     });
@@ -72,7 +74,8 @@ const handler = async (req, res) => {
         Weight: load.Weight ?? 0,
         TotalAmount: load.TotalAmount ?? 0,
         TotalRate: load.TotalRate ?? 0,
-        LoadType: load.LoadTypes?.Description ?? "Unknown",
+        LoadType: formatMaterial({description: load.LoadTypes?.Description, source: load.Sources}),
+        Source: load.Sources?.ShortName || load.Sources?.Name || "",
         Customer: load.Customers?.Name ?? "Unknown",
         DeliveryLocation: load.DeliveryLocations?.Description ?? "Unknown",
     }));

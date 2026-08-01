@@ -2,6 +2,7 @@ import React from 'react';
 import {Text, View, StyleSheet} from '@react-pdf/renderer';
 import {CompleteInvoices, CompleteLoads, CompleteWeeklies} from "../../../prisma/zod";
 import moment from "moment/moment";
+import {formatMaterial, formatMaterialFromLoad} from "../../utils/formatMaterial";
 
 const styles = StyleSheet.create({
 
@@ -67,7 +68,7 @@ const TableRow = ({load, invoice = null, weekly = null}: { load?: CompleteLoads,
                     <Text style={{
                         width: '25%',
                         textAlign: 'left', ...styles.padding, ...styles.text
-                    }}>{weekly.LoadTypes?.Description ?? 'N/A'}</Text>
+                    }}>{formatMaterial({description: weekly.LoadTypes?.Description, source: (weekly as {Sources?: {Name?: string; ShortName?: string}}).Sources})}</Text>
                     <Text style={{
                         width: '22%',
                         textAlign: 'left', ...styles.padding, ...styles.text
@@ -98,7 +99,7 @@ const TableRow = ({load, invoice = null, weekly = null}: { load?: CompleteLoads,
                     <Text style={{
                         width: '20%',
                         textAlign: 'left', ...styles.padding, ...styles.text
-                    }}>{load.LoadTypes?.Description ?? 'N/A'}</Text>
+                    }}>{formatMaterialFromLoad(load)}</Text>
                     <Text style={{
                         width: '25%',
                         textAlign: 'left', ...styles.padding, ...styles.text

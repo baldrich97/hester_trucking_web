@@ -168,6 +168,9 @@ model Sources {
   Name            String            @db.VarChar(255)
   ShortName       String?           @db.VarChar(255)
   SourceLoadTypes SourceLoadTypes[]
+  Loads           Loads[]
+  Jobs            Jobs[]
+  Weeklies        Weeklies[]
 }
 
 model States {
@@ -251,6 +254,7 @@ model Loads {
   JobID              Int?
   Week               String             @db.VarChar(20)
   DriverRate         Float?
+  SourceID           Int?
   Customers          Customers          @relation(fields: [CustomerID], references: [ID], onUpdate: Restrict, map: "FK_Loads_Customer")
   DeliveryLocations  DeliveryLocations? @relation(fields: [DeliveryLocationID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_DeliveryLocation")
   Drivers            Drivers?           @relation(fields: [DriverID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Driver")
@@ -258,6 +262,7 @@ model Loads {
   Jobs               Jobs?              @relation(fields: [JobID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Loads_Job")
   LoadTypes          LoadTypes?         @relation(fields: [LoadTypeID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Loads_LoadType")
   Trucks             Trucks?            @relation(fields: [TruckID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Loads_Truck")
+  Sources            Sources?           @relation(fields: [SourceID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Sources")
 
   @@index([CustomerID], map: "FK_Loads_Customer")
   @@index([DeliveryLocationID], map: "FK_Loads_DeliveryLocation")
@@ -266,6 +271,7 @@ model Loads {
   @@index([LoadTypeID], map: "FK_Loads_LoadType")
   @@index([TruckID], map: "FK_Loads_Truck")
   @@index([JobID], map: "FK_Loads_Job")
+  @@index([SourceID], map: "FK_Loads_Sources")
 }
 
 model CustomerDeliveryLocations {
@@ -308,6 +314,7 @@ model Jobs {
   MaterialRate       Float             @db.Float
   DriverRate         Float             @db.Float
   PayStubID          Int?
+  SourceID           Int?
   Customers          Customers         @relation(fields: [CustomerID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_Customers")
   Dailies            Dailies           @relation(fields: [DailyID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_Dailies")
   DeliveryLocations  DeliveryLocations @relation(fields: [DeliveryLocationID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_DeliveryLocations")
@@ -316,6 +323,7 @@ model Jobs {
   PayStubs           PayStubs?         @relation(fields: [PayStubID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_PayStubs")
   Weeklies           Weeklies          @relation(fields: [WeeklyID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_Weeklies")
   Loads              Loads[]
+  Sources            Sources?          @relation(fields: [SourceID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Jobs_Sources")
 
   @@index([CustomerID], map: "FK_Jobs_Customers")
   @@index([DeliveryLocationID], map: "FK_Jobs_DeliveryLocations")
@@ -324,6 +332,7 @@ model Jobs {
   @@index([DailyID], map: "FK_Jobs_Dailies")
   @@index([WeeklyID], map: "FK_Jobs_Weeklies")
   @@index([PayStubID], map: "FK_Jobs_PayStubs")
+  @@index([SourceID], map: "FK_Jobs_Sources")
 }
 
 model Weeklies {
@@ -337,16 +346,19 @@ model Weeklies {
   DeliveryLocationID Int
   LastPrinted        DateTime?         @db.DateTime(0)
   TotalWeight        Float?            @db.Float
+  SourceID           Int?
   Jobs               Jobs[]
   Customers          Customers         @relation(fields: [CustomerID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Customers")
   DeliveryLocations  DeliveryLocations @relation(fields: [DeliveryLocationID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_DeliveryLocations")
   Invoices           Invoices?         @relation(fields: [InvoiceID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_Invoices")
   LoadTypes          LoadTypes         @relation(fields: [LoadTypeID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Weeklies_LoadTypes")
+  Sources            Sources?          @relation(fields: [SourceID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Weeklies_Sources")
 
   @@index([CustomerID], map: "FK_Weeklies_Customers")
   @@index([InvoiceID], map: "FK_Weeklies_Invoices")
   @@index([DeliveryLocationID], map: "FK_Weeklies_DeliveryLocations")
   @@index([LoadTypeID], map: "FK_Weeklies_LoadTypes")
+  @@index([SourceID], map: "FK_Weeklies_Sources")
 }
 
 model PayStubs {

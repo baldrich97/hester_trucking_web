@@ -9,6 +9,13 @@
 
 # testing
 /coverage
+/tests/e2e/.auth/
+/tests/reports/
+test-all-output.log
+test-db-output.log
+test-e2e-output.log
+/test-results/
+debug-profile-forms.png
 
 # database
 /prisma/db.sqlite

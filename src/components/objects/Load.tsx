@@ -1,7 +1,15 @@
-import React, {useEffect, useRef, useState} from "react";
+import React, {useRef, useState, useMemo} from "react";
 import Box from "@mui/material/Box";
 import Modal from "@mui/material/Modal";
 import Typography from "@mui/material/Typography";
+import Alert from "@mui/material/Alert";
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Link from "@mui/material/Link";
+import Chip from "@mui/material/Chip";
 import {useForm} from "react-hook-form";
 import {z} from "zod";
 import {zodResolver} from "@hookform/resolvers/zod";
@@ -21,6 +29,7 @@ import {useRouter} from "next/router";
 import GenericForm from "../../elements/GenericForm";
 import {toast} from "react-toastify";
 import {confirmDestructive} from "../../utils/appConfirm";
+import {showLoadWarnings} from "../../utils/loadWarningToasts";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
@@ -46,9 +55,10 @@ import Truck from "./Truck";
 import LoadType from "./LoadType";
 import DeliveryLocation from "./DeliveryLocation";
 import Source from "./Source";
+import {useSourcesCutover} from "../../hooks/useSourcesCutover";
 
 const today = new Date();
-const defaultWeek = formatDateToWeek(new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000));
+const defaultWeek = formatDateToWeek(today);
 
 const defaultValues = {
     StartDate: undefined,
@@ -140,76 +150,13 @@ function Load({
 
     const addOrUpdateLoad = trpc.useMutation(key, {
         async onSuccess(object) {
-            let shouldToast = true;
-            toggleOverride(false)
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-ignore
-            if (object.warnings?.length > 0 && object.warnings?.includes("This daily has already been printed.")) {
-                shouldToast = false;
+            toggleOverride(false);
+            const showedWarning = showLoadWarnings(
                 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
-                const warningIndex = object.warnings.findIndex((item) => item === "This daily has already been printed.")
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                const weekID = object.warnings[warningIndex + 1];
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                const driverID = object.warnings[warningIndex + 2];
-                toast(<DailyPrintedCustomToast Week={weekID} DriverID={driverID}/>, {
-                    autoClose: 500000, type: "warning", position: "top-left",
-                    style: {
-                        width: "98vw",       // Full viewport width
-                        margin: 0,            // Remove margin to avoid cut-off
-                        borderRadius: 0,      // Remove border-radius for full-width look
-                        textAlign: 'center',  // Center the text
-                    },
-                })
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-            } if (object.warnings?.length > 0 && object.warnings?.includes("This weekly has already been printed.")) {
-                shouldToast = false;
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                const warningIndex = object.warnings.findIndex((item) => item === "This weekly has already been printed.")
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                const weekID = object.warnings[warningIndex + 1];
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                const customerID = object.warnings[warningIndex + 2];
-                toast(<DailyPrintedCustomToast Week={weekID} CustomerID={customerID}/>, {
-                    autoClose: 500000, type: "warning", position: "top-left",
-                    style: {
-                        width: "98vw",       // Full viewport width
-                        margin: 0,            // Remove margin to avoid cut-off
-                        borderRadius: 0,      // Remove border-radius for full-width look
-                        textAlign: 'center',  // Center the text
-                    },
-                })
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-            } if (object.warnings?.length > 0 && object.warnings?.includes("This load matches a closed/paid out job. A new job has been made, please close the job/weekly if there are no other tickets for this job so it can be invoiced.")) {
-                shouldToast = false;
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                const warningIndex = object.warnings.findIndex((item) => item === "This load matches a closed/paid out job. A new job has been made, please close the job/weekly if there are no other tickets for this job so it can be invoiced.")
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                const weekID = object.warnings[warningIndex + 1];
-                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-                // @ts-ignore
-                const customerID = object.warnings[warningIndex + 2];
-                toast(<JobClosedCustomToast Week={weekID} CustomerID={customerID}/>, {
-                    autoClose: 500000, type: "warning", position: "top-left",
-                    style: {
-                        width: "98vw",       // Full viewport width
-                        margin: 0,            // Remove margin to avoid cut-off
-                        borderRadius: 0,      // Remove border-radius for full-width look
-                        textAlign: 'center',  // Center the text
-                    },
-                })
-            }
-            if (shouldToast) {
+                object?.warnings,
+            );
+            if (!showedWarning) {
                 toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
             }
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -264,18 +211,14 @@ function Load({
     const onInlineObjectCreated = (fieldName: InlineCreatableField, id: number) => {
         setInlineDefaultIds((prev) => ({...prev, [fieldName]: id}));
         setValue(fieldName, id, {shouldValidate: true, shouldDirty: true, shouldTouch: true});
-        // `setValue` does not always fire the `watch` subscription, so explicitly sync
-        // the fkey state used by dropdowns for grouping/annotation.
-        if (fieldName === "CustomerID") {
-            setCustomer(id);
-        } else if (fieldName === "SourceID") {
-            setSource(id);
+        if (fieldName === "DeliveryLocationID") {
+            dlsetShouldRefresh(true);
         } else if (fieldName === "LoadTypeID") {
-            setLoadTypeSelected(id);
-        } else if (fieldName === "DriverID") {
-            setDriver(id);
-        } else if (fieldName === "TruckID") {
-            setTruck(id);
+            ltsetShouldRefresh(true);
+        } else if (fieldName === "DriverID" || fieldName === "TruckID") {
+            tdsetShouldRefresh(true);
+        } else if (fieldName === "SourceID") {
+            srcsetShouldRefresh(true);
         }
         closeNewObjectModal();
     };
@@ -330,11 +273,36 @@ function Load({
         initialLoad ? (initialLoad.TruckID ? initialLoad.TruckID : 0) : 0
     );
 
-    const [source, setSource] = useState(0);
+    const [source, setSource] = useState(
+        initialLoad && (initialLoad as {SourceID?: number}).SourceID
+            ? (initialLoad as {SourceID?: number}).SourceID!
+            : 0
+    );
+
+    const [forceNewWork, setForceNewWork] = useState(false);
+    const [activeOpenJobId, setActiveOpenJobId] = useState<number | null>(null);
+    const [weekFilterActive, setWeekFilterActive] = useState(() => Boolean(initialLoad?.Week));
+    const {active: cutoverActive, configMismatch} = useSourcesCutover();
 
     const [loadTypeSelected, setLoadTypeSelected] = useState(
         initialLoad ? (initialLoad.LoadTypeID ? initialLoad.LoadTypeID : 0) : 0
     );
+
+    const [lttrpcData, ltsetData] = useState<any[]>([]);
+
+    const [dltrpcData, dlsetData] = useState<CustomerDeliveryLocations[]>([]);
+
+    const [srctrpcData, srcsetData] = useState<any[]>([]);
+
+    const [tdtrpcData, tdsetData] = useState<CompleteTrucksDriven[]>([]);
+
+    const [ltshouldRefresh, ltsetShouldRefresh] = useState(false);
+
+    const [dlshouldRefresh, dlsetShouldRefresh] = useState(false);
+
+    const [srcshouldRefresh, srcsetShouldRefresh] = useState(false);
+
+    const [tdshouldRefresh, tdsetShouldRefresh] = useState(false);
 
     const deleteLoad = trpc.useMutation("loads.delete", {
         async onSuccess() {
@@ -349,13 +317,135 @@ function Load({
         await router.replace("/loads");
     };
 
+    const watchWeek = watch("Week");
+    const watchDriverID = watch("DriverID");
+    const watchDeliveryLocationID = watch("DeliveryLocationID");
+
+    const isEditingExistingLoad = Boolean(initialLoad?.ID);
+
+    const openJobsQuery = trpc.useQuery(
+        [
+            "loads.openLegacyJobs",
+            {
+                ...(customer > 0 ? {CustomerID: customer} : {}),
+                ...(watchDriverID ? {DriverID: watchDriverID} : {}),
+                ...(weekFilterActive && watchWeek ? {Week: watchWeek} : {}),
+            },
+        ],
+        {
+            enabled:
+                cutoverActive &&
+                !forceNewWork &&
+                !isEditingExistingLoad &&
+                (customer > 0 || Boolean(watchDriverID)),
+        },
+    );
+
+    const openJobs = openJobsQuery.data ?? [];
+    const showOpenJobsTable =
+        cutoverActive &&
+        !forceNewWork &&
+        !isEditingExistingLoad &&
+        (customer > 0 || Boolean(watchDriverID));
+    const legacyCriteriaMet =
+        Boolean(watchDriverID) && weekFilterActive && Boolean(watchWeek);
+    const showLegacyPath =
+        cutoverActive && !forceNewWork && legacyCriteriaMet && openJobs.length > 0;
+    const activeOpenJob = useMemo(
+        () => openJobs.find((job) => job.JobID === activeOpenJobId) ?? null,
+        [openJobs, activeOpenJobId],
+    );
+    const openJobLoadTypeIDs = useMemo(
+        () => (showLegacyPath ? openJobs.map((job) => job.LoadTypeID) : []),
+        [openJobs, showLegacyPath],
+    );
+    const showSourceField = cutoverActive && !showLegacyPath;
+    const loadTypeEra: "legacy" | "new" | undefined = cutoverActive
+        ? showLegacyPath
+            ? "legacy"
+            : "new"
+        : undefined;
+
+    trpc.useQuery(
+        [
+            "loadtypes.search",
+            {
+                CustomerID: customer || undefined,
+                SourceID: source || undefined,
+                era: loadTypeEra,
+                OpenJobLoadTypeIDs: openJobLoadTypeIDs.length > 0 ? openJobLoadTypeIDs : undefined,
+            },
+        ],
+        {
+            enabled: ltshouldRefresh && !cutoverActive,
+            onSuccess(data) {
+                ltsetData(JSON.parse(JSON.stringify(data)));
+                ltsetShouldRefresh(false);
+            },
+            onError(error) {
+                console.warn(error.message);
+                ltsetShouldRefresh(false);
+            },
+        },
+    );
+
+    trpc.useQuery(
+        [
+            "sources.search",
+            {
+                LoadTypeID: loadTypeSelected || undefined,
+            },
+        ],
+        {
+            enabled: srcshouldRefresh,
+            onSuccess(data) {
+                srcsetData(JSON.parse(JSON.stringify(data)));
+                srcsetShouldRefresh(false);
+            },
+            onError(error) {
+                console.warn(error.message);
+                srcsetShouldRefresh(false);
+            },
+        },
+    );
+
+    trpc.useQuery(["deliverylocations.search", {CustomerID: customer}], {
+        enabled: dlshouldRefresh,
+        onSuccess(data) {
+            dlsetData(JSON.parse(JSON.stringify(data)));
+            dlsetShouldRefresh(false);
+            //forceUpdate;
+        },
+        onError(error) {
+            console.warn(error.message);
+            dlsetShouldRefresh(false);
+        },
+    });
+
+    trpc.useQuery(["trucksdriven.search", {TruckID: truck, DriverID: driver}], {
+        enabled: tdshouldRefresh,
+        onSuccess(data) {
+            tdsetData(JSON.parse(JSON.stringify(data)));
+            tdsetShouldRefresh(false);
+            //forceUpdate;
+        },
+        onError(error) {
+            console.warn(error.message);
+            tdsetShouldRefresh(false);
+        },
+    });
+
     React.useEffect(() => {
         const subscription = watch((value, {name, type}) => {
             if (name === "TicketNumber" && type === "change") {
                 toggleOverride(false)
             }
             if (name === "StartDate" && type === "change") {
+                setWeekFilterActive(true);
                 setValue("Week", formatDateToWeek(value.StartDate ? value.StartDate : new Date()))
+            }
+            if (name === "Week" && type === "change") {
+                setWeekFilterActive(true);
             }
             if (
                 ["MaterialRate", "TruckRate", "Hours", "Weight"].includes(name ?? "") &&
@@ -398,18 +488,40 @@ function Load({
             }
             if (name === "CustomerID" && type === "change") {
                 setCustomer(value.CustomerID ?? 0);
+                dlsetShouldRefresh(true);
+                ltsetShouldRefresh(true);
             }
             if (name === "SourceID" && type === "change") {
                 setSource(value.SourceID ?? 0);
+                ltsetShouldRefresh(true);
             }
             if (name === "LoadTypeID" && type === "change") {
                 setLoadTypeSelected(value.LoadTypeID ?? 0);
-            }
-            if (name === "TruckID" && type === "change") {
-                setTruck(value.TruckID ?? 0);
+                if (!value.SourceID) {
+                    srcsetShouldRefresh(true);
+                }
             }
             if (name === "DriverID" && type === "change") {
-                setDriver(value.DriverID ?? 0);
+                setForceNewWork(false);
+            }
+            if (name === "Week" && type === "change") {
+                setForceNewWork(false);
+            }
+            if ((name === "TruckID" || name === "DriverID") && type === "change") {
+                if (name === "TruckID") {
+                    //setValue("DriverID", 0)
+                    //setDriver(0)
+                    setTruck(value.TruckID ?? 0);
+                } else {
+                    //setValue("TruckID", 0)
+                    setDriver(value.DriverID ?? 0);
+                    //setTruck(0)
+                }
+                if (value.TruckID || value.DriverID) {
+                    tdsetShouldRefresh(true);
+                } else {
+                    tdsetData([]);
+                }
             }
         });
 
@@ -420,6 +532,33 @@ function Load({
 
     const watchHours = watch("Hours");
     const watchWeight = watch("Weight");
+
+    const prefillOpenJob = (job: (typeof openJobs)[number]) => {
+        setActiveOpenJobId(job.JobID);
+        setValue("CustomerID", job.CustomerID);
+        setCustomer(job.CustomerID);
+        setValue("LoadTypeID", job.LoadTypeID);
+        setLoadTypeSelected(job.LoadTypeID);
+        setValue("DeliveryLocationID", job.DeliveryLocationID);
+        setValue("Week", job.Week);
+        setWeekFilterActive(true);
+        setValue("TruckRate", job.TruckingRate);
+        setValue("MaterialRate", job.MaterialRate);
+        setValue("DriverRate", job.DriverRate);
+        setValue("TotalRate", job.CompanyRate);
+        setValue("SourceID", null);
+        setSource(0);
+        setForceNewWork(false);
+        dlsetShouldRefresh(true);
+        ltsetShouldRefresh(true);
+    };
+
+    const formatOpenJobDate = (value: Date | string | null | undefined) => {
+        if (!value) {
+            return "—";
+        }
+        return new Date(value).toLocaleDateString("en-US", {timeZone: "UTC"});
+    };
 
     // React.useEffect(() => {
     //     if (initialLoad) {
@@ -434,7 +573,67 @@ function Load({
     //     setValue('LoadTypeID', undefined)
     // }, [setValue, watchCustomerSelected])
 
-    const fields: FormFieldsType = [
+    React.useEffect(() => {
+        if (activeOpenJobId == null) {
+            return;
+        }
+        // Don't clear mid-refetch: row clicks change the query key (week filter),
+        // and data is briefly undefined while the narrowed query loads.
+        if (openJobsQuery.isLoading || openJobsQuery.isFetching) {
+            return;
+        }
+        if (!openJobs.some((job) => job.JobID === activeOpenJobId)) {
+            setActiveOpenJobId(null);
+        }
+    }, [openJobs, activeOpenJobId, openJobsQuery.isLoading, openJobsQuery.isFetching]);
+
+    React.useEffect(() => {
+        if (!cutoverActive) return;
+        ltsetData([]);
+    }, [cutoverActive, forceNewWork, openJobLoadTypeIDs.join(","), loadTypeEra]);
+
+    React.useEffect(() => {
+        if (!showLegacyPath) return;
+        setValue("SourceID", null);
+        setSource(0);
+    }, [showLegacyPath, setValue]);
+
+    const baseFields: FormFieldsType = useMemo(() => {
+        const loadTypeField = {
+            name: "LoadTypeID",
+            size: showSourceField ? 6 : 6,
+            required: true,
+            shouldErrorOn: ["invalid_type"],
+            errorMessage: "Load type is required.",
+            type: "select" as const,
+            label: "Load Type",
+            searchQuery: "loadtypes",
+            groupBy: "Recommend",
+            groupByNames: showLegacyPath
+                ? "OpenJob=Open Job|Customer=Used by Customer|Source=Linked to Source|Other"
+                : "Customer=Used by Customer|Source=Linked to Source|Other",
+            enableOptionGroups: customer > 0 || showLegacyPath,
+            newOptionLabel: "New Load Type",
+            onNewOptionClick: () => setNewObjectModalTarget("LoadTypeID"),
+        };
+
+        const sourceField = showSourceField
+            ? {
+                  name: "SourceID",
+                  size: 6,
+                  required: false,
+                  type: "select" as const,
+                  label: "Source",
+                  searchQuery: "sources",
+                  groupBy: "Recommend",
+                  groupByNames: "Linked=Linked to Load Type|Other",
+                  enableOptionGroups: loadTypeSelected > 0,
+                  newOptionLabel: "New Source",
+                  onNewOptionClick: () => setNewObjectModalTarget("SourceID"),
+              }
+            : null;
+
+        return [
         {
             name: "CustomerID",
             size: initialLoad ? 10 : 12,
@@ -455,10 +654,8 @@ function Load({
             label: "Driver",
             searchQuery: "drivers",
             onlyActive: true,
-            groupLabels: {
-                Truck: "Has Driven This Truck",
-                Other: "Other Drivers",
-            },
+            groupBy: "Recommend",
+            groupByNames: "Has Driven Truck|New for Driver",
             enableOptionGroups: truck > 0,
             newOptionLabel: "New Driver",
             onNewOptionClick: () => setNewObjectModalTarget("DriverID"),
@@ -471,50 +668,14 @@ function Load({
             label: "Truck",
             searchQuery: "trucks",
             onlyActive: true,
-            groupLabels: {
-                Driver: "Driven by This Driver",
-                Other: "Other Trucks",
-            },
+            groupBy: "Recommend",
+            groupByNames: "Driven Before|New for Driver",
             enableOptionGroups: driver > 0,
             newOptionLabel: "New Truck",
             onNewOptionClick: () => setNewObjectModalTarget("TruckID"),
         },
-        {
-            name: "LoadTypeID",
-            size: 6,
-            required: true,
-            shouldErrorOn: ["invalid_type"],
-            errorMessage: "Load type is required.",
-            type: "select",
-            label: "Load Type",
-            searchQuery: "loadtypes",
-            groupLabels: {
-                CustomerAndSource: "Used with this Customer & Source",
-                Customer: "Used by this Customer",
-                Source: "Linked to this Source",
-                Other: "Other",
-            },
-            enableOptionGroups: customer > 0 || source > 0,
-            newOptionLabel: "New Load Type",
-            onNewOptionClick: () => setNewObjectModalTarget("LoadTypeID"),
-        },
-        // Uncomment Source select and keep `newOptionLabel` / `onNewOptionClick` for inline "New Source" creation:
-        // {
-        //     name: "SourceID",
-        //     size: 6,
-        //     required: false,
-        //     type: "select",
-        //     label: "Source (optional)",
-        //     searchQuery: "sources",
-        //     groupLabels: {
-        //         LoadType: "Linked to this Load Type",
-        //         Other: "Other Sources",
-        //     },
-        //     enableOptionGroups: loadTypeSelected > 0,
-        //     newOptionLabel: "New Source",
-        //     onNewOptionClick: () => setNewObjectModalTarget("SourceID"),
-        // },
-        // TODO when above is uncommented need to turn below into size 6
+        loadTypeField,
+        ...(sourceField ? [sourceField] : []),
         {
             name: "DeliveryLocationID",
             size: 6,
@@ -522,10 +683,8 @@ function Load({
             type: "select",
             label: "Delivery Location",
             searchQuery: "deliverylocations",
-            groupLabels: {
-                Customer: "Used by this Customer",
-                Other: "Other Delivery Locations",
-            },
+            groupBy: "Recommend",
+            groupByNames: "Used by Customer|New for Customer",
             enableOptionGroups: customer > 0,
             newOptionLabel: "New Delivery Location",
             onNewOptionClick: () => setNewObjectModalTarget("DeliveryLocationID"),
@@ -620,21 +779,22 @@ function Load({
             multiline: true,
         },
     ];
+    }, [showSourceField, showLegacyPath, cutoverActive, customer, loadTypeSelected, initialLoad]);
 
-    if (initialLoad) {
-        fields.splice(1, 0, {
-            name: "Invoiced",
-            size: 2,
-            required: false,
-            type: "checkbox",
-            disabled: true,
-        });
-    }
+    const fields = useMemo(() => {
+        const next = [...baseFields];
+        if (initialLoad) {
+            next.splice(1, 0, {
+                name: "Invoiced",
+                size: 2,
+                required: false,
+                type: "checkbox",
+                disabled: true,
+            });
+        }
+        return next;
+    }, [baseFields, initialLoad]);
 
-    // All dropdowns now drive options from the live `.search` query inside RHAutocomplete.
-    // The query receives the typed search text plus any optional fkeys (CustomerID,
-    // SourceID, TruckID, DriverID, LoadTypeID) and the server uses those fkeys for
-    // grouping/annotation only — the search text is always the authoritative filter.
     const selectData: SelectDataType = [
         {
             key: "CustomerID",
@@ -645,35 +805,53 @@ function Load({
         },
         {
             key: "SourceID",
-            data: [],
+            data: srctrpcData.length > 0 ? srctrpcData : [],
             optionValue: "ID",
             optionLabel: "Name",
             defaultValue: inlineDefaultIds.SourceID,
         },
         {
             key: "LoadTypeID",
-            data: [],
+            // When cutover is on, always let RHAutocomplete fetch with `loadTypeEra`
+            // (legacy vs new). Parent-cached rows blocked era updates in the dropdown.
+            data: cutoverActive ? [] : lttrpcData.length > 0 ? lttrpcData : [],
             optionValue: "ID",
             optionLabel: "DisplayName",
             defaultValue: inlineDefaultIds.LoadTypeID,
         },
         {
             key: "DeliveryLocationID",
-            data: [],
+            data: dltrpcData.length > 0 ? dltrpcData : [],
             optionValue: "ID",
             optionLabel: "Description",
             defaultValue: inlineDefaultIds.DeliveryLocationID,
         },
         {
             key: "TruckID",
-            data: [],
+            data:
+                tdtrpcData.length > 0
+                    ? tdtrpcData
+                        .map((item) => item.Trucks)
+                        .filter((item) => item !== undefined)
+                        .filter((value, index, self) => {
+                            return index === self.findIndex((t) => t.ID === value.ID);
+                        })
+                    : [],
             optionValue: "ID",
             optionLabel: "Name+|+Notes",
             defaultValue: inlineDefaultIds.TruckID,
         },
         {
             key: "DriverID",
-            data: [],
+            data:
+                tdtrpcData.length > 0
+                    ? tdtrpcData
+                        .map((item) => item.Drivers)
+                        .filter((item) => item !== undefined)
+                        .filter((value, index, self) => {
+                            return index === self.findIndex((t) => t.ID === value.ID);
+                        })
+                    : [],
             optionValue: "ID",
             optionLabel: "FirstName+LastName",
             defaultValue: inlineDefaultIds.DriverID,
@@ -685,6 +863,7 @@ function Load({
         <>
             <Box
                 component="form"
+                data-testid="load-form"
                 autoComplete="off"
                 noValidate
                 onSubmit={(e) => {
@@ -711,6 +890,8 @@ function Load({
                     selectedLoadType={loadTypeSelected}
                     selectedTruck={truck}
                     selectedDriver={driver}
+                    loadTypeEra={loadTypeEra}
+                    openJobLoadTypeIDs={openJobLoadTypeIDs}
                     submitDisabled={
                         isSubmitting ||
                         addOrUpdateLoad.isLoading ||
@@ -739,6 +920,124 @@ function Load({
                             : null
                     }
                 />
+                {configMismatch ? (
+                    <Alert severity="warning" sx={{mt: 2}}>
+                        Cutover UI is forced on the client (
+                        <code>NEXT_PUBLIC_SOURCES_CUTOVER_FORCE</code>) but the server does not have
+                        cutover active. Set <code>SOURCES_CUTOVER_FORCE=true</code> in{" "}
+                        <code>.env</code> and restart the dev server so open-job detection and
+                        new-era load types work.
+                    </Alert>
+                ) : null}
+                {showOpenJobsTable ? (
+                    <>
+                        <Alert severity="info" sx={{mt: 2}}>
+                            {openJobsQuery.isLoading ? (
+                                "Loading open legacy jobs…"
+                            ) : openJobs.length > 0 ? (
+                                <>
+                                    {openJobs.length} open legacy job
+                                    {openJobs.length === 1 ? "" : "s"} matching your selections
+                                    {weekFilterActive ? "" : " (daily week not applied yet)"}.
+                                    {" "}
+                                    <strong>Click a row</strong> to fill the form and attach this
+                                    ticket to that job (Source field hidden).
+                                    {activeOpenJob ? (
+                                        <>
+                                            {" "}
+                                            <strong>Active:</strong> {activeOpenJob.CustomerName} —{" "}
+                                            {activeOpenJob.LoadTypeDescription} ({activeOpenJob.Week}).
+                                        </>
+                                    ) : null}{" "}
+                                    {openJobs.length > 0 ? (
+                                        <>
+                                            <Link
+                                                component="button"
+                                                type="button"
+                                                onClick={() => {
+                                                    setActiveOpenJobId(null);
+                                                    setForceNewWork(true);
+                                                    setValue("SourceID", null);
+                                                    setSource(0);
+                                                    ltsetShouldRefresh(true);
+                                                }}
+                                            >
+                                                New work instead
+                                            </Link>{" "}
+                                            starts a brand-new job with Source and clean load types.
+                                        </>
+                                    ) : null}
+                                </>
+                            ) : (
+                                <>
+                                    No open legacy jobs match your current selections
+                                    {legacyCriteriaMet ? " for this driver and week" : ""}
+                                    {customer > 0 ? " and customer" : ""}. Narrow or clear filters,
+                                    or use Source and clean load types.
+                                </>
+                            )}
+                        </Alert>
+                        {openJobs.length > 0 ? (
+                            <Table size="small" sx={{mt: 1}}>
+                                <TableHead>
+                                    <TableRow>
+                                        <TableCell width={88} />
+                                        <TableCell>Customer</TableCell>
+                                        <TableCell>Load Type</TableCell>
+                                        <TableCell>Location</TableCell>
+                                        <TableCell>Week</TableCell>
+                                        <TableCell>Last Ticket</TableCell>
+                                        <TableCell>Company Rate</TableCell>
+                                    </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                    {openJobs.map((job) => {
+                                        const isActive = activeOpenJobId === job.JobID;
+                                        return (
+                                        <TableRow
+                                            key={job.JobID}
+                                            hover={!isActive}
+                                            selected={isActive}
+                                            sx={{
+                                                cursor: "pointer",
+                                                ...(isActive
+                                                    ? {
+                                                          "&.Mui-selected": {
+                                                              backgroundColor: "primary.light",
+                                                          },
+                                                          "&.Mui-selected:hover": {
+                                                              backgroundColor: "primary.light",
+                                                          },
+                                                      }
+                                                    : {}),
+                                            }}
+                                            onClick={() => prefillOpenJob(job)}
+                                            aria-selected={isActive}
+                                        >
+                                            <TableCell padding="checkbox">
+                                                {isActive ? (
+                                                    <Chip
+                                                        label="Active"
+                                                        size="small"
+                                                        color="primary"
+                                                        sx={{fontWeight: 600}}
+                                                    />
+                                                ) : null}
+                                            </TableCell>
+                                            <TableCell>{job.CustomerName}</TableCell>
+                                            <TableCell>{job.LoadTypeDescription}</TableCell>
+                                            <TableCell>{job.DeliveryLocationDescription}</TableCell>
+                                            <TableCell>{job.Week}</TableCell>
+                                            <TableCell>{formatOpenJobDate(job.LastStartDate)}</TableCell>
+                                            <TableCell>{job.CompanyRate}</TableCell>
+                                        </TableRow>
+                                        );
+                                    })}
+                                </TableBody>
+                            </Table>
+                        ) : null}
+                    </>
+                ) : null}
             </Box>
             <Modal open={newObjectModalTarget !== null} onClose={closeNewObjectModal}>
                 <Box sx={createModalStyle} onClick={(e) => e.stopPropagation()}>
@@ -807,12 +1106,6 @@ interface DuplicateCustomToastProps {
     onClickTrigger: any,
 }
 
-interface DailyPrintedCustomToastProps {
-    Week: any,
-    DriverID?: any,
-    CustomerID?: any
-}
-
 class DuplicateCustomToast extends React.Component<DuplicateCustomToastProps> {
 
     render() {
@@ -829,55 +1122,6 @@ class DuplicateCustomToast extends React.Component<DuplicateCustomToastProps> {
                 If you want to override this warning and make continue with the duplicate ticket number,&nbsp;
                 <b onClick={() => this.props.onClickTrigger()}>click here to override this warning. </b>
                 Then save this load again. Click anywhere else to dismiss this warning.
-              </span>
-
-        )
-            ;
-    }
-}
-
-class JobClosedCustomToast extends React.Component<DailyPrintedCustomToastProps> {
-    render() {
-        return (
-
-            <span>
-                This load was created successfully, however it matches a closed or paid out job. A new job has been made, please remember to close the weekly and invoice this new load.&nbsp;
-                <NextLink
-                    href={{
-                        pathname: "/weeklies",
-                        query: {forceExpand: this.props.CustomerID, defaultWeek: this.props.Week}
-                    }}
-                    passHref
-                >
-                    <a target={"_blank"}>
-                        <b>Click here to open the weekly in a new tab. </b>
-                    </a>
-                </NextLink>
-              </span>
-
-        )
-            ;
-    }
-}
-
-class DailyPrintedCustomToast extends React.Component<DailyPrintedCustomToastProps> {
-
-    render() {
-        return (
-
-            <span>
-                This load was created successfully, however the {this.props.DriverID ? 'daily' : 'weekly'} it was put on has already been printed.&nbsp;
-                <NextLink
-                    href={{
-                        pathname: this.props.DriverID ? "/dailies" : "/weeklies",
-                        query: {forceExpand: this.props.DriverID ?? this.props.CustomerID, defaultWeek: this.props.Week}
-                    }}
-                    passHref
-                >
-                    <a target={"_blank"}>
-                        <b>Click here to open the {this.props.DriverID ? 'daily' : 'weekly'} in a new tab. </b>
-                    </a>
-                </NextLink>
               </span>
 
         )

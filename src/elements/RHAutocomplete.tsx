@@ -7,27 +7,7 @@ import FormHelperText from "@mui/material/FormHelperText";
 import FormControl from "@mui/material/FormControl";
 import {trpc} from "../utils/trpc";
 
-/**
- * React-Hook-Form bound Autocomplete that drives every "picker" dropdown in
- * the app (Customer, LoadType, Driver, Truck, DeliveryLocation, Source).
- *
- * One canonical flow:
- *   1. The typed search text is debounced and sent to `${searchQuery}.search`.
- *   2. The server is the single source of truth for what rows exist (the typed
- *      `search` is the only filter; optional fkeys steer grouping only — see
- *      `server/router/_dropdownSearch.ts`).
- *   3. Each row comes back with a `Group` field. We pass that to MUI's `groupBy`
- *      after mapping it through `groupLabels` for human-readable headers.
- *   4. The currently-selected row (if any) is hydrated from `${searchQuery}.get`
- *      so the input shows a label even when the menu is closed / the row isn't
- *      in the current search hits.
- *
- * Inline "+ New …" creation is supported via `newOptionLabel` + `onNewOptionClick`.
- * After the parent persists the new record and pushes the new ID into the form
- * value, the `${searchQuery}.get` hydration picks the new row up automatically.
- */
-
-/** Routers that expose `.get` with `{ID}` for hydrating the selected-row label. */
+/** Routers that expose `.get` with `{ ID }` for hydrating the closed-field label. */
 const ROUTERS_WITH_GET = new Set([
     "customers",
     "drivers",
@@ -37,99 +17,7 @@ const ROUTERS_WITH_GET = new Set([
     "sources",
 ]);
 
-/** Sentinel `optionValue` used for the synthetic "+ New …" menu row. */
-const NEW_OPTION_VALUE = "__create_new_option__";
-
-type Row = Record<string, unknown>;
-
-export type RHAutocompleteProps = {
-    name: string;
-    control: Control<any>;
-    required?: boolean;
-    defaultValue?: string | number | null;
-    shouldError?: boolean;
-    errorMessage?: string;
-    label?: string;
-    disabled?: boolean;
-
-    /** tRPC router name, e.g. "loadtypes". `.search` and `.get` are both invoked. */
-    searchQuery: string;
-    /** Field name on each row that holds the unique key (almost always `"ID"`). */
-    optionValue: string;
-    /**
-     * Field-name template for the visible label. A simple field name (e.g.
-     * `"Description"`) renders that field's value. Compound labels join multiple
-     * fields with `+` and may include literal separators (e.g.
-     * `"Name+|+Street+,+City"` renders `Name | Street, City`).
-     */
-    optionLabel: string;
-
-    /**
-     * Optional fkeys forwarded to the server. They never filter the row set —
-     * they only determine which mutually-exclusive `Group` each row lands in
-     * (see `server/router/_dropdownSearch.ts`).
-     */
-    selectedCustomer?: number | null;
-    selectedSource?: number | null;
-    selectedLoadType?: number | null;
-    selectedTruck?: number | null;
-    selectedDriver?: number | null;
-
-    /** When true (Load form), driver/truck search excludes inactive rows. */
-    onlyActive?: boolean;
-
-    /**
-     * Map of server `Group` values to display labels for MUI group headers,
-     * e.g. `{Customer: "Used by Customer", Source: "Linked to Source", Other: "Other"}`.
-     * If omitted (or `enableOptionGroups` is false), the list is rendered flat.
-     */
-    groupLabels?: Record<string, string>;
-    /** Set to false to suppress group headers even when `groupLabels` is provided. */
-    enableOptionGroups?: boolean;
-
-    /** Adds a synthetic "+ New …" option at the top of the menu when set. */
-    newOptionLabel?: string;
-    onNewOptionClick?: () => void;
-
-    /**
-     * @deprecated Options are driven by the live `.search` query — this prop is
-     * kept only because `GenericForm` still passes it positionally.
-     */
-    data?: Array<any>;
-    /** @deprecated Use `groupLabels` + `Group` on the row. */
-    groupBy?: string | null;
-    /** @deprecated Use `groupLabels`. */
-    groupByNames?: string | null;
-};
-
-/**
- * Render a row to a string for the input and menu, given a label template.
- * Supports both single-field names ("Description") and compound templates
- * ("Name+|+Street+,+City").
- */
-function renderRowLabel(template: string, row: Row): string {
-    const parts = template.split("+");
-    if (parts.length === 1) {
-        // Single field. Fall back to `Description` when `DisplayName` is empty
-        // (e.g. selectedRow from `.get` doesn't carry annotated DisplayName).
-        const value = row[template];
-        if (value != null && value !== "") return String(value);
-        if (template === "DisplayName" && row.Description != null) {
-            return String(row.Description);
-        }
-        return "";
-    }
-    let out = "";
-    parts.forEach((part, i) => {
-        out += part in row ? String(row[part] ?? "") : part;
-        const next = parts[i + 1];
-        if (i + 1 < parts.length && next !== ",") out += " ";
-    });
-    if (row.Active === false) out += out.length > 0 ? " - INACTIVE" : "- INACTIVE";
-    return out;
-}
-
-const RHAutocomplete: React.FC<RHAutocompleteProps> = ({
+const RHAutocomplete = ({
     name,
     control,
     required = false,
@@ -137,51 +25,135 @@ const RHAutocomplete: React.FC<RHAutocompleteProps> = ({
     shouldError = false,
     errorMessage = "",
     label = name,
+    data = [],
+    optionLabel,
+    optionValue,
     disabled = false,
     searchQuery,
-    optionValue,
-    optionLabel,
+    groupBy = null,
+    groupByNames = null,
     selectedCustomer = 0,
     selectedSource = 0,
     selectedLoadType = 0,
+    /** Load form: paired FK for driver/truck search grouping (`drivers.search` / `trucks.search`). */
     selectedTruck = 0,
     selectedDriver = 0,
-    onlyActive = false,
-    groupLabels,
     enableOptionGroups = true,
-    newOptionLabel,
+    newOptionLabel = "",
     onNewOptionClick,
+    /** When true, `drivers.search` / `trucks.search` only return active entities (Load form). */
+    onlyActive = false,
+    loadTypeEra,
+    openJobLoadTypeIDs,
+}: {
+    name: string;
+    control: Control<any>;
+    required?: boolean;
+    defaultValue?: string | number | null;
+    shouldError?: boolean;
+    errorMessage?: string;
+    label?: string;
+    data: Array<any>;
+    optionLabel: string;
+    optionValue: string;
+    disabled?: boolean;
+    searchQuery: string;
+    groupBy?: string | null;
+    groupByNames?: string | null;
+    selectedCustomer?: number | null;
+    selectedSource?: number | null;
+    selectedLoadType?: number | null;
+    selectedTruck?: number | null;
+    selectedDriver?: number | null;
+    enableOptionGroups?: boolean;
+    newOptionLabel?: string;
+    onNewOptionClick?: () => void;
+    onlyActive?: boolean;
+    loadTypeEra?: "legacy" | "new" | "all";
+    openJobLoadTypeIDs?: number[];
 }) => {
-    // --- Form value plumbing -------------------------------------------------
-    // We watch the RHF value rather than relying on `field.value` from the
-    // Controller render-prop because we need to drive the `.get` hydration
-    // query outside the Controller's render.
+    const NEW_OPTION_VALUE = "__create_new_option__";
+
+    /** Live RHF value; parent `defaultValue` does not update on each pick (e.g. Load `inlineDefaultIds`). */
     const watchedValue = useWatch({control, name});
     const idSource = watchedValue !== undefined ? watchedValue : defaultValue;
-    const parsedId = useMemo<number | null>(() => {
-        if (idSource == null || idSource === "") return null;
-        const n = Number(idSource);
-        return Number.isFinite(n) && n > 0 ? n : null;
-    }, [idSource]);
 
-    // --- Search debounce -----------------------------------------------------
-    const [typed, setTyped] = useState("");
+    const formatOptionLabel = (lbl: string, item: any): string => {
+        let returnable = "";
+        if (lbl.split("+").length > 1) {
+            if (idSource === 0) {
+                return item[lbl.split("+")[0] ?? ""];
+            }
+            lbl.split("+").forEach((labelPart, index) => {
+                if (Object.keys(item).includes(labelPart)) {
+                    returnable += item[labelPart] ?? "";
+                } else {
+                    returnable += labelPart;
+                }
+                if (
+                    index + 1 !== lbl.split("+").length &&
+                    lbl.split("+")[index + 1] !== ","
+                ) {
+                    returnable += " ";
+                }
+            });
+        } else {
+            const v = item[lbl];
+            if (v != null && v !== "") {
+                return v.toString();
+            }
+            if (lbl === "DisplayName" && item.Description != null) {
+                return item.Description.toString();
+            }
+            return "";
+        }
+        if (item?.Active === false) {
+            return returnable ? `${returnable} - INACTIVE` : "- INACTIVE";
+        }
+        return returnable;
+    };
+
+    const [search, setSearch] = useState("");
     const [debouncedSearch, setDebouncedSearch] = useState("");
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [options, setOptions] = useState<readonly any[]>([]);
+    const [value, setValue] = useState<any>(null);
+
     useEffect(() => {
-        const trimmed = typed.trim();
+        const trimmed = search.trim();
         if (trimmed.length === 0) {
             setDebouncedSearch("");
             return;
         }
         const t = setTimeout(() => setDebouncedSearch(trimmed), 250);
         return () => clearTimeout(t);
-    }, [typed]);
+    }, [search]);
 
-    // --- Menu open state -----------------------------------------------------
-    const [menuOpen, setMenuOpen] = useState(false);
+    const parsedId = useMemo(() => {
+        if (idSource === null || idSource === undefined || idSource === "") {
+            return null;
+        }
+        const n = Number(idSource);
+        return Number.isFinite(n) && n > 0 ? n : null;
+    }, [idSource]);
 
-    // --- Live `.search` query ------------------------------------------------
-    // Only enabled when the menu is open so closed pickers don't pull data.
+    const clientProvidedOptions = Array.isArray(data) && data.length > 0;
+    const shouldShowNewOption = Boolean(newOptionLabel && onNewOptionClick);
+    const useOptionGrouping = Boolean(groupBy && groupByNames && enableOptionGroups);
+
+    const withNewOption = React.useCallback(
+        (rows: readonly any[]) => {
+            if (!shouldShowNewOption) {
+                return rows;
+            }
+            return [
+                {[optionValue]: NEW_OPTION_VALUE, [optionLabel]: newOptionLabel, __isNewOption: true},
+                ...rows,
+            ];
+        },
+        [shouldShowNewOption, optionLabel, optionValue, newOptionLabel],
+    );
+
     const searchInput = useMemo(
         () => ({
             search: debouncedSearch,
@@ -191,6 +163,8 @@ const RHAutocomplete: React.FC<RHAutocompleteProps> = ({
             TruckID: selectedTruck || undefined,
             DriverID: selectedDriver || undefined,
             onlyActive: onlyActive ? true : undefined,
+            era: loadTypeEra,
+            OpenJobLoadTypeIDs: openJobLoadTypeIDs,
         }),
         [
             debouncedSearch,
@@ -200,172 +174,225 @@ const RHAutocomplete: React.FC<RHAutocompleteProps> = ({
             selectedTruck,
             selectedDriver,
             onlyActive,
-        ],
+            loadTypeEra,
+            openJobLoadTypeIDs,
+        ]
     );
-    const liveSearchEnabled = Boolean(searchQuery) && menuOpen && !disabled;
-    // NOTE: deliberately NOT using `keepPreviousData` — when the search text
-    // changes we want options to clear immediately rather than briefly show
-    // results from the prior query (e.g. typing "Rock" after "1\" Minus"
-    // should not show 1" Minus rows while React Query refetches).
+
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore dynamic procedure path
-    const searchResult = trpc.useQuery([`${searchQuery}.search`, searchInput], {
-        enabled: liveSearchEnabled,
-        staleTime: 0,
+    const searchQueryResult = trpc.useQuery([`${searchQuery}.search`, searchInput], {
+        enabled:
+            Boolean(searchQuery) &&
+            menuOpen &&
+            !clientProvidedOptions &&
+            !disabled,
+        keepPreviousData: false,
+        staleTime: 30_000,
     });
 
-    // --- Selected-row hydration ---------------------------------------------
-    // Fetches the currently-selected row so the input shows a label when the
-    // menu is closed or the row isn't in the current search hits.
     // NOTE: intentionally NOT gated behind `!disabled`. A disabled field still
     // needs to hydrate its currently-selected row so the input renders the
     // correct label (e.g. the read-only Driver field on the paystub detail
     // page). Only live search is disabled for disabled fields.
     const canUseGet =
-        Boolean(searchQuery) && ROUTERS_WITH_GET.has(searchQuery);
+        Boolean(searchQuery) &&
+        ROUTERS_WITH_GET.has(searchQuery);
+
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore dynamic procedure path
     const selectedRowQuery = trpc.useQuery([`${searchQuery}.get`, {ID: parsedId!}], {
         enabled: canUseGet && parsedId != null,
         staleTime: 60_000,
     });
-    const selectedRow = selectedRowQuery.data as Row | undefined;
 
-    // --- Option list construction ------------------------------------------
-    // Single defensive dedup-by-`optionValue` pass. Selected row first so the
-    // chosen value is always visible even when search filters it out.
-    const synthesizedNewOption = useMemo<Row | null>(() => {
-        if (!newOptionLabel || !onNewOptionClick) return null;
-        return {
-            [optionValue]: NEW_OPTION_VALUE,
-            [optionLabel]: newOptionLabel,
-            __isNewOption: true,
-        };
-    }, [newOptionLabel, onNewOptionClick, optionValue, optionLabel]);
+    const selectedRow = selectedRowQuery.data;
 
-    // While the menu is loading we have no fresh data — show an empty list
-    // (plus "+ New …" if applicable) so users never see options from the
-    // previous search bleeding into a new one.
-    const isSearchLoading = liveSearchEnabled && searchResult.isFetching;
-
-    const options = useMemo<Row[]>(() => {
-        const searchRows = isSearchLoading
-            ? []
-            : ((searchResult.data as Row[] | undefined) ?? []);
-        const seen = new Set<unknown>();
-        const out: Row[] = [];
-
-        const push = (row: Row | null | undefined) => {
-            if (!row) return;
-            const key = row[optionValue];
-            if (key == null || seen.has(key)) return;
-            seen.add(key);
-            out.push(row);
-        };
-
-        // "+ New …" pinned to the top of the menu.
-        if (synthesizedNewOption) push(synthesizedNewOption);
-        // Pin the current selection at the top only when the user isn't actively
-        // searching — otherwise it looks like the previous pick is contaminating
-        // fresh results. MUI still renders the selected value's label in the
-        // input via `getOptionLabel(value)` even when it isn't in `options`.
-        if (!debouncedSearch && selectedRow && parsedId != null) {
-            push(selectedRow);
+    useEffect(() => {
+        if (clientProvidedOptions) {
+            return;
         }
-        for (const row of searchRows) push(row);
+        setOptions(shouldShowNewOption ? withNewOption([]) : []);
+    }, [loadTypeEra, openJobLoadTypeIDs, clientProvidedOptions, shouldShowNewOption, withNewOption]);
 
-        return out;
+    useEffect(() => {
+        if (clientProvidedOptions) {
+            // Merge `.get` row when the selected ID is not in client `data` yet (e.g. inline create).
+            const mergedData = [...data];
+            if (
+                parsedId &&
+                selectedRow &&
+                !mergedData.some(
+                    (o) =>
+                        (o as Record<string, unknown>)[optionValue] ===
+                        (selectedRow as Record<string, unknown>)[optionValue],
+                )
+            ) {
+                mergedData.unshift(selectedRow);
+            }
+            setOptions(withNewOption(mergedData));
+            const match = parsedId
+                ? mergedData.find((item) => item[optionValue] == parsedId)
+                : null;
+            if (match) {
+                setValue(match);
+            } else if (!parsedId) {
+                setValue(null);
+            }
+            return;
+        }
+
+        const rows = searchQueryResult.data as any[] | undefined;
+        if (!rows) {
+            if (shouldShowNewOption) {
+                setOptions(withNewOption([]));
+            }
+            return;
+        }
+        const merged = [...rows];
+        if (
+            selectedRow &&
+            !merged.some(
+                (o) =>
+                    (o as Record<string, unknown>)[optionValue] ===
+                    (selectedRow as Record<string, unknown>)[optionValue],
+            )
+        ) {
+            merged.unshift(selectedRow);
+        }
+        setOptions(withNewOption(merged));
     }, [
-        searchResult.data,
-        isSearchLoading,
+        clientProvidedOptions,
+        data,
+        searchQueryResult.data,
         selectedRow,
-        parsedId,
-        synthesizedNewOption,
-        debouncedSearch,
         optionValue,
+        parsedId,
+        shouldShowNewOption,
+        withNewOption,
     ]);
 
-    // --- Bound value object passed to MUI Autocomplete ----------------------
-    // Prefer the annotated row from the live search (carries `DisplayName`,
-    // `Group`, etc.) so the input label matches the menu. Fall back to the
-    // plain `.get` row when the menu's never been opened.
-    const value = useMemo<Row | null>(() => {
-        if (parsedId == null) return null;
-        const fromSearch = options.find((r) => r[optionValue] === parsedId);
-        if (fromSearch) return fromSearch;
-        if (selectedRow && Number(selectedRow[optionValue]) === parsedId) {
-            return selectedRow;
+    useEffect(() => {
+        if (clientProvidedOptions) {
+            return;
         }
-        return null;
-    }, [options, parsedId, selectedRow, optionValue]);
+        if (!parsedId) {
+            setValue(null);
+            return;
+        }
+        if (selectedRow) {
+            setValue(selectedRow);
+        }
+    }, [clientProvidedOptions, parsedId, selectedRow]);
 
-    // --- Grouping -----------------------------------------------------------
-    const useGrouping = Boolean(
-        enableOptionGroups && groupLabels && Object.keys(groupLabels).length > 0,
-    );
-    const groupByForMui = (option: Row): string => {
-        if (option.__isNewOption) return "";
-        if (!useGrouping || !groupLabels) return "";
-        const raw = option.Group;
-        if (typeof raw !== "string") return groupLabels.Other ?? "";
-        return groupLabels[raw] ?? groupLabels.Other ?? "";
+    const loading = menuOpen && !clientProvidedOptions && searchQueryResult.isFetching;
+
+    function groupByFunction(option: {[x: string]: any}): string {
+        // Keep "New …" in its own group without custom `renderGroup` (MUI default = full-row hit target + spacing).
+        if (option?.__isNewOption) {
+            return "";
+        }
+        if (!groupBy || !groupByNames) {
+            return "";
+        }
+        const raw = option[groupBy];
+        const tokens = groupByNames.split("|");
+
+        const mapEntries = tokens
+            .map((t) => {
+                const eq = t.indexOf("=");
+                if (eq < 0) return null;
+                return [t.slice(0, eq), t.slice(eq + 1)] as const;
+            })
+            .filter((entry): entry is readonly [string, string] => entry !== null);
+
+        if (mapEntries.length > 0) {
+            const map = Object.fromEntries(mapEntries);
+            if (typeof raw === "string" && raw.length > 0 && map[raw]) {
+                return String(map[raw] ?? "");
+            }
+            const fallback = tokens.find((t) => !t.includes("="));
+            return fallback ?? "";
+        }
+
+        // Two-bucket groups from boolean `Recommend` (drivers/trucks/delivery locations): inclusive | exclusive.
+        const inclusive = tokens[0] ?? "";
+        const exclusive = tokens[1] ?? inclusive;
+        if (raw === true) {
+            return inclusive;
+        }
+        return exclusive;
+    }
+
+    const checkKeyDown = (e: {key: string; preventDefault: () => void}) => {
+        if (e.key === "Enter") {
+            e.preventDefault();
+        }
     };
-
-    // --- Render -------------------------------------------------------------
-    const loading = isSearchLoading;
 
     return (
         <Controller
             name={name}
             control={control}
-            rules={{required}}
+            rules={{required: required}}
             defaultValue={defaultValue}
             render={({field}) => (
-                <FormControl fullWidth error={shouldError} size="small">
+                <FormControl fullWidth={true} error={shouldError} size={"small"}>
                     <Autocomplete
                         {...field}
-                        id={`${label}-autocomplete`}
+                        id={label + "-autocomplete"}
+                        groupBy={
+                            useOptionGrouping
+                                ? (option): string => groupByFunction(option)
+                                : undefined
+                        }
                         open={menuOpen}
-                        onOpen={() => {
-                            setMenuOpen(true);
-                            if (searchQuery) void searchResult.refetch();
-                        }}
-                        onClose={() => setMenuOpen(false)}
-                        options={options}
-                        value={value}
-                        loading={loading}
+                        fullWidth={true}
                         disabled={disabled}
-                        fullWidth
-                        size="small"
-                        groupBy={useGrouping ? groupByForMui : undefined}
-                        isOptionEqualToValue={(option, v) =>
-                            (option as Row)[optionValue] === (v as Row)[optionValue]
+                        onOpen={() => setMenuOpen(true)}
+                        onClose={() => setMenuOpen(false)}
+                        isOptionEqualToValue={(option, v) => {
+                            return (
+                                (option as Record<string, unknown>)[optionValue] ===
+                                (v as Record<string, unknown>)[optionValue]
+                            );
+                        }}
+                        onKeyPress={(e) => checkKeyDown(e)}
+                        getOptionLabel={(option): string =>
+                            // "New ..." meta-option is synthesized, keep label simple.
+                            (option?.__isNewOption
+                                ? String(newOptionLabel)
+                                :
+                            String(formatOptionLabel(optionLabel, option) ?? "")
+                            )
                         }
-                        getOptionLabel={(option) =>
-                            (option as Row).__isNewOption
-                                ? String(newOptionLabel ?? "")
-                                : renderRowLabel(optionLabel, option as Row)
-                        }
+                        options={options}
+                        loading={loading}
                         onChange={(e, row) => {
                             e.preventDefault();
-                            const r = row as Row | null;
-                            if (r?.__isNewOption) {
+                            if (row?.__isNewOption) {
                                 onNewOptionClick?.();
                                 setMenuOpen(false);
                                 return;
                             }
-                            field.onChange(r ? r[optionValue] ?? null : null);
-                            if (r == null) setTyped("");
+                            if (row === null) {
+                                setSearch("");
+                            }
+                            setValue(row);
+                            field.onChange(row ? row[optionValue] : null);
                         }}
-                        onInputChange={(_e, inputValue, reason) => {
-                            if (reason === "input") setTyped(inputValue);
-                            else if (reason === "clear") setTyped("");
+                        value={value}
+                        onInputChange={(_, inputValue, reason) => {
+                            if (reason === "input") {
+                                setSearch(inputValue);
+                            } else if (reason === "clear") {
+                                setSearch("");
+                                if (clientProvidedOptions) {
+                                    setOptions(withNewOption(data ?? []));
+                                }
+                            }
                         }}
-                        onKeyDown={(e) => {
-                            // Don't let the user submit the surrounding form by pressing Enter
-                            // when the dropdown is the focused control.
-                            if (e.key === "Enter") e.preventDefault();
-                        }}
+                        size={"small"}
                         renderInput={(params) => (
                             <TextField
                                 {...params}
@@ -383,7 +410,7 @@ const RHAutocomplete: React.FC<RHAutocompleteProps> = ({
                                 }}
                             />
                         )}
-                    />
+                    />{" "}
                     {shouldError && <FormHelperText>{errorMessage}</FormHelperText>}
                 </FormControl>
             )}

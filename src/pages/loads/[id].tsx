@@ -36,7 +36,8 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                 Drivers: true,
                 LoadTypes: true,
                 DeliveryLocations: true,
-                Trucks: true
+                Trucks: true,
+                Sources: {select: {Name: true, ShortName: true}},
             }
         })
     }

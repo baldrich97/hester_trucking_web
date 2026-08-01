@@ -133,6 +133,7 @@ export default function Weeklies() {
                             type={"button"}
                             size="small"
                             sx={calendarChevronNavSx}
+                            aria-label="Previous week"
                             onClick={() => {
                                 let [curyear, curweek] = week.split("-W").map(Number);
                                 if (!curyear || !curweek) {
@@ -164,6 +165,7 @@ export default function Weeklies() {
                             type={"button"}
                             size="small"
                             sx={calendarChevronNavSx}
+                            aria-label="Next week"
                             onClick={() => {
                                 let [curyear, curweek] = week.split("-W").map(Number);
                                 if (!curyear || !curweek) {
@@ -195,6 +197,7 @@ export default function Weeklies() {
                             type={"button"}
                             size="small"
                             sx={calendarWeekLabelSx}
+                            aria-label="Current week range"
                         >
                             <b style={{fontSize: 18}}>
                                 {moment(week).format("l")} -{" "}

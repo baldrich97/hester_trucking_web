@@ -21,6 +21,11 @@ import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Button from "@mui/material/Button";
 import {toast} from "react-toastify";
+import {calculatePaystubGross} from "../../utils/paystubRevenue";
+import {
+    formatPaystubGrossMismatchMessage,
+    paystubGrossDiffers,
+} from "../../utils/paystubGrossMismatch";
 import RHAutocomplete from "elements/RHAutocomplete";
 import {confirmDestructive} from "../../utils/appConfirm";
 import PayStubJobs from "../collections/PayStubJobs";
@@ -594,6 +599,14 @@ const PayStub = ({
                                 color="warning"
                                 disabled={printPaystub.isLoading}
                                 onClick={async () => {
+                                    const calculatedGross = calculatePaystubGross(initialPayStub.Jobs ?? []);
+                                    const storedGross = initialPayStub.Gross ?? 0;
+                                    if (paystubGrossDiffers(storedGross, calculatedGross)) {
+                                        toast.warning(
+                                            formatPaystubGrossMismatchMessage(storedGross, calculatedGross),
+                                            {autoClose: 15000},
+                                        );
+                                    }
                                     toast("Generating PDF...", {autoClose: 2000, type: "info"});
                                     const element = document.createElement("a");
                                     element.href = "/api/getPDF/paystub/" + initialPayStub.ID?.toString();

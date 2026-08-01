@@ -13,6 +13,7 @@ import {z} from "zod";
 import {CompleteJobs, LoadsModel, DriversModel, DailiesModel} from "../../../prisma/zod";
 import Tooltip from '@mui/material/Tooltip';
 import {confirmAlert, confirmDestructive} from "../../utils/appConfirm";
+import {formatMaterial} from "../../utils/formatMaterial";
 import {trpc} from "../../utils/trpc";
 import {calendarNavButtonSx, tableTextLinkSx} from "../../theme/muiShared";
 import Box from "@mui/material/Box";
@@ -182,7 +183,7 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
                 }}
             >
                 <HeaderRow/>
-                {daily.Jobs?.map(
+                {daily.Jobs?.filter((job: CompleteJobs) => (job.Loads?.length ?? 0) > 0).map(
                     (job: CompleteJobs) =>
                         <Job job={job} key={"job-" + job.ID} ownerOperator={daily.Drivers.OwnerOperator}
                              toInvoiceButton={toInvoiceButton}/>
@@ -546,7 +547,10 @@ const Load = ({load, index, job}: { load: Loads, index: number, job: CompleteJob
                     xs={1.5}
                 >
                     {index === 0
-                        ? job.LoadTypes?.Description ?? "N/A"
+                        ? formatMaterial({
+                            description: job.LoadTypes?.Description,
+                            source: (job as {Sources?: {Name?: string; ShortName?: string}}).Sources,
+                        })
                         : ""}
                 </Grid2>
                 <Grid2

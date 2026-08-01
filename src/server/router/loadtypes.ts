@@ -1,44 +1,45 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import {LoadTypesModel} from "../../../prisma/zod";
-import {LoadTypes, Sources} from "@prisma/client";
-import {
-    SEARCH_SCAN_LIMIT,
-    OTHER_GROUP,
-    assembleDropdownResults,
-    notDeleted,
-} from "./_dropdownSearch";
+import { LoadTypesModel } from '../../../prisma/zod';
+import { LoadTypes } from "@prisma/client";
+import {isSourcesCutoverActive, NEW_LOAD_TYPE_ID_THRESHOLD} from "../../config/sourcesCutover";
 
-/**
- * `LoadType` dropdown groups (server -> client field `Group`):
- *   - `CustomerAndSource`: linked to both the selected customer and source
- *   - `Customer`: linked to the selected customer only
- *   - `Source`: linked to the selected source only
- *   - `Other`: not linked to either (capped at `OTHER_GROUP_LIMIT`)
- */
-const LOADTYPE_GROUPS = {
-    CUSTOMER_AND_SOURCE: "CustomerAndSource",
-    CUSTOMER: "Customer",
-    SOURCE: "Source",
-    OTHER: OTHER_GROUP,
-} as const;
+const notDeletedWhere = {OR: [{Deleted: false}, {Deleted: null}]};
 
-/** Picks the best-fit source for annotating a load type's DisplayName. */
-function pickAnnotationSource(
-    links: Array<{Sources: Sources; SourceID: number; UseCount: number}>,
-    preferredSourceID: number | undefined,
-): {source: Sources; useCount: number} | null {
-    if (preferredSourceID) {
-        const match = links.find((l) => l.SourceID === preferredSourceID);
-        if (match) return {source: match.Sources, useCount: match.UseCount};
+function eraIdFilter(era?: "legacy" | "new" | "all") {
+    if (!isSourcesCutoverActive()) {
+        return {ID: {lt: NEW_LOAD_TYPE_ID_THRESHOLD}};
     }
-    if (links.length === 0) return null;
-    const sorted = [...links].sort((a, b) => {
-        if (b.UseCount !== a.UseCount) return b.UseCount - a.UseCount;
-        return a.SourceID - b.SourceID;
-    });
-    const top = sorted[0];
-    return top ? {source: top.Sources, useCount: top.UseCount} : null;
+    if (era === "new") {
+        return {ID: {gte: NEW_LOAD_TYPE_ID_THRESHOLD}};
+    }
+    if (era === "legacy") {
+        return {ID: {lt: NEW_LOAD_TYPE_ID_THRESHOLD}};
+    }
+    return {};
+}
+
+function loadTypeIdMatchesEra(
+    id: number,
+    era?: "legacy" | "new" | "all",
+    openJobIDs?: Set<number>,
+): boolean {
+    if (openJobIDs?.has(id)) {
+        return true;
+    }
+    if (!era || era === "all") {
+        return true;
+    }
+    if (!isSourcesCutoverActive()) {
+        return id < NEW_LOAD_TYPE_ID_THRESHOLD;
+    }
+    if (era === "new") {
+        return id >= NEW_LOAD_TYPE_ID_THRESHOLD;
+    }
+    if (era === "legacy") {
+        return id < NEW_LOAD_TYPE_ID_THRESHOLD;
+    }
+    return true;
 }
 
 export const loadTypesRouter = createRouter()
@@ -71,87 +72,107 @@ export const loadTypesRouter = createRouter()
 
         }
     })
-    .query("search", {
-        // Dropdown contract — see `_dropdownSearch.ts`. The `search` text is the
-        // only filter on the row set; `CustomerID` / `SourceID` only determine
-        // which mutually-exclusive group each matching row lands in.
+    .query('search', {
         input: z.object({
             search: z.string().optional(),
+            page: z.number().optional(),
             CustomerID: z.number().optional(),
             SourceID: z.number().optional(),
+            OpenJobLoadTypeIDs: z.array(z.number()).optional(),
+            era: z.enum(["legacy", "new", "all"]).optional(),
+            orderBy: z.string().optional(),
+            order: z.string().optional()
         }),
         async resolve({ctx, input}) {
-            const trimmed = (input.search ?? "").trim();
-            const searchClause = trimmed.length > 0
-                ? {
-                    OR: [
-                        {Description: {contains: trimmed}},
-                        {Notes: {contains: trimmed}},
-                    ],
-                }
-                : undefined;
-            const baseWhere = searchClause
-                ? {AND: [notDeleted, searchClause]}
-                : notDeleted;
-
-            // Fetch the fkey-linked ID sets up front; they're small and indexed.
+            const openJobIDs = new Set(input.OpenJobLoadTypeIDs ?? []);
             const customerLinkedIDs = new Set<number>();
             if (input.CustomerID) {
-                const rows = await ctx.prisma.customerLoadTypes.findMany({
+                const associated = await ctx.prisma.customerLoadTypes.findMany({
                     where: {CustomerID: input.CustomerID},
                     select: {LoadTypeID: true},
                 });
-                rows.forEach((r) => customerLinkedIDs.add(r.LoadTypeID));
+                associated.forEach((item) => customerLinkedIDs.add(item.LoadTypeID));
             }
+
             const sourceLinkedIDs = new Set<number>();
             if (input.SourceID) {
-                const rows = await ctx.prisma.sourceLoadTypes.findMany({
+                const associated = await ctx.prisma.sourceLoadTypes.findMany({
                     where: {SourceID: input.SourceID},
                     select: {LoadTypeID: true},
                 });
-                rows.forEach((r) => sourceLinkedIDs.add(r.LoadTypeID));
+                associated.forEach((item) => sourceLinkedIDs.add(item.LoadTypeID));
             }
 
-            // Search hits — newest first; capped so a broad search can't pull
-            // thousands of rows.
-            const searchHits = await ctx.prisma.loadTypes.findMany({
-                where: baseWhere,
-                take: SEARCH_SCAN_LIMIT,
-                orderBy: {ID: "desc"},
-            });
+            const {order, orderBy} = input;
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            const orderObj: Record<string, string> = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            orderObj[orderBy] = order;
 
-            // Make sure every recommended row (customer-linked OR source-linked)
-            // that matches the search is included, even if it fell outside the
-            // SEARCH_SCAN_LIMIT window above.
-            const seenInHits = new Set(searchHits.map((r) => r.ID));
-            const recommendedIDsOutsideHits = [
-                ...Array.from(customerLinkedIDs),
-                ...Array.from(sourceLinkedIDs),
-            ].filter((id) => !seenInHits.has(id));
-            let recommendedExtras: LoadTypes[] = [];
-            if (recommendedIDsOutsideHits.length > 0) {
-                recommendedExtras = await ctx.prisma.loadTypes.findMany({
+            const baseWhere = {
+                ...notDeletedWhere,
+                ...eraIdFilter(input.era),
+            };
+
+            // Pull all matching load types (including grouped ones; we'll re-sort below).
+            let baseRows: LoadTypes[];
+            if (input.search && input.search.length > 0) {
+                const formattedSearch = input.search.replace('"', '\"');
+                baseRows = await ctx.prisma.loadTypes.findMany({
                     where: {
                         AND: [
-                            notDeleted,
-                            {ID: {in: recommendedIDsOutsideHits}},
-                            searchClause ?? {},
+                            baseWhere,
+                            {
+                                OR: [
+                                    {Notes: {contains: formattedSearch}},
+                                    {Description: {contains: formattedSearch}},
+                                ],
+                            },
                         ],
                     },
+                    take: 100,
+                    orderBy: orderObj,
+                });
+            } else {
+                baseRows = await ctx.prisma.loadTypes.findMany({
+                    where: baseWhere,
+                    take: 100,
+                    orderBy: orderObj,
+                    skip: input.page ? input.page * 10 : 0,
                 });
             }
 
-            const allRows: LoadTypes[] = [...searchHits, ...recommendedExtras];
+            // Make sure all customer-linked + source-linked + open-job load types are present
+            const baseIDs = new Set(baseRows.map((row) => row.ID));
+            const missingIDs = Array.from(customerLinkedIDs)
+                .concat(Array.from(sourceLinkedIDs))
+                .concat(Array.from(openJobIDs))
+                .filter((id) => !baseIDs.has(id))
+                .filter((id) => loadTypeIdMatchesEra(id, input.era, openJobIDs));
+            if (missingIDs.length > 0) {
+                const extras = await ctx.prisma.loadTypes.findMany({
+                    where: {
+                        AND: [
+                            notDeletedWhere,
+                            {ID: {in: missingIDs}},
+                            eraIdFilter(input.era),
+                        ],
+                    },
+                });
+                baseRows = [...baseRows, ...extras];
+            }
 
-            // Annotate every row with `DisplayName` (e.g. `Hourly (Rock)`) and
-            // `UseCount` from its best-fit source link.
-            const allIDs = allRows.map((r) => r.ID);
+            // Pull source-link metadata for every returned row to compute UseCount + DisplayName.
+            const allIDs = baseRows.map((row) => row.ID);
             const sourceLinks = allIDs.length > 0
                 ? await ctx.prisma.sourceLoadTypes.findMany({
                     where: {LoadTypeID: {in: allIDs}},
                     include: {Sources: true},
                 })
                 : [];
+
             const linksByLoadType = new Map<number, typeof sourceLinks>();
             for (const link of sourceLinks) {
                 const list = linksByLoadType.get(link.LoadTypeID) ?? [];
@@ -159,60 +180,75 @@ export const loadTypesRouter = createRouter()
                 linksByLoadType.set(link.LoadTypeID, list);
             }
 
-            const decorate = (row: LoadTypes) => {
-                const links = linksByLoadType.get(row.ID) ?? [];
-                const annotation = pickAnnotationSource(links, input.SourceID);
-                const shortName = annotation
-                    ? (annotation.source.ShortName && annotation.source.ShortName.length > 0
-                        ? annotation.source.ShortName
-                        : annotation.source.Name)
-                    : null;
-                return {
-                    ...row,
-                    DisplayName: shortName ? `${row.Description} (${shortName})` : row.Description,
-                    UseCount: annotation?.useCount ?? 0,
-                };
+            type Annotated = LoadTypes & {
+                Recommend: "OpenJob" | "Customer" | "Source" | null;
+                UseCount: number;
+                DisplayName: string;
             };
 
-            // Split into mutually-exclusive buckets. Sort within each bucket by
-            // Description so the order is stable / scannable.
-            const linkedToCustomer = (id: number) => customerLinkedIDs.has(id);
-            const linkedToSource = (id: number) => sourceLinkedIDs.has(id);
-            const byDescription = (a: LoadTypes, b: LoadTypes) =>
-                a.Description.localeCompare(b.Description);
+            const annotated: Annotated[] = baseRows.map((row) => {
+                const links = linksByLoadType.get(row.ID) ?? [];
 
-            return assembleDropdownResults(
-                [
-                    {
-                        group: LOADTYPE_GROUPS.CUSTOMER_AND_SOURCE,
-                        rows: allRows
-                            .filter((r) => linkedToCustomer(r.ID) && linkedToSource(r.ID))
-                            .sort(byDescription),
-                        decorate,
-                    },
-                    {
-                        group: LOADTYPE_GROUPS.CUSTOMER,
-                        rows: allRows
-                            .filter((r) => linkedToCustomer(r.ID) && !linkedToSource(r.ID))
-                            .sort(byDescription),
-                        decorate,
-                    },
-                    {
-                        group: LOADTYPE_GROUPS.SOURCE,
-                        rows: allRows
-                            .filter((r) => !linkedToCustomer(r.ID) && linkedToSource(r.ID))
-                            .sort(byDescription),
-                        decorate,
-                    },
-                    {
-                        group: LOADTYPE_GROUPS.OTHER,
-                        rows: searchHits
-                            .filter((r) => !linkedToCustomer(r.ID) && !linkedToSource(r.ID)),
-                        decorate,
-                    },
-                ],
-            );
-        },
+                // Pick the annotation source: explicit SourceID first, otherwise the highest-UseCount link.
+                let annotationSource: (typeof links)[number]["Sources"] | null = null;
+                let useCount = 0;
+                if (input.SourceID) {
+                    const match = links.find((l) => l.SourceID === input.SourceID);
+                    if (match) {
+                        annotationSource = match.Sources;
+                        useCount = match.UseCount;
+                    }
+                }
+                if (!annotationSource && links.length > 0) {
+                    const sorted = [...links].sort((a, b) => {
+                        if (b.UseCount !== a.UseCount) return b.UseCount - a.UseCount;
+                        return a.SourceID - b.SourceID;
+                    });
+                    annotationSource = sorted[0]?.Sources ?? null;
+                    if (!useCount) useCount = sorted[0]?.UseCount ?? 0;
+                }
+
+                const shortName = annotationSource
+                    ? (annotationSource.ShortName && annotationSource.ShortName.length > 0
+                        ? annotationSource.ShortName
+                        : annotationSource.Name)
+                    : null;
+                const displayName = shortName ? `${row.Description} (${shortName})` : row.Description;
+
+                let recommend: Annotated["Recommend"] = null;
+                if (openJobIDs.has(row.ID)) {
+                    recommend = "OpenJob";
+                } else if (customerLinkedIDs.has(row.ID)) {
+                    recommend = "Customer";
+                } else if (sourceLinkedIDs.has(row.ID)) {
+                    recommend = "Source";
+                }
+
+                return {
+                    ...row,
+                    Recommend: recommend,
+                    UseCount: useCount,
+                    DisplayName: displayName,
+                };
+            });
+
+            // Sort: OpenJob, Customer, Source, then everything else.
+            annotated.sort((a, b) => {
+                const rank = (r: Annotated["Recommend"]) =>
+                    r === "OpenJob" ? 0 : r === "Customer" ? 1 : r === "Source" ? 2 : 3;
+                const ar = rank(a.Recommend);
+                const br = rank(b.Recommend);
+                if (ar !== br) return ar - br;
+                if (a.Recommend === "Source" && b.Recommend === "Source") {
+                    if (b.UseCount !== a.UseCount) return b.UseCount - a.UseCount;
+                }
+                return a.Description.localeCompare(b.Description);
+            });
+
+            return annotated
+                .filter((row) => loadTypeIdMatchesEra(row.ID, input.era, openJobIDs))
+                .slice(0, 100);
+        }
     })
     .query("searchPage", {
         input: z.object({
@@ -222,10 +258,13 @@ export const loadTypesRouter = createRouter()
             order: z.string().optional(),
         }),
         async resolve({ctx, input}) {
-            const {page} = input;
-            const orderByField = input.orderBy ?? 'ID';
-            const orderDir = input.order ?? 'desc';
-            const orderObj = {[orderByField]: orderDir};
+            const {order, orderBy, page} = input;
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            const orderObj = {};
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            orderObj[orderBy] = order;
 
             const where = {
                 OR: [{Deleted: false}, {Deleted: null}],
@@ -258,10 +297,19 @@ export const loadTypesRouter = createRouter()
         // validate input with Zod
         input: LoadTypesModel.omit({ID: true, Deleted: true}),
         async resolve({ctx, input}) {
-            // use your ORM of choice
+            if (isSourcesCutoverActive()) {
+                const maxId = await ctx.prisma.loadTypes.aggregate({_max: {ID: true}});
+                const nextId = Math.max(
+                    NEW_LOAD_TYPE_ID_THRESHOLD,
+                    (maxId._max.ID ?? 0) + 1,
+                );
+                return ctx.prisma.loadTypes.create({
+                    data: {...input, ID: nextId},
+                });
+            }
             return ctx.prisma.loadTypes.create({
-                data: input
-            })
+                data: input,
+            });
         },
     })
     .mutation('post', {

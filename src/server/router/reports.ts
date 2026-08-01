@@ -1,6 +1,8 @@
 import {createRouter} from "./context";
 import {z} from "zod";
 import {TRPCError} from "@trpc/server";
+import {isSourcesCutoverActive} from "../../config/sourcesCutover";
+import {formatMaterial} from "../../utils/formatMaterial";
 
 const sourceAuditInput = z.object({
     sourceId: z.number(),
@@ -25,6 +27,7 @@ type AuditRow = {
     DriverRate: number;
     LoadTypeID: number | null;
     LoadType: string;
+    Source: string;
     CustomerID: number;
     Customer: string;
     DeliveryLocationID: number | null;
@@ -35,6 +38,13 @@ export const reportsRouter = createRouter()
     .query("sourceAudit", {
         input: sourceAuditInput,
         async resolve({ctx, input}) {
+            if (!isSourcesCutoverActive()) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Source reports are not available until the Sources cutover.",
+                });
+            }
+
             const prismaAny = ctx.prisma as any;
             const startDate = new Date(input.startDate);
             const endDate = new Date(input.endDate);
@@ -48,7 +58,7 @@ export const reportsRouter = createRouter()
 
             const source = await prismaAny.sources.findUnique({
                 where: {ID: input.sourceId},
-                select: {ID: true, Name: true},
+                select: {ID: true, Name: true, ShortName: true},
             });
 
             if (!source) {
@@ -71,18 +81,13 @@ export const reportsRouter = createRouter()
                         gte: startDate,
                         lte: endDate,
                     },
-                    LoadTypes: {
-                        is: {
-                            SourceLoadTypes: {
-                                some: {SourceID: input.sourceId},
-                            },
-                        },
-                    },
+                    SourceID: input.sourceId,
                 },
                 include: {
                     Customers: {select: {ID: true, Name: true}},
                     LoadTypes: {select: {ID: true, Description: true}},
                     DeliveryLocations: {select: {ID: true, Description: true}},
+                    Sources: {select: {Name: true, ShortName: true}},
                 },
                 orderBy: [{StartDate: "asc"}, {ID: "asc"}],
             });
@@ -98,7 +103,11 @@ export const reportsRouter = createRouter()
                 TruckRate: load.TruckRate ?? 0,
                 DriverRate: load.DriverRate ?? 0,
                 LoadTypeID: load.LoadTypeID ?? null,
-                LoadType: load.LoadTypes?.Description ?? "Unknown",
+                LoadType: formatMaterial({
+                    description: load.LoadTypes?.Description,
+                    source: load.Sources,
+                }),
+                Source: load.Sources?.ShortName || load.Sources?.Name || "",
                 CustomerID: load.Customers.ID,
                 Customer: load.Customers.Name,
                 DeliveryLocationID: load.DeliveryLocationID ?? null,
@@ -138,6 +147,13 @@ export const reportsRouter = createRouter()
     .query("customerAudit", {
         input: customerAuditInput,
         async resolve({ctx, input}) {
+            if (!isSourcesCutoverActive()) {
+                throw new TRPCError({
+                    code: "FORBIDDEN",
+                    message: "Customer source reports are not available until the Sources cutover.",
+                });
+            }
+
             const startDate = new Date(input.startDate);
             const endDate = new Date(input.endDate);
 
@@ -179,6 +195,7 @@ export const reportsRouter = createRouter()
                     Customers: {select: {ID: true, Name: true}},
                     LoadTypes: {select: {ID: true, Description: true}},
                     DeliveryLocations: {select: {ID: true, Description: true}},
+                    Sources: {select: {Name: true, ShortName: true}},
                 },
                 orderBy: [{StartDate: "asc"}, {ID: "asc"}],
             });
@@ -194,7 +211,11 @@ export const reportsRouter = createRouter()
                 TruckRate: load.TruckRate ?? 0,
                 DriverRate: load.DriverRate ?? 0,
                 LoadTypeID: load.LoadTypeID ?? null,
-                LoadType: load.LoadTypes?.Description ?? "Unknown",
+                LoadType: formatMaterial({
+                    description: load.LoadTypes?.Description,
+                    source: load.Sources,
+                }),
+                Source: load.Sources?.ShortName || load.Sources?.Name || "",
                 CustomerID: load.Customers.ID,
                 Customer: load.Customers.Name,
                 DeliveryLocationID: load.DeliveryLocationID ?? null,

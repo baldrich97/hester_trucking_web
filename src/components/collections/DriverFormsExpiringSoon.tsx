@@ -16,6 +16,7 @@ import type {FormExpiryCadence} from "@prisma/client";
 import React, {useMemo, useState} from "react";
 import {trpc} from "../../utils/trpc";
 import LoadingModal from "../../elements/LoadingModal";
+import FilterMultiAutocomplete from "../../elements/FilterMultiAutocomplete";
 import {calendarNavButtonSx} from "../../theme/muiShared";
 
 type ExpiringRow = {
@@ -50,7 +51,7 @@ function CollapsibleBlock({
     children,
 }: {
     blockKey: string;
-    title: string;
+    title: React.ReactNode;
     subtitle?: string;
     expanded: boolean;
     onToggle: () => void;
@@ -117,6 +118,36 @@ export default function DriverFormsExpiringSoon() {
     const allKeys = [...w2Keys, ...ooKeys];
     const allExpanded = allKeys.length > 0 && allKeys.every((k) => open[k] !== false);
 
+    const filterOptions = useMemo(() => {
+        const w2 =
+            data?.w2Groups.map((g) => ({
+                key: `w2-${g.driverId}`,
+                label: g.title,
+            })) ?? [];
+        const oo =
+            data?.ooGroups.map((g) => ({
+                key: `oo-${g.entityKey}`,
+                label: g.title,
+            })) ?? [];
+        return [...w2, ...oo].sort((a, b) => a.label.localeCompare(b.label, undefined, {sensitivity: "base"}));
+    }, [data?.w2Groups, data?.ooGroups]);
+
+    const [selectedFilters, setSelectedFilters] = useState<Array<{key: string; label: string}>>([]);
+
+    const filteredW2Groups = useMemo(() => {
+        const groups = data?.w2Groups ?? [];
+        if (selectedFilters.length === 0) return groups;
+        const keys = new Set(selectedFilters.map((o) => o.key));
+        return groups.filter((g) => keys.has(`w2-${g.driverId}`));
+    }, [data?.w2Groups, selectedFilters]);
+
+    const filteredOoGroups = useMemo(() => {
+        const groups = data?.ooGroups ?? [];
+        if (selectedFilters.length === 0) return groups;
+        const keys = new Set(selectedFilters.map((o) => o.key));
+        return groups.filter((g) => keys.has(`oo-${g.entityKey}`));
+    }, [data?.ooGroups, selectedFilters]);
+
     const renderTable = (rows: ExpiringRow[], showDriverColumn: boolean) => (
         <Table size="small">
             <TableHead>
@@ -164,7 +195,11 @@ export default function DriverFormsExpiringSoon() {
                     <CollapsibleBlock
                         key={k}
                         blockKey={k}
-                        title={g.title}
+                        title={
+                            <TableEntityLink href={`/drivers/${g.driverId}?tab=forms`} sameTab>
+                                {g.title}
+                            </TableEntityLink>
+                        }
                         subtitle={soonest ? `Soonest: ${fmtLocal(soonest)}` : undefined}
                         expanded={open[k] !== false}
                         onToggle={() => toggle(k)}
@@ -187,11 +222,21 @@ export default function DriverFormsExpiringSoon() {
                 // Carrier entities (`c:…`): filings are scoped to the carrier; hide per-driver column.
                 // Solo OO (`s:…`): one driver row — show who the filing sits on.
                 const showDriverColumn = g.entityKey.startsWith("s:");
+                const profileDriverId = g.entityKey.startsWith("s:")
+                    ? parseInt(g.entityKey.slice(2), 10)
+                    : g.rows[0]?.driverId;
+                const titleNode = profileDriverId ? (
+                    <TableEntityLink href={`/drivers/${profileDriverId}?tab=forms`} sameTab>
+                        {g.title}
+                    </TableEntityLink>
+                ) : (
+                    g.title
+                );
                 return (
                     <CollapsibleBlock
                         key={k}
                         blockKey={k}
-                        title={g.title}
+                        title={titleNode}
                         subtitle={soonest ? `Soonest: ${fmtLocal(soonest)}` : undefined}
                         expanded={open[k] !== false}
                         onToggle={() => toggle(k)}
@@ -210,13 +255,25 @@ export default function DriverFormsExpiringSoon() {
                 Forms expiring soon
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{mb: 2}}>
-                On-file forms and driver licenses whose compliance end date is within the next {data?.daysAhead ?? 30}{" "}
-                days (still compliant today). Update filings from{" "}
-                <TableEntityLink href="/drivers/w2_forms">W2 Forms</TableEntityLink>{" "}
-                or{" "}
+                On-file forms and driver licenses whose compliance end date is within the next {data?.daysAhead ?? 30}&nbsp;
+                days (still compliant today). Update filings from a driver&apos;s&nbsp;
+                <strong>Forms</strong> tab on their profile, or from the fleet&nbsp;
+                <TableEntityLink href="/drivers/w2_forms">W2 Forms</TableEntityLink>
+                &nbsp;or&nbsp;
                 <TableEntityLink href="/drivers/owner_forms">OO Forms</TableEntityLink>
-                .
+                &nbsp;pages.
             </Typography>
+            <Box sx={{mb: 2}}>
+                <FilterMultiAutocomplete
+                    label="Drivers / operators"
+                    options={filterOptions}
+                    value={selectedFilters}
+                    onChange={setSelectedFilters}
+                    getOptionLabel={(o) => o.label}
+                    isOptionEqualToValue={(a, b) => a.key === b.key}
+                    placeholder="Search drivers or operators…"
+                />
+            </Box>
             <Box sx={{mb: 2, display: "flex", gap: 1, flexWrap: "wrap"}}>
                 <Button
                     size="small"
@@ -232,13 +289,17 @@ export default function DriverFormsExpiringSoon() {
                     </Button>
                 ) : null}
             </Box>
-            {!isLoading && data && data.w2Groups.length === 0 && data.ooGroups.length === 0 ? (
+            {!isLoading && data && filteredW2Groups.length === 0 && filteredOoGroups.length === 0 ? (
                 <Paper sx={{p: 3}}>
-                    <Typography>No forms or licenses expiring in the next {data.daysAhead} days.</Typography>
+                    <Typography>
+                        {selectedFilters.length > 0
+                            ? "No matching drivers or operators for the selected filter."
+                            : `No forms or licenses expiring in the next ${data.daysAhead} days.`}
+                    </Typography>
                 </Paper>
             ) : null}
-            {data && data.w2Groups.length > 0 ? renderW2Section(data.w2Groups) : null}
-            {data && data.ooGroups.length > 0 ? renderOoSection(data.ooGroups) : null}
+            {data && filteredW2Groups.length > 0 ? renderW2Section(filteredW2Groups) : null}
+            {data && filteredOoGroups.length > 0 ? renderOoSection(filteredOoGroups) : null}
         </Box>
     );
 }

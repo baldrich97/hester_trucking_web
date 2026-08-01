@@ -40,7 +40,7 @@ const styles = StyleSheet.create({
 });
 
 
-const TableFooter = ({payStub}: {payStub: any}) => (
+const TableFooter = ({gross}: {gross: number}) => (
 
         <View style={styles.container}>
             <Text style={{
@@ -62,7 +62,7 @@ const TableFooter = ({payStub}: {payStub: any}) => (
             <Text style={{
                 width: '15%',
                 textAlign: 'center', ...styles.text, ...styles.padding
-            }}>{payStub.Gross}</Text>
+            }}>{gross}</Text>
         </View>
 
 )

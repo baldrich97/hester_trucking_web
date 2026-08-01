@@ -2,35 +2,25 @@ import React from "react";
 import {Document, Page, StyleSheet, Text, View} from "@react-pdf/renderer";
 import {
     collectEntityTrucks,
-    driverMissingRequiredForm,
     entityDistinctTruckCount,
     groupOoDriversByEntity,
     isFormSatisfiedForDriver,
     isFormSatisfiedForOoEntity,
-    isOoFormRequired,
-    ooEntityMissingRequiredForm,
-    ooEntityTrucksVitalOk,
     primaryDriverIdForEntity,
     truckOoVitalsOk,
     type DriverComplianceShape,
     type FormOptionComplianceShape,
 } from "../../utils/driverFormCompliance";
-import type {Carriers, Drivers, FormExpiryCadence, States, Trucks} from "@prisma/client";
+import {
+    isOoEntityDoneOnPdf,
+    isW2DriverDoneOnPdf,
+    pdfColumnForms,
+    type FormOptionPdfInput,
+    visibleComplianceForms,
+} from "../../utils/driverFormsPdf";
+import type {Carriers, Drivers, States, Trucks} from "@prisma/client";
 
-export type FormOptionForPdf = {
-    ID: number;
-    Form: number;
-    W2Visible: boolean;
-    OOVisible: boolean;
-    W2Required: boolean;
-    OORequired: boolean;
-    FleetWide: boolean;
-    ExpiryCadence: FormExpiryCadence;
-    ValidityMonths: number | null;
-    PdfColumnLabel: string | null;
-    IncludeInPdf: boolean;
-    Forms: { Name: string; DisplayName: string };
-};
+export type FormOptionForPdf = FormOptionPdfInput;
 
 const styles = StyleSheet.create({
     page: {
@@ -150,27 +140,9 @@ const DriverFormsPrintable = ({
     const compareLabels = (a: string, b: string): number =>
         a.localeCompare(b, undefined, {sensitivity: "base"});
 
-    const formOptionsPdf = allForms
-        .filter((f) => f.IncludeInPdf)
-        .filter((f) => (mode === "w2" ? f.W2Visible : f.OOVisible))
-        .slice()
-        .sort((a, b) => {
-            const na = (a.Forms.DisplayName || a.Forms.Name).toLowerCase();
-            const nb = (b.Forms.DisplayName || b.Forms.Name).toLowerCase();
-            const cmp = na.localeCompare(nb);
-            return cmp !== 0 ? cmp : a.Form - b.Form;
-        });
-
-    const optShapes: FormOptionComplianceShape[] = formOptionsPdf.map((f) => ({
-        Form: f.Form,
-        FleetWide: f.FleetWide,
-        ExpiryCadence: f.ExpiryCadence,
-        ValidityMonths: f.ValidityMonths ?? null,
-        W2Visible: f.W2Visible,
-        OOVisible: f.OOVisible,
-        W2Required: f.W2Required,
-        OORequired: f.OORequired,
-    }));
+    const complianceOptShapes = visibleComplianceForms(allForms, mode);
+    const formOptionsPdf = pdfColumnForms(allForms, mode);
+    const optShapes: FormOptionComplianceShape[] = complianceOptShapes;
 
     const dShapes = buildShapes(drivers);
 
@@ -191,13 +163,8 @@ const DriverFormsPrintable = ({
                     </View>
                     {drivers.map((d) => {
                         const shape = dShapes.find((s) => s.ID === d.ID)!;
-                        const formsBad = driverMissingRequiredForm(
-                            shape,
-                            optShapes,
-                            dShapes,
-                            "w2",
-                        );
-                        const done = !formsBad;
+                        const done = isW2DriverDoneOnPdf(shape, allForms, dShapes);
+                        const formsBad = !done;
                         const nameLine1 =
                             `${d.FirstName ?? ""} ${d.LastName ?? ""}`.trim() || "—";
                         const tinLine = d.TIN?.trim() ? `TIN ${d.TIN}` : "SSN / TIN";
@@ -208,7 +175,10 @@ const DriverFormsPrintable = ({
                             <View key={d.ID} style={styles.row} wrap={false}>
                                 <Text style={styles.cellNarrow}>{done ? "X" : ""}</Text>
                                 <View style={styles.cellName}>
-                                    <Text>{nameLine1}</Text>
+                                    <Text>
+                                        {nameLine1}
+                                        {formsBad ? " *" : ""}
+                                    </Text>
                                     <Text>{tinLine}</Text>
                                     <Text>{addr}</Text>
                                     <Text>{phone}</Text>
@@ -273,14 +243,13 @@ const DriverFormsPrintable = ({
                     const entityCarrierId = primary.CarrierID ?? null;
                     const truckCount = entityDistinctTruckCount(entityDrivers);
                     const trucksMap = collectEntityTrucks(entityDrivers);
-                    const formsBad = ooEntityMissingRequiredForm(
+                    const done = isOoEntityDoneOnPdf(
                         entityShapes,
-                        optShapes,
+                        entityDrivers,
                         truckCount,
                         entityCarrierId,
+                        allForms,
                     );
-                    const trucksBad = !ooEntityTrucksVitalOk(entityDrivers);
-                    const done = !formsBad && !trucksBad;
 
                     const headerLines: string[] = [];
                     if (carrier) {

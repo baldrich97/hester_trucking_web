@@ -1,5 +1,6 @@
 import {createRouter} from "./context";
 import {z} from "zod";
+import {TRPCError} from "@trpc/server";
 import {DailiesModel, JobsModel, WeekliesModel} from '../../../prisma/zod';
 
 export const weekliesRouter = createRouter()
@@ -255,12 +256,22 @@ export const weekliesRouter = createRouter()
 //     },
 // })
 .mutation('post', {
-    // validate input with Zod
-    input: WeekliesModel,
+    input: WeekliesModel.extend({confirmCascade: z.boolean().optional()}),
     async resolve({ctx, input}) {
-        const {ID, ...data} = input;
+        const {ID, confirmCascade, ...data} = input;
 
-        //update all associated Jobs with the fkeys
+        const weekly = await ctx.prisma.weeklies.findUnique({where: {ID}});
+        if (!weekly) {
+            throw new TRPCError({code: "BAD_REQUEST", message: "Weekly not found."});
+        }
+
+        if ((weekly.Revenue !== null || weekly.InvoiceID !== null) && !confirmCascade) {
+            throw new TRPCError({
+                code: "BAD_REQUEST",
+                message: "This weekly is closed or invoiced. Confirm cascade to edit all attached loads and jobs.",
+            });
+        }
+
         const jobsToUpdate = await ctx.prisma.jobs.findMany({
             where: {
                 WeeklyID: ID,
@@ -280,6 +291,7 @@ export const weekliesRouter = createRouter()
                 CustomerID: data.CustomerID,
                 LoadTypeID: data.LoadTypeID,
                 DeliveryLocationID: data.DeliveryLocationID,
+                ...(data.SourceID !== undefined ? {SourceID: data.SourceID} : {}),
             },
         });
 
@@ -292,6 +304,7 @@ export const weekliesRouter = createRouter()
                 CustomerID: data.CustomerID,
                 LoadTypeID: data.LoadTypeID,
                 DeliveryLocationID: data.DeliveryLocationID,
+                ...(data.SourceID !== undefined ? {SourceID: data.SourceID} : {}),
             },
         });
 

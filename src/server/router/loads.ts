@@ -2,8 +2,13 @@ import {createRouter} from "./context";
 import {z} from "zod";
 import {LoadsModel} from '../../../prisma/zod';
 import {TRPCError} from "@trpc/server";
+import {isSourcesCutoverActive, NEW_LOAD_TYPE_ID_THRESHOLD} from "../../config/sourcesCutover";
+import {rematchLoadToJob} from "../loadRematch";
+import {buildLoadFilters} from "../loadListFilters";
+import {assertLoadsNotInvoiced, assertLoadsNotPaidOut, asArray, syncOpenSheetAmounts} from "../loadSheetSync";
+import {syncLoadRelationalRecords} from "../loadRelationalSync";
 
-type loadType = z.infer<typeof LoadsModel>;
+export {buildLoadFilters} from "../loadListFilters";
 
 const loadsListInput = z.object({
     page: z.number().optional(),
@@ -16,59 +21,7 @@ const loadsListInput = z.object({
     order: z.string().optional(),
     search: z.number().nullish().optional(),
     chosenLoad: z.any().optional(),
-    /**
-     * How the user-typed filter conditions combine:
-     *   - `"all"` (default, "Exact") — every active condition must match (AND).
-     *   - `"any"` ("Partial") — at least one active condition must match (OR).
-     * `chosenLoad`-derived constraints (rate windows, StartDate, Week) are
-     * always AND-ed in regardless of mode because they describe "loads similar
-     * to this one" and OR-ing them would be nonsensical.
-     */
-    matchMode: z.enum(["all", "any"]).optional(),
 });
-
-/**
- * Build the Prisma `where` fragment for a load list filter modal. Returns an
- * empty object if no user-driven conditions are active so a fresh page render
- * isn't accidentally constrained.
- */
-function buildLoadFilters(input: z.infer<typeof loadsListInput>) {
-    const {
-        customer, driver, truck, loadType, deliveryLocation, search, chosenLoad,
-        matchMode = "all",
-    } = input;
-    const epsilon = 0.001;
-
-    // User-driven, combinable conditions.
-    const conditions: Record<string, unknown>[] = [];
-    if (customer) conditions.push({CustomerID: customer});
-    if (driver) conditions.push({DriverID: driver});
-    if (truck) conditions.push({TruckID: truck});
-    if (loadType) conditions.push({LoadTypeID: loadType});
-    if (deliveryLocation) conditions.push({DeliveryLocationID: deliveryLocation});
-    if (search) conditions.push({TicketNumber: search});
-
-    // Mass-edit "similar loads" filters — always AND-ed.
-    const chosenFilters: Record<string, unknown> = {};
-    if (chosenLoad?.MaterialRate) {
-        chosenFilters.MaterialRate = {gte: chosenLoad.MaterialRate - epsilon, lte: chosenLoad.MaterialRate + epsilon};
-    }
-    if (chosenLoad?.TruckRate) {
-        chosenFilters.TruckRate = {gte: chosenLoad.TruckRate - epsilon, lte: chosenLoad.TruckRate + epsilon};
-    }
-    if (chosenLoad?.DriverRate) {
-        chosenFilters.DriverRate = {gte: chosenLoad.DriverRate - epsilon, lte: chosenLoad.DriverRate + epsilon};
-    }
-    if (chosenLoad?.TotalRate) {
-        chosenFilters.TotalRate = {gte: chosenLoad.TotalRate - epsilon, lte: chosenLoad.TotalRate + epsilon};
-    }
-    if (chosenLoad?.StartDate) chosenFilters.StartDate = chosenLoad.StartDate;
-    if (chosenLoad?.Week) chosenFilters.Week = chosenLoad.Week;
-
-    if (conditions.length === 0) return chosenFilters;
-    const combined = matchMode === "any" ? {OR: conditions} : {AND: conditions};
-    return {...combined, ...chosenFilters};
-}
 
 const loadListInclude = {
     Customers: {select: {Name: true}},
@@ -76,6 +29,7 @@ const loadListInclude = {
     Drivers: {select: {FirstName: true, LastName: true, Active: true}},
     LoadTypes: {select: {Description: true}},
     DeliveryLocations: {select: {Description: true}},
+    Sources: {select: {Name: true, ShortName: true}},
 };
 
 const activeLoadWhere = {
@@ -95,215 +49,142 @@ async function updateLoadAndRelations(
     input: any,
     ctx: any,
     mass_edit_ids: any = null
-): Promise<void> {
+): Promise<any> {
+    const affectedLoadIds: number[] = mass_edit_ids?.length
+        ? mass_edit_ids
+        : input.ID
+          ? [input.ID]
+          : [];
+
+    const loadSnapshotSelect = {
+        ID: true,
+        JobID: true,
+        DriverID: true,
+        TruckID: true,
+        StartDate: true,
+        CustomerID: true,
+        LoadTypeID: true,
+        DeliveryLocationID: true,
+    };
+
+    let sourceJobIds: number[] = [];
+    let beforeLoad: Awaited<ReturnType<typeof ctx.prisma.loads.findUnique>> = null;
+    let beforeMassLoads: Array<{
+        ID: number;
+        DriverID: number | null;
+        TruckID: number | null;
+        StartDate: Date | null;
+        CustomerID: number | null;
+        LoadTypeID: number | null;
+        DeliveryLocationID: number | null;
+    }> = [];
+    if (affectedLoadIds.length) {
+        await assertLoadsNotPaidOut(ctx, affectedLoadIds);
+        await assertLoadsNotInvoiced(ctx, affectedLoadIds);
+        const existing = asArray(await ctx.prisma.loads.findMany({
+            where: {ID: {in: affectedLoadIds}},
+            select: mass_edit_ids ? loadSnapshotSelect : {JobID: true},
+        }));
+        sourceJobIds = existing
+            .map((row: {JobID?: number | null}) => row.JobID)
+            .filter(Boolean) as number[];
+
+        if (mass_edit_ids) {
+            beforeMassLoads = existing as typeof beforeMassLoads;
+        } else if (input.ID) {
+            beforeLoad = await ctx.prisma.loads.findUnique({where: {ID: input.ID}});
+        }
+    }
 
     const {ID, SourceID, ...rest} = input;
-    const data = rest;
+    const data = {...rest};
 
-    const {
-        DriverID,
-        CustomerID,
-        LoadTypeID,
-        DeliveryLocationID,
-        TruckRate,
-        MaterialRate,
-        Week,
-        TotalRate,
-        DriverRate
-    } = input;
+    const rematch = await rematchLoadToJob(ctx, {
+        DriverID: input.DriverID,
+        CustomerID: input.CustomerID,
+        LoadTypeID: input.LoadTypeID,
+        DeliveryLocationID: input.DeliveryLocationID,
+        Week: input.Week,
+        TruckRate: input.TruckRate,
+        MaterialRate: input.MaterialRate,
+        DriverRate: input.DriverRate,
+        TotalRate: input.TotalRate,
+        SourceID,
+    });
 
-    //Check if a daily already exists for this driver for this week
-    const daily = await ctx.prisma.dailies.findFirst({
-        where: {
-            DriverID: DriverID,
-            Week: Week
-        }
-    })
-
-    if (daily) {
-        const weeklies = await ctx.prisma.weeklies.findMany({
-            where: {CustomerID, Week, DeliveryLocationID, LoadTypeID, InvoiceID: null, Revenue: null}
-        });
-
-        let weekly = weeklies.find((weekly: any) => {
-            const compareRates = (a: number | null | undefined, b: number | null | undefined) =>
-                parseFloat((a ?? 0).toFixed(2)) === parseFloat((b ?? 0).toFixed(2));
-
-            return (compareRates(weekly.CompanyRate, TotalRate));
-        });
-
-        if (!weekly) {
-            //Create a new weekly with the corresponding info
-            weekly = await ctx.prisma.weeklies.create({
-                data: {
-                    Week: Week,
-                    CustomerID: CustomerID,
-                    LoadTypeID: LoadTypeID,
-                    DeliveryLocationID: DeliveryLocationID,
-                    CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
-                }
-            })
-        }
-
-        //If a daily exists, grab job with that DailyID that match the criteria of this load
-        let jobs = await ctx.prisma.jobs.findMany({
-            where: {
-                AND: [
-                    {DriverID: DriverID},
-                    {CustomerID: CustomerID},
-                    {LoadTypeID: LoadTypeID},
-                    {DeliveryLocationID: DeliveryLocationID},
-                    {DailyID: daily.ID},
-                    {WeeklyID: weekly.ID}
-                ]
-            }
-        })
-
-        jobs = jobs.filter((item: any) => {
-            let shouldReturn = true;
-            if (TruckRate) {
-                const loadTR = (Math.round(TruckRate * 100)) / 100
-                shouldReturn = (Math.round(item.TruckingRate * 100)) / 100 === loadTR
-            } else {
-                shouldReturn = (TruckRate ?? 0) === (item.TruckingRate ?? 0);
-            }
-            if (!shouldReturn) {
-                return false;
-            }
-            if (MaterialRate) {
-                const loadMR = (Math.round(MaterialRate * 100)) / 100
-                shouldReturn = (Math.round(item.MaterialRate * 100)) / 100 === loadMR
-            } else {
-                shouldReturn = (MaterialRate ?? 0) === (item.MaterialRate ?? 0);
-            }
-            if (!shouldReturn) {
-                return false;
-            }
-            if (DriverRate) {
-                const loadDR = (Math.round(DriverRate * 100)) / 100
-                shouldReturn = (Math.round(item.DriverRate * 100)) / 100 === loadDR
-            } else {
-                shouldReturn = (DriverRate ?? 0) === (item.DriverRate ?? 0);
-            }
-            if (!shouldReturn) {
-                return false;
-            }
-            if (TotalRate) {
-                const loadTR = (Math.round(TotalRate * 100)) / 100
-                shouldReturn = (Math.round(item.CompanyRate * 100)) / 100 === loadTR
-            } else {
-                shouldReturn = (TotalRate ?? 0) === (item.CompanyRate ?? 0);
-            }
-            return shouldReturn;
-        })
-
-        const job = jobs.length > 0 ? jobs[0] : null;
-
-        //If a job exists, check if that job has been paidout, if the daily/weekly was printed, and if the weekly has been invoiced and warn accordingly
-        if (job) {
-            if (job.PaidOut) {
-                //Error here that is has been paid out
-            } else if (job.CompanyRevenue || job.TruckingRevenue) {
-                //Error here that the revenues have been overridden and will need to be recalcualted
-            } else if (daily.LastPrinted || weekly.LastPrinted) {
-                //Error here that the daily/weekly has been printed already and needs to be reprinted
-            } else if (weekly.InvoiceID) {
-                //Error here that the weekly has already been invoiced and they should remake the invoice?
-            } else if (weekly.Revenue !== null) {
-                //Error here that the weekly has a revenue already
-            }
-
-            //Set JobID to this job
-            data.JobID = job.ID;
-        } else {
-            //Else create this job and assign it to the daily/weekly
-            const newJob = await ctx.prisma.jobs.create({
-                data: {
-                    DriverID: DriverID,
-                    DailyID: daily.ID,
-                    WeeklyID: weekly.ID,
-                    CustomerID: CustomerID,
-                    LoadTypeID: LoadTypeID,
-                    DeliveryLocationID: DeliveryLocationID,
-                    TruckingRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
-                    CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
-                    DriverRate: (Math.round((DriverRate ?? 0) * 100)) / 100,
-                    MaterialRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
-                }
-            })
-
-            data.JobID = newJob.ID;
-        }
-    } else {
-        //Create the daily, weekly, and the job
-        const newDaily = await ctx.prisma.dailies.create({
-            data: {
-                DriverID: DriverID,
-                Week: Week
-            }
-        })
-
-        const newWeekly = await ctx.prisma.weeklies.create({
-            data: {
-                Week: Week,
-                CustomerID: CustomerID,
-                LoadTypeID: LoadTypeID,
-                DeliveryLocationID: DeliveryLocationID,
-                CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
-            }
-        })
-
-        const newJob = await ctx.prisma.jobs.create({
-            data: {
-                DriverID: DriverID,
-                DailyID: newDaily.ID,
-                WeeklyID: newWeekly.ID,
-                CustomerID: CustomerID,
-                LoadTypeID: LoadTypeID,
-                DeliveryLocationID: DeliveryLocationID,
-                TruckingRate: (Math.round((TruckRate ?? 0) * 100)) / 100,
-                CompanyRate: (Math.round((TotalRate ?? 0) * 100)) / 100,
-                DriverRate: (Math.round((DriverRate ?? 0) * 100)) / 100,
-                MaterialRate: (Math.round((MaterialRate ?? 0) * 100)) / 100,
-            }
-        })
-
-        data.JobID = newJob.ID;
+    data.JobID = rematch.JobID;
+    if (isSourcesCutoverActive()) {
+        data.SourceID = rematch.SourceID;
     }
+
     if (!mass_edit_ids) {
-        const result = await ctx.prisma.loads.update({
-            where: {
-                ID: ID
-            }, data: data
+        await ctx.prisma.loads.update({
+            where: {ID},
+            data,
         });
-        if (SourceID && LoadTypeID) {
-            await upsertSourceLoadType(ctx, SourceID, LoadTypeID);
+        if (isSourcesCutoverActive() && SourceID && input.LoadTypeID) {
+            await upsertSourceLoadType(ctx, SourceID, input.LoadTypeID);
         }
-        return result;
-    } else {
-        await ctx.prisma.loads.updateMany({
-            where: {
-                ID: { in: mass_edit_ids }
-            },
-            data: {
-                CustomerID: data.CustomerID,
-                DriverID: data.DriverID,
-                TruckID: data.TruckID,
-                LoadTypeID: data.LoadTypeID,
-                DeliveryLocationID: data.DeliveryLocationID,
-                StartDate: data.StartDate,
-                Week: data.Week,
-                MaterialRate: data.MaterialRate,
-                TruckRate: data.TruckRate,
-                DriverRate: data.DriverRate,
-                TotalRate: data.TotalRate,
-                JobID: data.JobID
-            },
+        if (beforeLoad) {
+            await syncLoadRelationalRecords(ctx, beforeLoad, {
+                ID: beforeLoad.ID,
+                DriverID: data.DriverID ?? beforeLoad.DriverID,
+                TruckID: data.TruckID ?? beforeLoad.TruckID,
+                StartDate: data.StartDate ?? beforeLoad.StartDate,
+                CustomerID: data.CustomerID ?? beforeLoad.CustomerID,
+                LoadTypeID: data.LoadTypeID ?? beforeLoad.LoadTypeID,
+                DeliveryLocationID: data.DeliveryLocationID ?? beforeLoad.DeliveryLocationID,
+            });
+        }
+        await syncOpenSheetAmounts(ctx, {
+            loadIds: affectedLoadIds,
+            jobIds: [...new Set([...sourceJobIds, rematch.JobID])],
         });
-        if (SourceID && LoadTypeID) {
-            await upsertSourceLoadType(ctx, SourceID, LoadTypeID);
-        }
+        const updated = await ctx.prisma.loads.findUnique({where: {ID}});
+        return {data: updated, warnings: ctx.warnings};
     }
+
+    const massData: Record<string, unknown> = {
+        CustomerID: data.CustomerID,
+        DriverID: data.DriverID,
+        LoadTypeID: data.LoadTypeID,
+        DeliveryLocationID: data.DeliveryLocationID,
+        Week: data.Week,
+        MaterialRate: data.MaterialRate,
+        TruckRate: data.TruckRate,
+        DriverRate: data.DriverRate,
+        TotalRate: data.TotalRate,
+        JobID: data.JobID,
+    };
+    if (isSourcesCutoverActive()) {
+        massData.SourceID = data.SourceID;
+    }
+
+    await ctx.prisma.loads.updateMany({
+        where: {ID: {in: mass_edit_ids}},
+        data: massData,
+    });
+    if (isSourcesCutoverActive() && SourceID && input.LoadTypeID) {
+        await upsertSourceLoadType(ctx, SourceID, input.LoadTypeID);
+    }
+
+    for (const before of beforeMassLoads) {
+        await syncLoadRelationalRecords(ctx, before, {
+            ID: before.ID,
+            DriverID: data.DriverID ?? before.DriverID,
+            TruckID: before.TruckID,
+            StartDate: before.StartDate,
+            CustomerID: data.CustomerID ?? before.CustomerID,
+            LoadTypeID: data.LoadTypeID ?? before.LoadTypeID,
+            DeliveryLocationID: data.DeliveryLocationID ?? before.DeliveryLocationID,
+        });
+    }
+
+    await syncOpenSheetAmounts(ctx, {
+        loadIds: affectedLoadIds,
+        jobIds: [...new Set([...sourceJobIds, rematch.JobID])],
+    });
+    return {ok: true, warnings: ctx.warnings};
 }
 
 export const loadsRouter = createRouter()
@@ -447,6 +328,24 @@ export const loadsRouter = createRouter()
 
         }
     })
+    .query("getByJobId", {
+        input: z.object({
+            jobId: z.number(),
+        }),
+        async resolve({ctx, input}) {
+            if (!input.jobId) {
+                return [];
+            }
+            return ctx.prisma.loads.findMany({
+                include: loadListInclude,
+                where: {
+                    ...activeLoadWhere,
+                    JobID: input.jobId,
+                },
+                orderBy: {ID: "desc"},
+            });
+        },
+    })
     // .query('search', {
     //     input: z.object({
     //         search: z.string()
@@ -495,57 +394,115 @@ export const loadsRouter = createRouter()
             return ctx.prisma.loads.findMany({
                 where: {
                     AND: [
-                        {
-                            CustomerID: input.customer,
-                        },
-                        {
-                            OR: [
-                                {
-                                    Deleted: false
-                                },
-                                {
-                                    Deleted: null
-                                }
-                            ]
-                        },
-                        {
-                            OR: [
-                                {
-                                    Invoiced: false
-                                },
-                                {
-                                    Invoiced: null
-                                }
-                            ]
-                        }
+                        {CustomerID: input.customer},
+                        {OR: [{Deleted: false}, {Deleted: null}]},
+                        {OR: [{Invoiced: false}, {Invoiced: null}]},
                     ],
                     NOT: {
                         DriverID: 0,
                         DeliveryLocationID: 0,
                         TruckID: 0
                     }
-
                 },
                 include: {
                     LoadTypes: true,
                     DeliveryLocations: true,
                     Drivers: true,
-                    Trucks: true
+                    Trucks: true,
+                    Sources: true,
                 }
             })
-
         }
     })
-    .query('getCount', {
-        input: loadsListInput,
+    .query('openLegacyJobs', {
+        input: z.object({
+            DriverID: z.number().optional(),
+            Week: z.string().optional(),
+            CustomerID: z.number().optional(),
+            DeliveryLocationID: z.number().optional(),
+        }),
         async resolve({ctx, input}) {
-            return ctx.prisma.loads.count({
+            if (!isSourcesCutoverActive()) {
+                return [];
+            }
+
+            if (
+                !input.DriverID &&
+                !input.CustomerID &&
+                !input.Week &&
+                !input.DeliveryLocationID
+            ) {
+                return [];
+            }
+
+            const dailiesFilter: {DriverID?: number; Week?: string} = {};
+            if (input.DriverID) {
+                dailiesFilter.DriverID = input.DriverID;
+            }
+            if (input.Week) {
+                dailiesFilter.Week = input.Week;
+            }
+
+            const jobs = await ctx.prisma.jobs.findMany({
                 where: {
-                    ...activeLoadWhere,
-                    ...buildLoadFilters(input),
+                    ...(input.DriverID ? {DriverID: input.DriverID} : {}),
+                    PaidOut: {not: true},
+                    LoadTypeID: {lt: NEW_LOAD_TYPE_ID_THRESHOLD},
+                    ...(input.CustomerID ? {CustomerID: input.CustomerID} : {}),
+                    ...(input.DeliveryLocationID ? {DeliveryLocationID: input.DeliveryLocationID} : {}),
+                    Weeklies: {InvoiceID: null},
+                    ...(Object.keys(dailiesFilter).length > 0 ? {Dailies: dailiesFilter} : {}),
                 },
+                include: {
+                    Customers: {select: {ID: true, Name: true}},
+                    LoadTypes: {select: {ID: true, Description: true}},
+                    DeliveryLocations: {select: {ID: true, Description: true}},
+                    Dailies: {select: {Week: true}},
+                    Loads: {
+                        select: {StartDate: true},
+                        orderBy: {StartDate: "desc"},
+                        take: 1,
+                    },
+                },
+                orderBy: {ID: "desc"},
+                take: 50,
             });
+
+            return jobs.map((job) => ({
+                JobID: job.ID,
+                CustomerID: job.CustomerID,
+                CustomerName: job.Customers.Name,
+                LoadTypeID: job.LoadTypeID,
+                LoadTypeDescription: job.LoadTypes.Description,
+                DeliveryLocationID: job.DeliveryLocationID,
+                DeliveryLocationDescription: job.DeliveryLocations.Description,
+                TruckingRate: job.TruckingRate,
+                MaterialRate: job.MaterialRate,
+                DriverRate: job.DriverRate,
+                CompanyRate: job.CompanyRate,
+                Week: job.Dailies.Week,
+                LastStartDate: job.Loads[0]?.StartDate ?? null,
+            }));
         },
+    })
+    .query('getCount', {
+        input: z.object({
+            page: z.number().optional(),
+            customer: z.number().optional(),
+            truck: z.number().optional(),
+            driver: z.number().optional(),
+            loadType: z.number().optional(),
+            deliveryLocation: z.number().optional(),
+            search: z.number().nullish().optional(),
+            chosenLoad: z.any().optional()
+        }),
+        async resolve({ctx, input}) {
+            const extra = buildLoadFilters(input);
+
+            return ctx.prisma.loads.count({
+                where: {...activeLoadWhere, ...extra},
+            });
+        }
     })
     .query('getUninvCount', {
         input: z.object({
@@ -600,29 +557,14 @@ export const loadsRouter = createRouter()
             if (!input.data) {
                 return false;
             }
-            // await ctx.prisma.loads.updateMany({
-            //     where: {
-            //         ID: { in: input.selectedLoads }
-            //     },
-            //     data: {
-            //         CustomerID: input.data.CustomerID,
-            //         DriverID: input.data.DriverID,
-            //         TruckID: input.data.TruckID,
-            //         LoadTypeID: input.data.LoadTypeID,
-            //         DeliveryLocationID: input.data.DeliveryLocationID,
-            //         StartDate: input.data.StartDate,
-            //         Week: input.data.Week,
-            //         MaterialRate: input.data.MaterialRate,
-            //         TruckRate: input.data.TruckRate,
-            //         DriverRate: input.data.DriverRate,
-            //         TotalRate: input.data.TotalRate,
-            //     },
-            // });
+            if (!input.selectedLoads?.length) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "No loads selected for mass edit.",
+                });
+            }
 
-            //Also need to update the Weekly/Daily/Job
-            await updateLoadAndRelations(input.data, ctx, input.selectedLoads)
-
-            return true;
+            return await updateLoadAndRelations(input.data, ctx, input.selectedLoads);
         }
     })
     .mutation('post_duplicate_checker', {
@@ -669,118 +611,35 @@ export const loadsRouter = createRouter()
                 })
             }
 
-            if (!DriverID || !DeliveryLocationID || !LoadTypeID || !TruckID || !CustomerID) {
+            // TS narrowing only — the loop above already threw for these.
+            // Truck is intentionally NOT here: it's optional in the UI, and bailing on
+            // !TruckID silently returned undefined (client crashed reading .warnings).
+            if (!DriverID || !DeliveryLocationID || !LoadTypeID || !CustomerID) {
                 return;
             }
 
-            // 🗂️ **Fetch daily and weekly records in parallel**
-            const daily= await ctx.prisma.dailies.findFirst({where: {DriverID, Week}});
-            const weeklies = await ctx.prisma.weeklies.findMany({
-                where: {CustomerID, Week, DeliveryLocationID, LoadTypeID, InvoiceID: null, Revenue: null}
+            const rematch = await rematchLoadToJob(ctx, {
+                DriverID,
+                CustomerID,
+                LoadTypeID,
+                DeliveryLocationID,
+                Week,
+                TruckRate,
+                MaterialRate,
+                DriverRate,
+                TotalRate,
+                SourceID,
             });
-
-            let weekly = weeklies.find(weekly => {
-                const compareRates = (a: number | null | undefined, b: number | null | undefined) =>
-                    parseFloat((a ?? 0).toFixed(2)) === parseFloat((b ?? 0).toFixed(2));
-
-                return (compareRates(weekly.CompanyRate, TotalRate));
-            });
-
-            // 🛠️ **If Daily Exists**
-            if (daily) {
-                if (daily.LastPrinted) {
-                    ctx.warnings.push('This daily has already been printed.', daily.Week, daily.DriverID.toString());
-                }
-
-                if (!weekly) {
-                    weekly = await ctx.prisma.weeklies.create({
-                        data: {
-                            Week,
-                            CustomerID,
-                            LoadTypeID,
-                            DeliveryLocationID,
-                            CompanyRate: parseFloat((TotalRate ?? 0).toFixed(2)),
-                        }
-                    });
-                }
-
-                const jobs = await ctx.prisma.jobs.findMany({
-                    where: {
-                        DriverID,
-                        CustomerID,
-                        LoadTypeID,
-                        DeliveryLocationID,
-                        DailyID: daily.ID,
-                        WeeklyID: weekly.ID,
-                        PaidOut: {not: true}
-                    }
-                });
-
-                const job = jobs.find(job => {
-                    const compareRates = (a: number | null | undefined, b: number | null | undefined) =>
-                        parseFloat((a ?? 0).toFixed(2)) === parseFloat((b ?? 0).toFixed(2));
-
-                    return (
-                        compareRates(job.TruckingRate, TruckRate) &&
-                        compareRates(job.MaterialRate, MaterialRate) &&
-                        compareRates(job.DriverRate, DriverRate) &&
-                        compareRates(job.CompanyRate, TotalRate)
-                    );
-                });
-
-                if (job) {
-                    input.JobID = job.ID;
-                } else {
-                    const newJob = await ctx.prisma.jobs.create({
-                        data: {
-                            DriverID,
-                            DailyID: daily.ID,
-                            WeeklyID: weekly.ID,
-                            CustomerID,
-                            LoadTypeID,
-                            DeliveryLocationID,
-                            TruckingRate: parseFloat((TruckRate ?? 0).toFixed(2)),
-                            CompanyRate: parseFloat((TotalRate ?? 0).toFixed(2)),
-                            DriverRate: parseFloat((DriverRate ?? 0).toFixed(2)),
-                            MaterialRate: parseFloat((MaterialRate ?? 0).toFixed(2)),
-                        }
-                    });
-
-                    input.JobID = newJob.ID;
-                }
+            input.JobID = rematch.JobID;
+            if (isSourcesCutoverActive()) {
+                input.SourceID = rematch.SourceID;
             } else {
-                // 🆕 **Create daily, weekly, and job if no daily exists**
-                const [newDaily, newWeekly] = await Promise.all([
-                    ctx.prisma.dailies.create({data: {DriverID, Week}}),
-                    weekly
-                        ? Promise.resolve(weekly)
-                        : ctx.prisma.weeklies.create({
-                            data: {
-                                Week,
-                                CustomerID,
-                                LoadTypeID,
-                                DeliveryLocationID,
-                                CompanyRate: parseFloat((TotalRate ?? 0).toFixed(2)),
-                            }
-                        })
-                ]);
+                input.SourceID = undefined;
+            }
 
-                const newJob = await ctx.prisma.jobs.create({
-                    data: {
-                        DriverID,
-                        DailyID: newDaily.ID,
-                        WeeklyID: newWeekly?.ID ?? weekly?.ID ?? 1,
-                        CustomerID,
-                        LoadTypeID,
-                        DeliveryLocationID,
-                        TruckingRate: parseFloat((TruckRate ?? 0).toFixed(2)),
-                        CompanyRate: parseFloat((TotalRate ?? 0).toFixed(2)),
-                        DriverRate: parseFloat((DriverRate ?? 0).toFixed(2)),
-                        MaterialRate: parseFloat((MaterialRate ?? 0).toFixed(2)),
-                    }
-                });
-
-                input.JobID = newJob.ID;
+            const daily = await ctx.prisma.dailies.findFirst({where: {DriverID, Week}});
+            if (daily?.LastPrinted) {
+                ctx.warnings.push('This daily has already been printed.', daily.Week, daily.DriverID.toString());
             }
 
             // 🔗 **Relational Data Creation with Explicit Models**
@@ -805,14 +664,20 @@ export const loadsRouter = createRouter()
             );
 
             // 📦 **Create Load**
-            // Strip SourceID before persisting (it isn't a column on Loads).
-            // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            const {SourceID: _SourceID, ...loadData} = input;
-            const data = await ctx.prisma.loads.create({data: loadData});
+            const loadCreateData = {...input};
+            if (!isSourcesCutoverActive()) {
+                delete loadCreateData.SourceID;
+            }
+            const data = await ctx.prisma.loads.create({data: loadCreateData});
 
-            if (SourceID && LoadTypeID) {
+            if (isSourcesCutoverActive() && SourceID && LoadTypeID) {
                 await upsertSourceLoadType(ctx, SourceID, LoadTypeID);
             }
+
+            await syncOpenSheetAmounts(ctx, {
+                loadIds: [data.ID],
+                jobIds: data.JobID ? [data.JobID] : [],
+            });
 
             return {data, warnings: ctx.warnings};
         },
@@ -825,7 +690,8 @@ export const loadsRouter = createRouter()
                 CustomerID,
                 LoadTypeID,
                 DeliveryLocationID,
-
+                Weight,
+                Hours,
             } = input;
 
             if (!DriverID) {
@@ -853,6 +719,13 @@ export const loadsRouter = createRouter()
                 })
             }
 
+            if (!Weight && !Hours) {
+                throw new TRPCError({
+                    code: 'INTERNAL_SERVER_ERROR',
+                    message: 'This load is missing either weight or hours.',
+                });
+            }
+
             return await updateLoadAndRelations(input, ctx);
 
         },
@@ -861,8 +734,21 @@ export const loadsRouter = createRouter()
         input: LoadsModel,
         async resolve({ctx, input}) {
             const {ID} = input;
-            // use your ORM of choice
-            return await ctx.prisma.loads.delete({where: {ID: ID}})
+            await assertLoadsNotPaidOut(ctx, [ID]);
+            await assertLoadsNotInvoiced(ctx, [ID]);
+
+            const existing = await ctx.prisma.loads.findUnique({
+                where: {ID},
+                select: {JobID: true},
+            });
+
+            await ctx.prisma.loads.delete({where: {ID}});
+
+            if (existing?.JobID) {
+                await syncOpenSheetAmounts(ctx, {jobIds: [existing.JobID]});
+            }
+
+            return true;
         },
     });
 

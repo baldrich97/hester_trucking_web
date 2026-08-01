@@ -1,5 +1,6 @@
 import {createRouter} from "./context";
 import {FormOptionsModel} from "../../../prisma/zod";
+import {normalizeFormOptionPdfFlags} from "../../utils/driverFormsPdf";
 
 export const formOptionsRouter = createRouter()
     .query("getAll", {
@@ -14,9 +15,10 @@ export const formOptionsRouter = createRouter()
         input: FormOptionsModel,
         async resolve({ctx, input}) {
             const {ID, ...data} = input;
+            const normalized = normalizeFormOptionPdfFlags(data);
             return ctx.prisma.formOptions.update({
                 where: {ID},
-                data,
+                data: normalized,
             });
         },
     });

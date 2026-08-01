@@ -1,5 +1,6 @@
 import {createRouter} from "./context";
 import {z} from "zod";
+import {TRPCError} from "@trpc/server";
 import {
     JobsModel,
     DriversModel,
@@ -402,11 +403,9 @@ export const jobsRouter = createRouter()
                 await ctx.prisma.$queryRaw<Array<{ ID: number }>>`SELECT DISTINCT(j.ID)
                                                                   FROM Jobs j
                                                                            LEFT JOIN Weeklies w ON j.WeeklyID = w.ID
-                                                                           LEFT JOIN Invoices i ON w.InvoiceID = i.ID
-                                                                           LEFT JOIN PayStubs ps ON j.PayStubID = ps.ID
-                                                                           LEFT JOIN Loads l ON i.ID = l.InvoiceID
+                                                                           LEFT JOIN Loads l ON l.JobID = j.ID
                                                                   WHERE j.DriverID = ${input.driver}
-                                                                    AND (j.PaidOut != TRUE OR (j.PayStubID IS NOT NULL AND (SELECT MAX(l1.Created) FROM Loads l1 WHERE l1.JobID = j.ID) > ps.Created))
+                                                                    AND (j.PaidOut != TRUE OR (j.PayStubID IS NOT NULL AND (SELECT MAX(l1.Created) FROM Loads l1 WHERE l1.JobID = j.ID) > (SELECT ps.Created FROM PayStubs ps WHERE ps.ID = j.PayStubID)))
                                                                     AND w.Week != ${defaultWeek}
                                                                     AND (SELECT MAX(l2.StartDate) FROM Loads l2 WHERE l2.JobID = j.ID) >= "2025-02-01"
                                                                     AND (SELECT COUNT(*) FROM Loads l3 WHERE l3.JobID = j.ID) > 0
@@ -458,26 +457,30 @@ export const jobsRouter = createRouter()
         }
     })
     .mutation('postClosed', {
-        // validate input with Zod
         input: JobsModel,
         async resolve({ctx, input}) {
             const {ID, ...data} = input;
-            // check if weekly is closed and warn/error?
+
+            const existing = await ctx.prisma.jobs.findUnique({where: {ID}});
+            if (!existing) {
+                throw new TRPCError({code: "BAD_REQUEST", message: "Job not found."});
+            }
+            if (existing.TruckingRevenue !== null || existing.CompanyRevenue !== null) {
+                throw new TRPCError({code: "BAD_REQUEST", message: "Job is already closed."});
+            }
+
             const weekly = await ctx.prisma.weeklies.findFirst({
-                where: {
-                    ID: data.WeeklyID
-                }
-            })
+                where: {ID: data.WeeklyID ?? existing.WeeklyID},
+            });
 
             if (!weekly || weekly.Revenue !== null) {
-                //warn/error here
+                throw new TRPCError({code: "BAD_REQUEST", message: "Weekly is already closed."});
             }
-            // use your ORM of choice
+
             return ctx.prisma.jobs.update({
-                where: {
-                    ID: ID
-                }, data: data
-            })
+                where: {ID},
+                data,
+            });
         },
     })
     .mutation('postPaid', {

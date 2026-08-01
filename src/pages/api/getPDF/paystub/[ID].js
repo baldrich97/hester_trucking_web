@@ -37,6 +37,7 @@ const handler = async (req, res) => {
                             Name: true
                         }
                     },
+                    Sources: {select: {Name: true, ShortName: true}},
                     Loads: {
                         include: {
                             Trucks: true

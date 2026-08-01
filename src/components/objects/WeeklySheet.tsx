@@ -24,6 +24,7 @@ import {
 } from "../../../prisma/zod";
 import Tooltip from '@mui/material/Tooltip';
 import {confirmDestructive, confirmProceed} from "../../utils/appConfirm";
+import {formatMaterial} from "../../utils/formatMaterial";
 import {trpc} from "../../utils/trpc";
 import {calendarNavButtonSx} from "../../theme/muiShared";
 import NextLink from "next/link";
@@ -119,13 +120,28 @@ const WeeklySheet = ({
                         variant="contained"
                         color="warning"
                         onClick={() => {
+                            const needsCascadeConfirm =
+                                sheet.Revenue !== null || sheet.InvoiceID != null;
                             confirmProceed({
                                 title: "Confirm Weekly Edit",
                                 message:
                                     "Editing this Weekly will apply the changes to ALL associated Loads, Jobs, and Dailies. If you need to change only SOME Loads, Jobs, or Dailies please edit the Loads individually. Are you sure you want to change ALL loads for ALL drivers?",
                                 confirmLabel: "Yes",
                                 cancelLabel: "No",
-                                onConfirm: () => setOpenWeeklyModal(true),
+                                onConfirm: () => {
+                                    if (needsCascadeConfirm) {
+                                        confirmProceed({
+                                            title: "Closed or invoiced weekly",
+                                            message:
+                                                "This weekly is closed or invoiced. Cascading will change all attached loads and jobs. Continue?",
+                                            confirmLabel: "Yes",
+                                            cancelLabel: "No",
+                                            onConfirm: () => setOpenWeeklyModal(true),
+                                        });
+                                    } else {
+                                        setOpenWeeklyModal(true);
+                                    }
+                                },
                             });
                         }}
                     >
@@ -286,7 +302,12 @@ const WeeklySheet = ({
                                     weeklyLoadType === 0 ? sheet.LoadTypeID : weeklyLoadType;
                                 changed.CustomerID =
                                     weeklyCustomer === 0 ? sheet.CustomerID : weeklyCustomer;
-                                await updateWeekly.mutateAsync(changed);
+                                const cascadeLocked =
+                                    sheet.Revenue !== null || sheet.InvoiceID != null;
+                                await updateWeekly.mutateAsync({
+                                    ...changed,
+                                    ...(cascadeLocked ? {confirmCascade: true} : {}),
+                                });
                             }}
                         >
                             Confirm Edit
@@ -341,7 +362,7 @@ const Sheet = ({weekly, week}: { weekly: CustomerSheet, week: string }) => {
                 paddingLeft: 5,
                 paddingRight: 5
             }}>
-                <b style={{fontSize: 22}}>Material Delivered - {weekly.LoadTypes?.Description}</b>
+                <b style={{fontSize: 22}}>Material Delivered - {formatMaterial({description: weekly.LoadTypes?.Description, source: (weekly as {Sources?: {Name?: string; ShortName?: string}}).Sources})}</b>
                 <b style={{fontSize: 22}}>Job Site - {weekly.DeliveryLocations?.Description}</b>
             </div>
 

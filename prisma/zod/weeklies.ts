@@ -1,5 +1,5 @@
 import * as z from "zod"
-import { CompleteJobs, RelatedJobsModel, CompleteCustomers, RelatedCustomersModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteInvoices, RelatedInvoicesModel, CompleteLoadTypes, RelatedLoadTypesModel } from "./index"
+import { CompleteJobs, RelatedJobsModel, CompleteCustomers, RelatedCustomersModel, CompleteDeliveryLocations, RelatedDeliveryLocationsModel, CompleteInvoices, RelatedInvoicesModel, CompleteLoadTypes, RelatedLoadTypesModel, CompleteSources, RelatedSourcesModel } from "./index"
 
 export const WeekliesModel = z.object({
   ID: z.number().int(),
@@ -12,6 +12,7 @@ export const WeekliesModel = z.object({
   DeliveryLocationID: z.number().int(),
   LastPrinted: z.date().nullish(),
   TotalWeight: z.number().nullish(),
+  SourceID: z.number().int().nullish(),
 })
 
 export interface CompleteWeeklies extends z.infer<typeof WeekliesModel> {
@@ -20,6 +21,7 @@ export interface CompleteWeeklies extends z.infer<typeof WeekliesModel> {
   DeliveryLocations: CompleteDeliveryLocations
   Invoices?: CompleteInvoices | null
   LoadTypes: CompleteLoadTypes
+  Sources?: CompleteSources | null
 }
 
 /**
@@ -33,4 +35,5 @@ export const RelatedWeekliesModel: z.ZodSchema<CompleteWeeklies> = z.lazy(() => 
   DeliveryLocations: RelatedDeliveryLocationsModel,
   Invoices: RelatedInvoicesModel.nullish(),
   LoadTypes: RelatedLoadTypesModel,
+  Sources: RelatedSourcesModel.nullish(),
 }))

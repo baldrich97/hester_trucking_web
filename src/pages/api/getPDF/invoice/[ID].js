@@ -59,13 +59,15 @@ const handler = async (req, res) => {
                     LoadTypes: true,
                     Trucks: true,
                     Drivers: true,
-                    DeliveryLocations: true
+                    DeliveryLocations: true,
+                    Sources: {select: {Name: true, ShortName: true}},
                 },
             },
             Weeklies: {
                 include: {
                     LoadTypes: true,
-                    DeliveryLocations: true
+                    DeliveryLocations: true,
+                    Sources: {select: {Name: true, ShortName: true}},
                 },
                 orderBy: {
                     Week: 'asc'

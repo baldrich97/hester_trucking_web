@@ -15,6 +15,7 @@ import {trpc} from "../../utils/trpc";
 import {TableColumnsType, TableColumnOverridesType} from "../../utils/types";
 import GenericTable from "../../elements/GenericTable";
 import {toast} from "react-toastify";
+import {useSourcesCutover} from "../../hooks/useSourcesCutover";
 
 type Mode = "source" | "customer";
 
@@ -29,6 +30,7 @@ type ReportRow = {
     TruckRate: number;
     DriverRate: number;
     LoadType: string;
+    Source?: string;
     Customer: string;
     DeliveryLocation: string;
 };
@@ -52,7 +54,7 @@ type ReportPayload = {
     };
 };
 
-const reportColumns: TableColumnsType = [
+const baseReportColumns: TableColumnsType = [
     {name: "StartDate", as: "Date"},
     {name: "TicketNumber", as: "Ticket #"},
     {name: "LoadType", as: "Load Type"},
@@ -93,6 +95,7 @@ function formatCurrency(value: number): string {
 }
 
 const AuditReportPage = ({mode}: {mode: Mode}) => {
+    const {active: cutoverActive} = useSourcesCutover();
     const now = useMemo(() => new Date(), []);
     const defaultRange = getMonthRange(now);
     const [entityId, setEntityId] = useState(0);
@@ -155,6 +158,15 @@ const AuditReportPage = ({mode}: {mode: Mode}) => {
         document.body.removeChild(element);
     };
 
+    const reportColumns = useMemo<TableColumnsType>(() => {
+        if (mode !== "customer") {
+            return baseReportColumns;
+        }
+        const cols = [...baseReportColumns];
+        cols.splice(3, 0, {name: "Source", as: "Source"});
+        return cols;
+    }, [mode]);
+
     const displayRows = useMemo(
         () =>
             (report?.rows ?? []).map((row) => ({
@@ -170,6 +182,17 @@ const AuditReportPage = ({mode}: {mode: Mode}) => {
     const autoLabel = mode === "source" ? "Source" : "Customer";
     const autoQuery = mode === "source" ? "sources" : "customers";
     const autoOptionLabel = mode === "source" ? "Name" : "Name+|+Street+,+City";
+
+    if (!cutoverActive) {
+        return (
+            <Box>
+                <Typography variant="h5" sx={{mb: 1}}>Reports</Typography>
+                <Typography variant="body1" color="text.secondary">
+                    Reports are not available until the Sources cutover on Aug 2, 2026.
+                </Typography>
+            </Box>
+        );
+    }
 
     return (
         <Box>

@@ -1,6 +1,7 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import {InvoicesModel, PayStubsModel} from '../../../prisma/zod';
+import {TRPCError} from "@trpc/server";
+import {PayStubsModel} from '../../../prisma/zod';
 
 export const paystubsRouter = createRouter()
     .query("getAll", {
@@ -128,36 +129,73 @@ export const paystubsRouter = createRouter()
         },
     })
     .mutation('put', {
-        // validate input with Zod
         input: PayStubsModel.omit({ID: true}).extend({selected: z.array(z.string())}),
         async resolve({ctx, input}) {
-            // use your ORM of choice
             const {selected, ...rest} = input;
-            const returnable = await ctx.prisma.payStubs.create({
-                data: rest
-            })
+            const driverId = rest.DriverID;
 
-            for (const jobPkey of selected) {
-                await ctx.prisma.jobs.update({
-                    where: {
-                        ID: parseInt(jobPkey)
-                    },
-                    data: {
-                        PayStubID: returnable.ID,
-                        PaidOut: true
-                    }
-                })
+            if (!selected.length) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Select at least one job for this paystub.",
+                });
             }
+
+            const jobIds = selected.map((id) => parseInt(id, 10));
+            const jobs = await ctx.prisma.jobs.findMany({
+                where: {ID: {in: jobIds}},
+                select: {ID: true, DriverID: true, PaidOut: true, PayStubID: true},
+            });
+
+            if (jobs.length !== jobIds.length) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "One or more selected jobs were not found.",
+                });
+            }
+
+            for (const job of jobs) {
+                if (job.DriverID !== driverId) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "All selected jobs must belong to the paystub driver.",
+                    });
+                }
+                if (job.PaidOut) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "One or more selected jobs have already been paid out.",
+                    });
+                }
+                if (job.PayStubID != null) {
+                    throw new TRPCError({
+                        code: "BAD_REQUEST",
+                        message: "One or more selected jobs are already on another paystub.",
+                    });
+                }
+            }
+
+            await ctx.prisma.$transaction(async (tx) => {
+                const paystub = await tx.payStubs.create({data: rest});
+
+                for (const jobId of jobIds) {
+                    await tx.jobs.update({
+                        where: {ID: jobId},
+                        data: {
+                            PayStubID: paystub.ID,
+                            PaidOut: true,
+                        },
+                    });
+                }
+            });
 
             return true;
         },
     })
     .mutation('post', {
-        // validate input with Zod
         input: PayStubsModel.extend({selected: z.array(z.string())}),
         async resolve({ctx, input}) {
             const {ID, selected, ...data} = input;
-            // use your ORM of choice
             return ctx.prisma.payStubs.update({
                 where: {
                     ID: ID
@@ -165,11 +203,9 @@ export const paystubsRouter = createRouter()
             })
         },
     }).mutation('postPrinted', {
-        // validate input with Zod
         input: PayStubsModel.extend({selected: z.array(z.string())}),
         async resolve({ctx, input}) {
             const {ID} = input;
-            // use your ORM of choice
             return ctx.prisma.payStubs.update({
                 where: {
                     ID: ID
@@ -182,16 +218,15 @@ export const paystubsRouter = createRouter()
         input: PayStubsModel,
         async resolve({ctx, input}) {
             const {ID} = input;
-            //make related loads available again
-            await ctx.prisma.jobs.findMany({where: {PayStubID: ID}}).then(async (jobs) => {
-                await Promise.all(jobs.map(async (job) => {
-                    ctx.prisma.jobs.update({where: {ID: job.ID}, data: {PaidOut: false, PayStubID: null}}).then();
-                }))
+
+            await ctx.prisma.$transaction(async (tx) => {
+                await tx.jobs.updateMany({
+                    where: {PayStubID: ID},
+                    data: {PaidOut: false, PayStubID: null},
+                });
+                await tx.payStubs.delete({where: {ID}});
             });
 
-
-            // use your ORM of choice
-            return await ctx.prisma.payStubs.delete({where: {ID: ID}})
+            return true;
         },
     });
-
