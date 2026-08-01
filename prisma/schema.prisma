@@ -85,38 +85,38 @@ model DeliveryLocations {
 }
 
 model Drivers {
-  ID            Int            @id @default(autoincrement())
+  ID                Int            @id @default(autoincrement())
   /// @zod.min(1)
-  FirstName     String         @db.VarChar(255)
-  MiddleName    String?        @db.VarChar(255)
+  FirstName         String         @db.VarChar(255)
+  MiddleName        String?        @db.VarChar(255)
   /// @zod.min(1)
-  LastName      String         @db.VarChar(255)
-  Street        String?        @db.VarChar(255)
-  City          String?        @db.VarChar(255)
-  State         Int?
-  ZIP           String?        @db.VarChar(10)
-  DOB           DateTime?      @db.Date
-  License       String?        @db.VarChar(255)
-  Email         String?        @db.VarChar(255)
-  Phone         String?        @db.VarChar(20)
-  Notes         String?        @db.VarChar(255)
-  Deleted       Boolean?
-  HireDate      String?        @db.VarChar(255)
-  OwnerOperator Boolean
-  TIN           String?        @db.VarChar(255)
+  LastName          String         @db.VarChar(255)
+  Street            String?        @db.VarChar(255)
+  City              String?        @db.VarChar(255)
+  State             Int?
+  ZIP               String?        @db.VarChar(10)
+  DOB               DateTime?      @db.Date
+  License           String?        @db.VarChar(255)
+  Email             String?        @db.VarChar(255)
+  Phone             String?        @db.VarChar(20)
+  Notes             String?        @db.VarChar(255)
+  Deleted           Boolean?
+  HireDate          String?        @db.VarChar(255)
+  OwnerOperator     Boolean
+  TIN               String?        @db.VarChar(255)
+  CarrierID         Int?
+  PayMethod         String?        @db.VarChar(50)
+  Active            Boolean        @default(true)
   /// @zod.custom(z.coerce.date())
-  LicenseExpiration           DateTime?      @db.Date
-  CarrierID     Int?
-  PayMethod     String?        @db.VarChar(50)
-  Active        Boolean        @default(true)
-  Dailies       Dailies[]
-  DriverForms   DriverForms[]
-  Carriers      Carriers?      @relation(fields: [CarrierID], references: [ID], onUpdate: Restrict, map: "FK_Drivers_Carriers")
-  States        States?        @relation(fields: [State], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Drivers_States")
-  Jobs          Jobs[]
-  Loads         Loads[]
-  PayStubs      PayStubs[]
-  TrucksDriven  TrucksDriven[]
+  LicenseExpiration DateTime?      @db.Date
+  Dailies           Dailies[]
+  DriverForms       DriverForms[]
+  Carriers          Carriers?      @relation(fields: [CarrierID], references: [ID], onUpdate: Restrict, map: "FK_Drivers_Carriers")
+  States            States?        @relation(fields: [State], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Drivers_States")
+  Jobs              Jobs[]
+  Loads             Loads[]
+  PayStubs          PayStubs[]
+  TrucksDriven      TrucksDriven[]
 
   @@index([CarrierID], map: "FK_Drivers_Carriers")
   @@index([State], map: "FK_Drivers_States")
@@ -167,9 +167,9 @@ model Sources {
   ID              Int               @id @default(autoincrement())
   Name            String            @db.VarChar(255)
   ShortName       String?           @db.VarChar(255)
-  SourceLoadTypes SourceLoadTypes[]
-  Loads           Loads[]
   Jobs            Jobs[]
+  Loads           Loads[]
+  SourceLoadTypes SourceLoadTypes[]
   Weeklies        Weeklies[]
 }
 
@@ -261,8 +261,8 @@ model Loads {
   Invoices           Invoices?          @relation(fields: [InvoiceID], references: [ID], onUpdate: Restrict, map: "FK_Loads_Invoice")
   Jobs               Jobs?              @relation(fields: [JobID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Loads_Job")
   LoadTypes          LoadTypes?         @relation(fields: [LoadTypeID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Loads_LoadType")
-  Trucks             Trucks?            @relation(fields: [TruckID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Loads_Truck")
   Sources            Sources?           @relation(fields: [SourceID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Loads_Sources")
+  Trucks             Trucks?            @relation(fields: [TruckID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Loads_Truck")
 
   @@index([CustomerID], map: "FK_Loads_Customer")
   @@index([DeliveryLocationID], map: "FK_Loads_DeliveryLocation")
@@ -321,9 +321,9 @@ model Jobs {
   Drivers            Drivers           @relation(fields: [DriverID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_Drivers")
   LoadTypes          LoadTypes         @relation(fields: [LoadTypeID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_LoadTypes")
   PayStubs           PayStubs?         @relation(fields: [PayStubID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_PayStubs")
+  Sources            Sources?          @relation(fields: [SourceID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Jobs_Sources")
   Weeklies           Weeklies          @relation(fields: [WeeklyID], references: [ID], onDelete: NoAction, onUpdate: NoAction, map: "FK_Jobs_Weeklies")
   Loads              Loads[]
-  Sources            Sources?          @relation(fields: [SourceID], references: [ID], onDelete: Restrict, onUpdate: Restrict, map: "FK_Jobs_Sources")
 
   @@index([CustomerID], map: "FK_Jobs_Customers")
   @@index([DeliveryLocationID], map: "FK_Jobs_DeliveryLocations")

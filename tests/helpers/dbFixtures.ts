@@ -508,14 +508,14 @@ export async function createTestLoadTypeForSearch(
 export async function queryDriversSearch(
     ctx: TestContext,
     input: Record<string, unknown>,
-): Promise<Array<{ID: number; Recommend?: boolean}>> {
+): Promise<Array<{ID: number; Group?: string}>> {
     return callTrpcQuery("drivers.search", input, ctx);
 }
 
 export async function queryTrucksSearch(
     ctx: TestContext,
     input: Record<string, unknown>,
-): Promise<Array<{ID: number; Recommend?: boolean}>> {
+): Promise<Array<{ID: number; Group?: string}>> {
     return callTrpcQuery("trucks.search", input, ctx);
 }
 

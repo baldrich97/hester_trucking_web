@@ -211,14 +211,24 @@ function Load({
     const onInlineObjectCreated = (fieldName: InlineCreatableField, id: number) => {
         setInlineDefaultIds((prev) => ({...prev, [fieldName]: id}));
         setValue(fieldName, id, {shouldValidate: true, shouldDirty: true, shouldTouch: true});
-        if (fieldName === "DeliveryLocationID") {
+        if (fieldName === "CustomerID") {
+            setCustomer(id);
             dlsetShouldRefresh(true);
-        } else if (fieldName === "LoadTypeID") {
             ltsetShouldRefresh(true);
-        } else if (fieldName === "DriverID" || fieldName === "TruckID") {
-            tdsetShouldRefresh(true);
         } else if (fieldName === "SourceID") {
+            setSource(id);
+            ltsetShouldRefresh(true);
+        } else if (fieldName === "LoadTypeID") {
+            setLoadTypeSelected(id);
             srcsetShouldRefresh(true);
+        } else if (fieldName === "DeliveryLocationID") {
+            dlsetShouldRefresh(true);
+        } else if (fieldName === "DriverID") {
+            setDriver(id);
+            tdsetShouldRefresh(true);
+        } else if (fieldName === "TruckID") {
+            setTruck(id);
+            tdsetShouldRefresh(true);
         }
         closeNewObjectModal();
     };
@@ -654,8 +664,8 @@ function Load({
             label: "Driver",
             searchQuery: "drivers",
             onlyActive: true,
-            groupBy: "Recommend",
-            groupByNames: "Has Driven Truck|New for Driver",
+            groupBy: "Group",
+            groupByNames: "Truck=Has Driven Truck|Other=New for Driver",
             enableOptionGroups: truck > 0,
             newOptionLabel: "New Driver",
             onNewOptionClick: () => setNewObjectModalTarget("DriverID"),
@@ -668,8 +678,8 @@ function Load({
             label: "Truck",
             searchQuery: "trucks",
             onlyActive: true,
-            groupBy: "Recommend",
-            groupByNames: "Driven Before|New for Driver",
+            groupBy: "Group",
+            groupByNames: "Driver=Driven Before|Other=New for Driver",
             enableOptionGroups: driver > 0,
             newOptionLabel: "New Truck",
             onNewOptionClick: () => setNewObjectModalTarget("TruckID"),
@@ -683,8 +693,8 @@ function Load({
             type: "select",
             label: "Delivery Location",
             searchQuery: "deliverylocations",
-            groupBy: "Recommend",
-            groupByNames: "Used by Customer|New for Customer",
+            groupBy: "Group",
+            groupByNames: "Customer=Used by Customer|Other=New for Customer",
             enableOptionGroups: customer > 0,
             newOptionLabel: "New Delivery Location",
             onNewOptionClick: () => setNewObjectModalTarget("DeliveryLocationID"),

@@ -34,7 +34,7 @@ test.afterAll(async () => {
 async function openJobFromTicket(page: import("@playwright/test").Page, ticket: number) {
     await page.goto("/loads/massedit");
     await expect(page.locator("main")).toBeVisible({timeout: 15000});
-    await page.getByRole("button", {name: /filter by customer/i}).click();
+    await page.getByRole("button", {name: /open filter modal/i}).click();
     await expect(page.getByText(/Specify Search Terms/i)).toBeVisible();
     await page.getByLabel(/Ticket Number/i).fill(String(ticket));
     await page.getByRole("button", {name: "Search"}).click();

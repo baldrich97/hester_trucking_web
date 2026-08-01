@@ -1,5 +1,5 @@
 import * as z from "zod"
-import { CompleteSourceLoadTypes, RelatedSourceLoadTypesModel, CompleteLoads, RelatedLoadsModel, CompleteJobs, RelatedJobsModel, CompleteWeeklies, RelatedWeekliesModel } from "./index"
+import { CompleteJobs, RelatedJobsModel, CompleteLoads, RelatedLoadsModel, CompleteSourceLoadTypes, RelatedSourceLoadTypesModel, CompleteWeeklies, RelatedWeekliesModel } from "./index"
 
 export const SourcesModel = z.object({
   ID: z.number().int(),
@@ -8,9 +8,9 @@ export const SourcesModel = z.object({
 })
 
 export interface CompleteSources extends z.infer<typeof SourcesModel> {
-  SourceLoadTypes: CompleteSourceLoadTypes[]
-  Loads: CompleteLoads[]
   Jobs: CompleteJobs[]
+  Loads: CompleteLoads[]
+  SourceLoadTypes: CompleteSourceLoadTypes[]
   Weeklies: CompleteWeeklies[]
 }
 
@@ -20,8 +20,8 @@ export interface CompleteSources extends z.infer<typeof SourcesModel> {
  * NOTE: Lazy required in case of potential circular dependencies within schema
  */
 export const RelatedSourcesModel: z.ZodSchema<CompleteSources> = z.lazy(() => SourcesModel.extend({
-  SourceLoadTypes: RelatedSourceLoadTypesModel.array(),
-  Loads: RelatedLoadsModel.array(),
   Jobs: RelatedJobsModel.array(),
+  Loads: RelatedLoadsModel.array(),
+  SourceLoadTypes: RelatedSourceLoadTypesModel.array(),
   Weeklies: RelatedWeekliesModel.array(),
 }))

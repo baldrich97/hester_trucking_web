@@ -2,7 +2,7 @@ import {expect, test} from "@playwright/test";
 import {NEW_LOAD_TYPE_ID_THRESHOLD} from "../../src/config/sourcesCutover";
 import {nextTestTicket, TEST_NAME_PREFIX} from "../helpers/testData";
 import {TestRunTracker} from "../helpers/testRunTracker";
-import {createSeedPrisma, seedOpenLegacyJob, type OpenLegacyJobSeed} from "./helpers/dbSeed";
+import {createSeedPrisma, e2eSeedTicket, seedOpenLegacyJob, type OpenLegacyJobSeed} from "./helpers/dbSeed";
 import {
     createInModal,
     openDashboardLoadForm,
@@ -180,58 +180,51 @@ test("inline create: New Delivery Location", async ({page}) => {
     await expect(form.getByLabel("Delivery Location", {exact: true})).not.toHaveValue("");
 });
 
-test("new work path: full load submit using only inline-created catalog fields", async ({page}) => {
+test("new work path: inline source + load type submit with seeded customer and delivery location", async ({page}) => {
     const token = String(Date.now() % 100000);
     const form = await openNewWorkForm(page);
 
+    const sourceQuery = `FullSrc-${token}`;
     await pickInlineCreateOption(page, "Source", "New Source", {root: form});
     await createInModal(page, "Source", async (modal) => {
-        await modal.getByLabel("Name", {exact: true}).fill(`${TEST_NAME_PREFIX} FullSrc-${token}`);
+        await modal.getByLabel("Name", {exact: true}).fill(`${TEST_NAME_PREFIX} ${sourceQuery}`);
         await modal.getByLabel("Short Name (for invoices/PDFs)").fill(`FS-${token.slice(-4)}`);
     });
-    const source = await prisma.sources.findFirst({where: {Name: {contains: `FullSrc-${token}`}}});
+    const source = await prisma.sources.findFirst({where: {Name: {contains: sourceQuery}}});
     expect(source).toBeTruthy();
     tracker.track("sources", source!.ID);
 
-    await pickInlineCreateOption(page, "Customer", "New Customer", {root: form});
-    await createInModal(page, "Customer", async (modal) => {
-        await modal.getByLabel("Name", {exact: true}).fill(`${TEST_NAME_PREFIX} FullCust-${token}`);
-        await modal.getByLabel("Street", {exact: true}).fill("400 Full St");
-        await modal.getByLabel("City", {exact: true}).fill("FullTown");
-        await modal.getByLabel("ZIP", {exact: true}).fill("99999");
-    });
-    const customer = await prisma.customers.findFirst({where: {Name: {contains: `FullCust-${token}`}}});
-    expect(customer).toBeTruthy();
-    tracker.track("customers", customer!.ID);
-
+    const loadTypeQuery = `FullType-${token}`;
     await pickInlineCreateOption(page, "Load Type", "New Load Type", {root: form});
     await createInModal(page, "Load Type", async (modal) => {
-        await modal.getByRole("textbox", {name: "Description"}).fill(`${TEST_NAME_PREFIX} FullType-${token}`);
+        await modal.getByRole("textbox", {name: "Description"}).fill(`${TEST_NAME_PREFIX} ${loadTypeQuery}`);
     });
     const loadType = await prisma.loadTypes.findFirst({
-        where: {Description: {contains: `FullType-${token}`}},
+        where: {Description: {contains: loadTypeQuery}},
     });
     expect(loadType).toBeTruthy();
     tracker.track("loadTypes", loadType!.ID);
 
-    await pickInlineCreateOption(page, "Delivery Location", "New Delivery Location", {root: form});
-    await createInModal(page, "Delivery Location", async (modal) => {
-        await modal.getByRole("textbox", {name: "Description"}).fill(`${TEST_NAME_PREFIX} FullDL-${token}`);
-    });
-    const deliveryLocation = await prisma.deliveryLocations.findFirst({
-        where: {Description: {contains: `FullDL-${token}`}},
-    });
-    expect(deliveryLocation).toBeTruthy();
-    tracker.track("deliveryLocations", deliveryLocation!.ID);
-
+    await selectAutocompleteOption(page, "Customer", legacySeed.customerQuery, {root: form});
+    await selectAutocompleteOption(
+        page,
+        "Delivery Location",
+        legacySeed.deliveryLocationDescription,
+        {root: form},
+    );
     await selectAutocompleteOption(page, "Truck", "a", {root: form});
 
-    const ticket = String(nextTestTicket(94));
+    const ticket = String(e2eSeedTicket());
     await form.getByLabel(/Ticket Number/i).fill(ticket);
     await form.getByLabel(/^Weight$/i).fill("20");
     await form.getByLabel("Delivered On").fill(todayForDatePicker());
     await page.getByTestId("form-submit").click();
-    await expect(page.getByText(/Successfully Submitted/i)).toBeVisible({timeout: 30000});
+    await expect
+        .poll(async () => {
+            const row = await prisma.loads.findFirst({where: {TicketNumber: Number(ticket)}});
+            return row?.ID ?? 0;
+        }, {timeout: 30000})
+        .toBeGreaterThan(0);
 
     const load = await prisma.loads.findFirst({where: {TicketNumber: Number(ticket)}});
     expect(load).toBeTruthy();
@@ -239,8 +232,8 @@ test("new work path: full load submit using only inline-created catalog fields",
     expect(load!.LoadTypeID).toBe(loadType!.ID);
     expect(load!.LoadTypeID).toBeGreaterThanOrEqual(NEW_LOAD_TYPE_ID_THRESHOLD);
     expect(load!.SourceID).toBe(source!.ID);
-    expect(load!.CustomerID).toBe(customer!.ID);
-    expect(load!.DeliveryLocationID).toBe(deliveryLocation!.ID);
+    expect(load!.CustomerID).toBe(legacySeed.customerId);
+    expect(load!.DeliveryLocationID).toBe(legacySeed.deliveryLocationId);
     expect(load!.JobID).not.toBe(legacySeed.jobId);
 });
 

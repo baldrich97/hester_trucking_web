@@ -371,8 +371,8 @@ function PartialLoad({
             type: "select",
             label: "Delivery Location",
             searchQuery: "deliverylocations",
-            groupBy: "Recommend",
-            groupByNames: "Used by Customer|New for Customer",
+            groupBy: "Group",
+            groupByNames: "Customer=Used by Customer|Other=New for Customer",
             enableOptionGroups: customer > 0,
         },
         {

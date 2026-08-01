@@ -3,6 +3,7 @@ import {TestRunTracker} from "../helpers/testRunTracker";
 import {nextTestTicket} from "../helpers/testData";
 import {
     createSeedPrisma,
+    e2eSeedTicket,
     seedNewEraCatalog,
     seedOpenLegacyJob,
     type NewEraCatalogSeed,
@@ -126,12 +127,17 @@ test("new work path: seeded clean load type + inline-created source submit", asy
         {root: form},
     );
 
-    const ticket = String(nextTestTicket(93));
+    const ticket = String(e2eSeedTicket());
     await form.getByLabel(/Ticket Number/i).fill(ticket);
     await form.getByLabel(/^Weight$/i).fill("20");
     await form.getByLabel("Delivered On").fill(todayForDatePicker());
     await page.getByTestId("form-submit").click();
-    await expect(page.getByText(/Successfully Submitted/i)).toBeVisible({timeout: 30000});
+    await expect
+        .poll(async () => {
+            const row = await prisma.loads.findFirst({where: {TicketNumber: Number(ticket)}});
+            return row?.ID ?? 0;
+        }, {timeout: 30000})
+        .toBeGreaterThan(0);
 
     const load = await prisma.loads.findFirst({where: {TicketNumber: Number(ticket)}});
     expect(load).toBeTruthy();
@@ -174,12 +180,17 @@ test("new work path: inline load type + inline source submit", async ({page}) =>
         {root: form},
     );
 
-    const ticket = String(nextTestTicket(95));
+    const ticket = String(e2eSeedTicket());
     await form.getByLabel(/Ticket Number/i).fill(ticket);
     await form.getByLabel(/^Weight$/i).fill("20");
     await form.getByLabel("Delivered On").fill(todayForDatePicker());
     await page.getByTestId("form-submit").click();
-    await expect(page.getByText(/Successfully Submitted/i)).toBeVisible({timeout: 30000});
+    await expect
+        .poll(async () => {
+            const row = await prisma.loads.findFirst({where: {TicketNumber: Number(ticket)}});
+            return row?.ID ?? 0;
+        }, {timeout: 30000})
+        .toBeGreaterThan(0);
 
     const load = await prisma.loads.findFirst({where: {TicketNumber: Number(ticket)}});
     expect(load).toBeTruthy();

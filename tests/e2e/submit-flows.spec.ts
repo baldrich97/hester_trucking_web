@@ -25,7 +25,7 @@ test.describe("Submit flows", () => {
         await page.goto("/loads/massedit");
         await expect(page.locator("main")).toBeVisible({timeout: 15000});
         await expect(page.getByRole("columnheader", {name: /Ticket/i})).toBeVisible();
-        await page.getByRole("button", {name: /filter by customer/i}).click();
+        await page.getByRole("button", {name: /open filter modal/i}).click();
         await expect(page.getByText(/Specify Search Terms/i)).toBeVisible();
         await expect(page.getByLabel(/Ticket Number/i)).toBeVisible();
     });
@@ -84,7 +84,7 @@ test.describe("Submit flows", () => {
 
         await page.goto("/loads/massedit");
         await expect(page.locator("main")).toBeVisible({timeout: 15000});
-        await page.getByRole("button", {name: /filter by customer/i}).click();
+        await page.getByRole("button", {name: /open filter modal/i}).click();
         await page.getByLabel(/Ticket Number/i).fill(String(seed.anchorTicket));
         await page.getByRole("button", {name: "Search"}).click();
         const row = page.locator("tbody tr").filter({hasText: String(seed.anchorTicket)}).first();

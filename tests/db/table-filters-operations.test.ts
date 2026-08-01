@@ -71,7 +71,7 @@ describe("drivers table filters (dev DB)", () => {
         expect(rows.map((r) => r.ID)).not.toContain(inactiveDriverId);
     });
 
-    it("TruckID marks Recommend for drivers who have driven that truck", async () => {
+    it("TruckID assigns Truck group for drivers who have driven that truck", async () => {
         const ctx = await createTestContextWithPrisma(prisma);
         const rows = await queryDriversSearch(ctx, {
             search: tokens.recommend,
@@ -81,7 +81,7 @@ describe("drivers table filters (dev DB)", () => {
         });
 
         const match = rows.find((r) => r.ID === recommendDriverId);
-        expect(match?.Recommend).toBe(true);
+        expect(match?.Group).toBe("Truck");
     });
 });
 
@@ -130,7 +130,7 @@ describe("trucks table filters (dev DB)", () => {
         expect(rows.map((r) => r.ID)).not.toContain(inactiveTruckId);
     });
 
-    it("DriverID marks Recommend for trucks driven by that driver", async () => {
+    it("DriverID assigns Driver group for trucks driven by that driver", async () => {
         const ctx = await createTestContextWithPrisma(prisma);
         const rows = await queryTrucksSearch(ctx, {
             search: tokens.recommend,
@@ -140,7 +140,7 @@ describe("trucks table filters (dev DB)", () => {
         });
 
         const match = rows.find((r) => r.ID === recommendTruckId);
-        expect(match?.Recommend).toBe(true);
+        expect(match?.Group).toBe("Driver");
     });
 });
 

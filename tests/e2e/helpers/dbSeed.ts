@@ -231,13 +231,12 @@ export async function seedOpenLegacyJob(
     const week = formatDateToWeek(new Date());
     const state = await prisma.states.findFirst({orderBy: {ID: "asc"}});
     const driver = await prisma.drivers.findFirst({where: {Active: true}, orderBy: {ID: "asc"}});
-    const deliveryLocation = await prisma.deliveryLocations.findFirst({orderBy: {ID: "asc"}});
     const legacyLoadType = await prisma.loadTypes.findFirst({
         where: {ID: {lt: NEW_LOAD_TYPE_ID_THRESHOLD}, OR: [{Deleted: false}, {Deleted: null}]},
         orderBy: {ID: "asc"},
     });
-    if (!state || !driver || !deliveryLocation || !legacyLoadType) {
-        throw new Error("Dev DB missing state/driver/DL/legacy load type for open-job seed.");
+    if (!state || !driver || !legacyLoadType) {
+        throw new Error("Dev DB missing state/driver/legacy load type for open-job seed.");
     }
 
     const customerQuery = `CutCust-${token}`;
@@ -253,6 +252,23 @@ export async function seedOpenLegacyJob(
     });
     tracker.track("customers", customer.ID);
 
+    const deliveryQuery = `CutDL-${token}`;
+    const deliveryLocation = await prisma.deliveryLocations.create({
+        data: {
+            Description: `${TEST_NAME_PREFIX} ${deliveryQuery}`,
+            Deleted: false,
+            CustomerID: customer.ID,
+        },
+    });
+    tracker.track("deliveryLocations", deliveryLocation.ID);
+    await prisma.customerDeliveryLocations.create({
+        data: {
+            CustomerID: customer.ID,
+            DeliveryLocationID: deliveryLocation.ID,
+            DateUsed: new Date(),
+        },
+    });
+
     // Rematch resolves the FIRST daily for driver+week; attach the job to that one
     // (creating a duplicate daily would make the seeded job unmatchable on submit).
     let daily = await prisma.dailies.findFirst({
@@ -264,6 +280,14 @@ export async function seedOpenLegacyJob(
             data: {DriverID: driver.ID, Week: week},
         });
         tracker.track("dailies", daily.ID);
+    } else if (daily.LastPrinted) {
+        // Prior E2E runs (e.g. daily-printed warning specs) may leave LastPrinted set on
+        // the shared first-active driver; clear so legacy submit specs see the success toast.
+        await prisma.dailies.update({
+            where: {ID: daily.ID},
+            data: {LastPrinted: null},
+        });
+        daily = {...daily, LastPrinted: null};
     }
 
     const weekly = await prisma.weeklies.create({
@@ -307,7 +331,7 @@ export async function seedOpenLegacyJob(
         loadTypeId: legacyLoadType.ID,
         loadTypeDescription: legacyLoadType.Description,
         deliveryLocationId: deliveryLocation.ID,
-        deliveryLocationDescription: deliveryLocation.Description,
+        deliveryLocationDescription: deliveryQuery,
         jobId: job.ID,
     };
 }
