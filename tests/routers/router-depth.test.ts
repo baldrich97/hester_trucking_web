@@ -304,6 +304,8 @@ describe("rematchLoadToJob with an existing daily", () => {
                 DriverRate: 8,
                 CompanyRate: 15,
                 PaidOut: false,
+                TruckingRevenue: null,
+                CompanyRevenue: null,
             },
         ] as never);
 
@@ -315,23 +317,17 @@ describe("rematchLoadToJob with an existing daily", () => {
         expect(prisma.dailies.create).not.toHaveBeenCalled();
     });
 
-    it("throws when the matched job is already paid out", async () => {
+    it("creates a new job when the only matching job is already paid out", async () => {
         const prisma = createPrismaMock();
         prisma.dailies.findFirst.mockResolvedValue({ID: 30} as never);
         prisma.weeklies.findMany.mockResolvedValue([{ID: 40, CompanyRate: 15}] as never);
-        prisma.jobs.findMany.mockResolvedValue([
-            {
-                ID: 100,
-                TruckingRate: 10,
-                MaterialRate: 5,
-                DriverRate: 8,
-                CompanyRate: 15,
-                PaidOut: true,
-            },
-        ] as never);
+        prisma.jobs.findMany.mockResolvedValue([]);
+        prisma.jobs.create.mockResolvedValue({ID: 104} as never);
 
-        await expect(rematchLoadToJob({prisma}, rematchInput)).rejects.toThrow(/paid out/i);
-        expect(prisma.jobs.create).not.toHaveBeenCalled();
+        const result = await rematchLoadToJob({prisma}, rematchInput);
+
+        expect(result.JobID).toBe(104);
+        expect(prisma.jobs.create).toHaveBeenCalled();
     });
 
     it("creates a new weekly when no weekly matches the total rate", async () => {
@@ -364,6 +360,8 @@ describe("rematchLoadToJob with an existing daily", () => {
                 DriverRate: 8,
                 CompanyRate: 15,
                 PaidOut: false,
+                TruckingRevenue: null,
+                CompanyRevenue: null,
             },
         ] as never);
         prisma.jobs.create.mockResolvedValue({ID: 102} as never);

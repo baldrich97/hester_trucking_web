@@ -3,10 +3,14 @@ import {render, screen, waitFor} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
 
-const {confirmAlert, mutateAsync} = vi.hoisted(() => ({
+const mutationHooks = vi.hoisted(() => ({
     confirmAlert: vi.fn(),
-    mutateAsync: vi.fn().mockResolvedValue(true),
+    mutateAsync: vi.fn(),
+    onSuccess: undefined as undefined | ((result: unknown) => void),
+    onError: undefined as undefined | ((error: {message: string}) => void),
 }));
+
+const {confirmAlert, mutateAsync} = mutationHooks;
 
 vi.mock("../../src/hooks/useSourcesCutover", () => ({
     useSourcesCutover: () => ({active: true, newLoadTypeIdThreshold: 10000}),
@@ -16,7 +20,7 @@ vi.mock("next/router", () => ({
 }));
 vi.mock("react-toastify", () => ({toast: vi.fn()}));
 vi.mock("../../src/utils/appConfirm", () => ({
-    confirmAlert,
+    confirmAlert: (...args: unknown[]) => mutationHooks.confirmAlert(...args),
     confirmDestructive: vi.fn(),
 }));
 vi.mock("jquery", () => ({default: vi.fn()}));
@@ -46,11 +50,20 @@ vi.mock("../../src/elements/GenericForm", () => ({
 vi.mock("../../src/utils/trpc", () => ({
     trpc: {
         useQuery: () => ({data: [], isLoading: false}),
-        useMutation: () => ({mutateAsync, isLoading: false}),
+        useMutation: (_: string, opts?: {
+            onSuccess?: (result: unknown) => void;
+            onError?: (error: {message: string}) => void;
+        }) => {
+            mutationHooks.onSuccess = opts?.onSuccess;
+            mutationHooks.onError = opts?.onError;
+            return {mutateAsync, isLoading: false};
+        },
     },
 }));
 
 import PartialLoad from "../../src/components/objects/PartialLoad";
+import {toast} from "react-toastify";
+import {CLOSED_JOB_REMATCH_WARNING} from "../../src/constants/loadWarnings";
 
 const initialLoad = {
     ID: 42,
@@ -79,6 +92,10 @@ const initialLoad = {
 describe("PartialLoad", () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        confirmAlert.mockImplementation(({buttons}) => {
+            const confirm = buttons.find((b: {label: string}) => b.label === "Do Mass Edit");
+            void confirm?.onClick?.();
+        });
     });
 
     it("renders mass-edit submit when initial load is provided", () => {
@@ -128,5 +145,101 @@ describe("PartialLoad", () => {
         expect(messageText).toMatch(/999502/);
         expect(messageText).toMatch(/"children":\["#",99\]/);
         expect(messageText).toMatch(/truck stay unchanged/i);
+    });
+
+    it("LW-C1: shows warning toast (not success) when mass edit returns closed-job warning", async () => {
+        const user = userEvent.setup();
+        const refreshData = vi.fn();
+        mutateAsync.mockImplementation(async () => {
+            const result = {ok: true, warnings: [CLOSED_JOB_REMATCH_WARNING, "2099-W01", "5"]};
+            mutationHooks.onSuccess?.(result);
+            return result;
+        });
+
+        render(
+            <PartialLoad
+                initialLoad={initialLoad}
+                jobId={99}
+                selectedLoads={[{ID: 42, TicketNumber: 999501}]}
+                refreshData={refreshData}
+            />,
+        );
+
+        await user.click(screen.getByTestId("form-submit"));
+        await waitFor(() => expect(mutateAsync).toHaveBeenCalled());
+        expect(toast).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({type: "warning"}),
+        );
+        expect(toast).not.toHaveBeenCalledWith("Successfully Submitted!", expect.objectContaining({type: "success"}));
+        expect(refreshData).toHaveBeenCalled();
+    });
+
+    it("LW-C2: shows success toast when mass edit returns no warnings", async () => {
+        const user = userEvent.setup();
+        mutateAsync.mockImplementation(async () => {
+            const result = {ok: true, warnings: [] as string[]};
+            mutationHooks.onSuccess?.(result);
+            return result;
+        });
+
+        render(
+            <PartialLoad
+                initialLoad={initialLoad}
+                jobId={99}
+                selectedLoads={[{ID: 42, TicketNumber: 999501}]}
+                refreshData={vi.fn()}
+            />,
+        );
+
+        await user.click(screen.getByTestId("form-submit"));
+        await waitFor(() =>
+            expect(toast).toHaveBeenCalledWith("Successfully Submitted!", expect.objectContaining({type: "success"})),
+        );
+    });
+
+    it("LW-C3: shows error toast when mass edit mutation fails", async () => {
+        const user = userEvent.setup();
+        mutateAsync.mockResolvedValue({ok: true, warnings: []});
+
+        render(
+            <PartialLoad
+                initialLoad={initialLoad}
+                jobId={99}
+                selectedLoads={[{ID: 42, TicketNumber: 999501}]}
+                refreshData={vi.fn()}
+            />,
+        );
+
+        await user.click(screen.getByTestId("form-submit"));
+        await waitFor(() => expect(mutateAsync).toHaveBeenCalled());
+        mutationHooks.onError?.(new Error("This job has already been paid out."));
+        expect(toast).toHaveBeenCalledWith(
+            expect.stringMatching(/paid out/i),
+            expect.objectContaining({type: "error"}),
+        );
+    });
+
+    it("LW-C4: shows validation toast when required field missing", async () => {
+        const user = userEvent.setup();
+        const incompleteLoad = {...initialLoad, DriverID: null};
+
+        render(
+            <PartialLoad
+                initialLoad={incompleteLoad}
+                jobId={99}
+                selectedLoads={[{ID: 42, TicketNumber: 999501}]}
+                refreshData={vi.fn()}
+            />,
+        );
+
+        await user.click(screen.getByTestId("form-submit"));
+        await waitFor(() =>
+            expect(toast).toHaveBeenCalledWith(
+                expect.stringMatching(/Missing Driver ID/i),
+                expect.objectContaining({type: "error"}),
+            ),
+        );
+        expect(mutateAsync).not.toHaveBeenCalled();
     });
 });

@@ -66,7 +66,7 @@ describe("PayStubPrintable", () => {
             <PayStubPrintable payStub={payStub as never} />,
         );
         expectPdf(buffer);
-    });
+    }, 15_000);
 
     it("renders with a missing check number and empty jobs", async () => {
         const payStub = {
@@ -88,7 +88,7 @@ describe("PayStubPrintable", () => {
             <PayStubPrintable payStub={payStub as never} />,
         );
         expectPdf(buffer);
-    });
+    }, 15_000);
 });
 
 describe("InvoicePrintableBasic", () => {

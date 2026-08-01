@@ -56,18 +56,42 @@ async function updateLoadAndRelations(
           ? [input.ID]
           : [];
 
+    const loadSnapshotSelect = {
+        ID: true,
+        JobID: true,
+        DriverID: true,
+        TruckID: true,
+        StartDate: true,
+        CustomerID: true,
+        LoadTypeID: true,
+        DeliveryLocationID: true,
+    };
+
     let sourceJobIds: number[] = [];
     let beforeLoad: Awaited<ReturnType<typeof ctx.prisma.loads.findUnique>> = null;
+    let beforeMassLoads: Array<{
+        ID: number;
+        DriverID: number | null;
+        TruckID: number | null;
+        StartDate: Date | null;
+        CustomerID: number | null;
+        LoadTypeID: number | null;
+        DeliveryLocationID: number | null;
+    }> = [];
     if (affectedLoadIds.length) {
         await assertLoadsNotPaidOut(ctx, affectedLoadIds);
         await assertLoadsNotInvoiced(ctx, affectedLoadIds);
         const existing = asArray(await ctx.prisma.loads.findMany({
             where: {ID: {in: affectedLoadIds}},
-            select: {JobID: true},
+            select: mass_edit_ids ? loadSnapshotSelect : {JobID: true},
         }));
-        sourceJobIds = existing.map((row: {JobID: number | null}) => row.JobID).filter(Boolean) as number[];
+        sourceJobIds = existing
+            .map((row: {JobID?: number | null}) => row.JobID)
+            .filter(Boolean) as number[];
 
-        if (!mass_edit_ids && input.ID) {
+        if (mass_edit_ids) {
+            beforeMassLoads = existing as typeof beforeMassLoads;
+        } else if (input.ID) {
             beforeLoad = await ctx.prisma.loads.findUnique({where: {ID: input.ID}});
         }
     }
@@ -144,11 +168,23 @@ async function updateLoadAndRelations(
         await upsertSourceLoadType(ctx, SourceID, input.LoadTypeID);
     }
 
+    for (const before of beforeMassLoads) {
+        await syncLoadRelationalRecords(ctx, before, {
+            ID: before.ID,
+            DriverID: data.DriverID ?? before.DriverID,
+            TruckID: before.TruckID,
+            StartDate: before.StartDate,
+            CustomerID: data.CustomerID ?? before.CustomerID,
+            LoadTypeID: data.LoadTypeID ?? before.LoadTypeID,
+            DeliveryLocationID: data.DeliveryLocationID ?? before.DeliveryLocationID,
+        });
+    }
+
     await syncOpenSheetAmounts(ctx, {
         loadIds: affectedLoadIds,
         jobIds: [...new Set([...sourceJobIds, rematch.JobID])],
     });
-    return true;
+    return {ok: true, warnings: ctx.warnings};
 }
 
 export const loadsRouter = createRouter()
@@ -528,9 +564,7 @@ export const loadsRouter = createRouter()
                 });
             }
 
-            await updateLoadAndRelations(input.data, ctx, input.selectedLoads);
-
-            return true;
+            return await updateLoadAndRelations(input.data, ctx, input.selectedLoads);
         }
     })
     .mutation('post_duplicate_checker', {

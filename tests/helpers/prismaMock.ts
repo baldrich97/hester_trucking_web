@@ -5,7 +5,11 @@ import {beforeEach} from "vitest";
 export type MockPrisma = DeepMockProxy<PrismaClient>;
 
 export function createPrismaMock(): MockPrisma {
-    return mockDeep<PrismaClient>();
+    const prisma = mockDeep<PrismaClient>();
+    prisma.$transaction.mockImplementation(async (fn) =>
+        (fn as (tx: MockPrisma) => Promise<unknown>)(prisma),
+    );
+    return prisma;
 }
 
 export function usePrismaMock(): MockPrisma {

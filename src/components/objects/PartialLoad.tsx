@@ -16,6 +16,7 @@ import {useRouter} from "next/router";
 import GenericForm from "../../elements/GenericForm";
 import {toast} from "react-toastify";
 import {confirmAlert} from "../../utils/appConfirm";
+import {showLoadWarnings} from "../../utils/loadWarningToasts";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
@@ -99,8 +100,12 @@ function PartialLoad({
     });
 
     const doMassEdit = trpc.useMutation('loads.post_mass_edit', {
-        async onSuccess() {
-            toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
+        async onSuccess(result) {
+            const showedWarning = showLoadWarnings(result?.warnings);
+            if (!showedWarning) {
+                toast("Successfully Submitted!", {autoClose: 2000, type: "success"});
+            }
+            refreshData?.();
         },
         async onError(error) {
             toast(
@@ -163,7 +168,6 @@ function PartialLoad({
                             selectedLoads: selectedLoads.map((record) => record.ID) ?? [],
                             data
                         });
-                        refreshData()
                     },
                 },
                 {

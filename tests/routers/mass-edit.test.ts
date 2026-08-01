@@ -24,7 +24,12 @@ vi.mock("../../src/server/loadRematch", async (importOriginal) => {
     };
 });
 
+vi.mock("../../src/server/loadRelationalSync", () => ({
+    syncLoadRelationalRecords: vi.fn().mockResolvedValue(undefined),
+}));
+
 import {assertLoadsNotInvoiced, assertLoadsNotPaidOut, syncOpenSheetAmounts} from "../../src/server/loadSheetSync";
+import {syncLoadRelationalRecords} from "../../src/server/loadRelationalSync";
 
 describe("mass-edit router contracts", () => {
     const env = process.env;
@@ -61,7 +66,28 @@ describe("mass-edit router contracts", () => {
     it("ME-21 / PO-R1: post_mass_edit calls guards and omits TruckID/StartDate from massData", async () => {
         const prisma = createPrismaMock();
         configurePrismaMockDefaults(prisma);
-        prisma.loads.findMany.mockResolvedValue([{JobID: 1}]);
+        prisma.loads.findMany.mockResolvedValue([
+            {
+                ID: 10,
+                JobID: 1,
+                DriverID: 2,
+                TruckID: 3,
+                StartDate: new Date("2026-01-01"),
+                CustomerID: 4,
+                LoadTypeID: 5,
+                DeliveryLocationID: 6,
+            },
+            {
+                ID: 11,
+                JobID: 1,
+                DriverID: 2,
+                TruckID: 3,
+                StartDate: new Date("2026-01-02"),
+                CustomerID: 4,
+                LoadTypeID: 5,
+                DeliveryLocationID: 6,
+            },
+        ]);
         prisma.loads.updateMany.mockResolvedValue({count: 2});
         const ctx = await createTestContext(prisma, {session: fakeSession});
 
@@ -93,6 +119,7 @@ describe("mass-edit router contracts", () => {
         expect(assertLoadsNotPaidOut).toHaveBeenCalledWith(ctx, [10, 11]);
         expect(assertLoadsNotInvoiced).toHaveBeenCalledWith(ctx, [10, 11]);
         expect(syncOpenSheetAmounts).toHaveBeenCalled();
+        expect(syncLoadRelationalRecords).toHaveBeenCalledTimes(2);
         const updateData = prisma.loads.updateMany.mock.calls[0]![0].data as Record<string, unknown>;
         expect(updateData.TruckID).toBeUndefined();
         expect(updateData.StartDate).toBeUndefined();

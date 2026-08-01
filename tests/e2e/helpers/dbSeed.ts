@@ -620,3 +620,185 @@ export async function seedSourceReportFixture(
         loadDate: "2099-03-06",
     };
 }
+
+export type DailyPrintedWarningSeed = OpenLegacyJobSeed & {
+    printedDailyId: number;
+};
+
+/** Driver daily already printed — next load create should surface the daily-printed warning. */
+export async function seedDailyPrintedWarningContext(
+    prisma: PrismaClient,
+    tracker: TestRunTracker,
+    token: string,
+): Promise<DailyPrintedWarningSeed> {
+    const base = await seedOpenLegacyJob(prisma, tracker, token);
+    const daily = await prisma.dailies.findFirst({
+        where: {DriverID: base.driverId, Week: base.week},
+        orderBy: {ID: "asc"},
+    });
+    if (!daily) {
+        throw new Error("Expected daily for printed-warning seed.");
+    }
+    await prisma.dailies.update({
+        where: {ID: daily.ID},
+        data: {LastPrinted: new Date()},
+    });
+    return {...base, printedDailyId: daily.ID};
+}
+
+export type ClosedJobWarningSeed = OpenLegacyJobSeed & {
+    closedJobId: number;
+    firstTicket: number;
+    /** Load on a different open job; editing rates back to the closed job triggers the warning. */
+    rematchLoadId: number;
+};
+
+/** Closed job with matching rates — editing a second load's rates should surface closed-job rematch warning. */
+export async function seedClosedJobWarningContext(
+    prisma: PrismaClient,
+    tracker: TestRunTracker,
+    token: string,
+): Promise<ClosedJobWarningSeed> {
+    const base = await seedOpenLegacyJob(prisma, tracker, token);
+    const ticket = e2eSeedTicket();
+    const truck = await prisma.trucks.findFirst({where: {Active: true}, orderBy: {ID: "asc"}});
+    if (!truck) {
+        throw new Error("Dev DB missing active truck for closed-job warning seed.");
+    }
+    const closedJob = await prisma.jobs.findUnique({where: {ID: base.jobId}});
+    if (!closedJob) {
+        throw new Error("Expected seeded job for closed-job warning context.");
+    }
+    await prisma.loads.create({
+        data: {
+            TicketNumber: ticket,
+            DriverID: base.driverId,
+            TruckID: truck.ID,
+            CustomerID: base.customerId,
+            LoadTypeID: base.loadTypeId,
+            DeliveryLocationID: base.deliveryLocationId,
+            Week: base.week,
+            StartDate: new Date("2099-02-10T12:00:00.000Z"),
+            Created: new Date("2099-02-10T12:00:00.000Z"),
+            JobID: base.jobId,
+            Weight: 20,
+            TruckRate: 11,
+            MaterialRate: 6,
+            DriverRate: 9,
+            TotalRate: 17,
+            TotalAmount: 340,
+        },
+    });
+    await prisma.jobs.update({
+        where: {ID: base.jobId},
+        data: {TruckingRevenue: 200, CompanyRevenue: 400},
+    });
+
+    const openJob = await prisma.jobs.create({
+        data: {
+            DriverID: base.driverId,
+            DailyID: closedJob.DailyID,
+            WeeklyID: closedJob.WeeklyID,
+            CustomerID: base.customerId,
+            LoadTypeID: base.loadTypeId,
+            DeliveryLocationID: base.deliveryLocationId,
+            TruckingRate: 13,
+            MaterialRate: 7,
+            DriverRate: 10,
+            CompanyRate: 20,
+            PaidOut: false,
+        },
+    });
+    tracker.track("jobs", openJob.ID);
+
+    const rematchTicket = e2eSeedTicket();
+    const rematchLoad = await prisma.loads.create({
+        data: {
+            TicketNumber: rematchTicket,
+            DriverID: base.driverId,
+            TruckID: truck.ID,
+            CustomerID: base.customerId,
+            LoadTypeID: base.loadTypeId,
+            DeliveryLocationID: base.deliveryLocationId,
+            Week: base.week,
+            StartDate: new Date("2099-02-11T12:00:00.000Z"),
+            Created: new Date("2099-02-11T12:00:00.000Z"),
+            JobID: openJob.ID,
+            Weight: 20,
+            TruckRate: 13,
+            MaterialRate: 7,
+            DriverRate: 10,
+            TotalRate: 20,
+            TotalAmount: 400,
+        },
+    });
+    tracker.track("loads", rematchLoad.ID);
+
+    return {
+        ...base,
+        closedJobId: base.jobId,
+        firstTicket: ticket,
+        rematchLoadId: rematchLoad.ID,
+    };
+}
+
+export type PaystubGrossMismatchSeed = {
+    paystubId: number;
+    driverQuery: string;
+};
+
+/** Paystub with stored gross that does not match live job totals (for print-time alert). */
+export async function seedPaystubGrossMismatch(
+    prisma: PrismaClient,
+    tracker: TestRunTracker,
+    token: string,
+): Promise<PaystubGrossMismatchSeed> {
+    const base = await seedOpenLegacyJob(prisma, tracker, token);
+    const ticket = e2eSeedTicket();
+    const truck = await prisma.trucks.findFirst({where: {Active: true}, orderBy: {ID: "asc"}});
+    if (!truck) {
+        throw new Error("Dev DB missing active truck for paystub gross seed.");
+    }
+    const load = await prisma.loads.create({
+        data: {
+            TicketNumber: ticket,
+            DriverID: base.driverId,
+            TruckID: truck.ID,
+            CustomerID: base.customerId,
+            LoadTypeID: base.loadTypeId,
+            DeliveryLocationID: base.deliveryLocationId,
+            Week: base.week,
+            StartDate: new Date("2099-02-11T12:00:00.000Z"),
+            Created: new Date("2099-02-11T12:00:00.000Z"),
+            JobID: base.jobId,
+            Weight: 10,
+            TruckRate: 11,
+            MaterialRate: 6,
+            DriverRate: 9,
+            TotalRate: 17,
+            TotalAmount: 170,
+        },
+    });
+    tracker.track("loads", load.ID);
+
+    const paystub = await prisma.payStubs.create({
+        data: {
+            Created: new Date(),
+            DriverID: base.driverId,
+            CheckNumber: `${TEST_NAME_PREFIX}-Gross-${token}`,
+            Gross: 50,
+            Percentage: 25,
+            NetTotal: 12.5,
+            TakeHome: 12.5,
+            Deductions: 0,
+            Additions: 0,
+        },
+    });
+    tracker.track("payStubs", paystub.ID);
+    await prisma.jobs.update({
+        where: {ID: base.jobId},
+        data: {PayStubID: paystub.ID, PaidOut: true},
+    });
+
+    return {paystubId: paystub.ID, driverQuery: base.driverQuery};
+}

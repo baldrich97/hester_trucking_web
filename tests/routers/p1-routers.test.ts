@@ -133,6 +133,11 @@ describe("dailies.getByWeek", () => {
 describe("weeklies.post SourceID cascade", () => {
     it("cascades SourceID to jobs and loads", async () => {
         const prisma = createPrismaMock();
+        prisma.weeklies.findUnique.mockResolvedValue({
+            ID: 5,
+            Revenue: null,
+            InvoiceID: null,
+        } as never);
         prisma.jobs.findMany.mockResolvedValue([{ID: 1}, {ID: 2}] as never);
         prisma.jobs.updateMany.mockResolvedValue({count: 2} as never);
         prisma.loads.updateMany.mockResolvedValue({count: 4} as never);
@@ -166,6 +171,10 @@ describe("weeklies.post SourceID cascade", () => {
 describe("paystubs.put marks jobs paid", () => {
     it("creates paystub and marks selected jobs PaidOut", async () => {
         const prisma = createPrismaMock();
+        prisma.jobs.findMany.mockResolvedValue([
+            {ID: 42, DriverID: 1, PaidOut: false, PayStubID: null},
+            {ID: 43, DriverID: 1, PaidOut: false, PayStubID: null},
+        ] as never);
         prisma.payStubs.create.mockResolvedValue({ID: 99} as never);
         prisma.jobs.update.mockResolvedValue({ID: 1} as never);
         const ctx = await createTestContext(prisma);

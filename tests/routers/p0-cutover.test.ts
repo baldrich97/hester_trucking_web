@@ -271,6 +271,28 @@ describe("loads.post_mass_edit", () => {
         process.env.SOURCES_CUTOVER_FORCE = "true";
         const prisma = createPrismaMock();
         setupRematchMocks(prisma, 300);
+        prisma.loads.findMany.mockResolvedValue([
+            {
+                ID: 10,
+                JobID: 1,
+                DriverID: 1,
+                TruckID: 2,
+                StartDate: new Date("2026-07-20"),
+                CustomerID: 3,
+                LoadTypeID: 10001,
+                DeliveryLocationID: 4,
+            },
+            {
+                ID: 11,
+                JobID: 1,
+                DriverID: 1,
+                TruckID: 2,
+                StartDate: new Date("2026-07-20"),
+                CustomerID: 3,
+                LoadTypeID: 10001,
+                DeliveryLocationID: 4,
+            },
+        ] as never);
         prisma.loads.updateMany.mockResolvedValue({count: 2} as never);
         prisma.sourceLoadTypes.upsert.mockResolvedValue({} as never);
         const ctx = await createTestContext(prisma);
@@ -282,7 +304,7 @@ describe("loads.post_mass_edit", () => {
             },
             ctx,
         );
-        expect(result).toBe(true);
+        expect(result).toEqual({ok: true, warnings: []});
         expect(prisma.loads.updateMany).toHaveBeenCalledWith(
             expect.objectContaining({
                 where: {ID: {in: [10, 11]}},

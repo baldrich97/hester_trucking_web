@@ -5,8 +5,11 @@ import {
     NEW_LOAD_TYPE_ID_THRESHOLD,
 } from "../config/sourcesCutover";
 
-export const CLOSED_JOB_REMATCH_WARNING =
-    "This load matches a closed/paid out job. A new job has been made, please close the job/weekly if there are no other tickets for this job so it can be invoiced.";
+import {
+    CLOSED_JOB_REMATCH_WARNING,
+} from "../constants/loadWarnings";
+
+export {CLOSED_JOB_REMATCH_WARNING};
 
 export function assertCutoverLoadTypeAllowed(loadTypeId: number | null | undefined): void {
     if (!isSourcesCutoverActive()) {

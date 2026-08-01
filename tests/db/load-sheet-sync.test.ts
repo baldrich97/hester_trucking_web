@@ -427,6 +427,6 @@ describe("load sheet sync and paid-out guards (dev DB via tRPC)", () => {
         const massData = buildLoadPutInput(entities, nextTestTicket(353), {...RATES, TotalRate: 18});
         await expect(
             callTrpcMutation("loads.post_mass_edit", {selectedLoads: [loadId], data: massData}, ctx),
-        ).resolves.toBe(true);
+        ).resolves.toMatchObject({ok: true});
     });
 });
