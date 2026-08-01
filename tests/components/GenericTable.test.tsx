@@ -46,10 +46,10 @@ describe("GenericTable", () => {
             />,
         );
 
-        fireEvent.click(screen.getByRole("button", {name: /filter by customer/i}));
+        fireEvent.click(screen.getByRole("button", {name: /open filter modal/i}));
         expect(screen.getByText("Filter body")).toBeInTheDocument();
 
-        fireEvent.click(screen.getByRole("button", {name: /^search$/i}));
+        fireEvent.click(screen.getByRole("button", {name: /^apply$/i}));
         expect(doSearch).toHaveBeenCalled();
     });
 

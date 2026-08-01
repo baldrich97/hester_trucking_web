@@ -876,7 +876,13 @@ function StaticGenericTable({
                 return (
                   <StyledTableCell align="right" key="lookup-header">
                     <Box sx={{ display: "inline-flex", flexDirection: "row", gap: 0.75, justifyContent: "flex-end" }}>
-                      <IconButton size="small" onClick={() => setShowFilterModal(true)} sx={{ bgcolor: "primary.main", color: "common.white", width: 36, height: 36 }}>
+                      <IconButton
+                        size="small"
+                        aria-label="open filter modal"
+                        title="Filter results"
+                        onClick={() => setShowFilterModal(true)}
+                        sx={{ bgcolor: "primary.main", color: "common.white", width: 36, height: 36 }}
+                      >
                         <SearchIcon fontSize="small" />
                       </IconButton>
                       {searchSet ? (

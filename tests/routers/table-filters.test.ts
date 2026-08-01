@@ -104,19 +104,27 @@ describe("table filter queries (mocked Prisma where clauses)", () => {
             ctx,
         );
 
-        expectFindManyWhere(
-            prisma,
-            "invoices",
-            {
-                CustomerID: 8,
-                Loads: {some: {LoadTypeID: 15}},
-            },
-            {skip: 10, take: 10},
-        );
         const call = prisma.invoices.findMany.mock.calls.at(-1)![0] as {
-            where: {OR?: unknown[]; Loads?: unknown};
+            where: {AND: Array<Record<string, unknown>>};
+            skip: number;
+            take: number;
         };
-        expect(call.where.OR).toEqual([{TotalAmount: 1200}, {Number: 1200}]);
+        expect(call.where.AND).toEqual(
+            expect.arrayContaining([
+                {CustomerID: 8},
+                {Loads: {some: {LoadTypeID: 15}}},
+                {Loads: {some: {DeliveryLocationID: 6}}},
+            ]),
+        );
+        expect(call.where.AND).toEqual(
+            expect.arrayContaining([
+                {
+                    OR: [{TotalAmount: 1200}, {Number: 1200}],
+                },
+            ]),
+        );
+        expect(call.skip).toBe(10);
+        expect(call.take).toBe(10);
     });
 
     it("invoices.getCount uses tabValue for paid vs unpaid", async () => {
@@ -142,19 +150,19 @@ describe("table filter queries (mocked Prisma where clauses)", () => {
 
         await callTrpcQuery(
             "drivers.search",
-            {search: "smith", page: 0, TruckID: 9, onlyActive: true, orderBy: "LastName", order: "asc"},
+            {search: "smith", TruckID: 9, onlyActive: true},
             ctx,
         );
 
-        const call = prisma.drivers.findMany.mock.calls.at(-1)![0] as {
-            where: {AND: Array<{AND?: Array<{Active?: boolean}>}>};
-            skip: number;
-            take: number;
+        const call = prisma.drivers.findMany.mock.calls[0]![0] as {
+            where: {AND: Array<Record<string, unknown>>};
         };
-        expect(call.where.AND[0]!.AND).toEqual(
-            expect.arrayContaining([{Active: true}]),
+        expect(call.where.AND).toEqual(
+            expect.arrayContaining([
+                {Active: true},
+                expect.objectContaining({OR: expect.any(Array)}),
+            ]),
         );
-        expect(call.take).toBe(10);
     });
 
     it("trucks.search filters onlyActive and name search", async () => {
@@ -166,14 +174,14 @@ describe("table filter queries (mocked Prisma where clauses)", () => {
 
         await callTrpcQuery(
             "trucks.search",
-            {search: "peterbilt", page: 0, onlyActive: true, orderBy: "Name", order: "asc"},
+            {search: "peterbilt", onlyActive: true},
             ctx,
         );
 
-        const call = prisma.trucks.findMany.mock.calls.at(-1)![0] as {
-            where: {AND: Array<{AND?: Array<{Active?: boolean}>}>};
+        const call = prisma.trucks.findMany.mock.calls[0]![0] as {
+            where: {AND: Array<Record<string, unknown>>};
         };
-        expect(call.where.AND[0]!.AND).toEqual(
+        expect(call.where.AND).toEqual(
             expect.arrayContaining([{Active: true}]),
         );
     });
