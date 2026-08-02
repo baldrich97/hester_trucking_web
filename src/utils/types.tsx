@@ -32,17 +32,14 @@ export type FormFieldsType = {
    */
   searchQuery?: string;
   /**
-   * Map of server `Group` values to display labels for MUI group headers. The
-   * server's `.search` response carries a `Group: string` field on each row.
-   * Example for the LoadType picker with both Customer and Source:
-   *   {
-   *     CustomerAndSource: "Used with this Customer & Source",
-   *     Customer: "Used by this Customer",
-   *     Source: "Linked to this Source",
-   *     Other: "Other",
-   *   }
+   * Property on each option row used for MUI `groupBy` (e.g. `"Group"` or `"Recommend"`).
    */
-  groupLabels?: Record<string, string>;
+  groupBy?: string;
+  /**
+   * Pipe-delimited map of server group keys to display labels, or two-bucket
+   * labels for boolean `Recommend` (e.g. `"Driver=Driven Before|Other=New for Driver"`).
+   */
+  groupByNames?: string;
   /** When false, autocomplete options are flat (no group headers). Default true. */
   enableOptionGroups?: boolean;
   newOptionLabel?: string;

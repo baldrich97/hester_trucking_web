@@ -31,22 +31,41 @@ export const customerDeliveryLocationsRouter = createRouter()
         }),
         async resolve({ctx, input}) {
             const where = {CustomerID: input.CustomerID};
-            const orderByField = input.orderBy ?? "DeliveryLocationID";
-            const orderDir = (input.order ?? "asc") as "asc" | "desc";
             const page = input.page ?? 0;
-            const [rows, count] = await Promise.all([
-                ctx.prisma.customerDeliveryLocations.findMany({
+
+            const [grouped, count] = await Promise.all([
+                ctx.prisma.customerDeliveryLocations.groupBy({
+                    by: ["DeliveryLocationID"],
                     where,
-                    include: {
-                        DeliveryLocations: {select: {Description: true}},
-                    },
-                    distinct: ["CustomerID", "DeliveryLocationID"],
-                    orderBy: {[orderByField]: orderDir},
+                    _max: {DateUsed: true},
+                    _count: {_all: true},
+                    orderBy: {_max: {DateUsed: "desc"}},
                     take: 10,
                     skip: page * 10,
                 }),
-                ctx.prisma.customerDeliveryLocations.count({where}),
+                ctx.prisma.customerDeliveryLocations.groupBy({
+                    by: ["DeliveryLocationID"],
+                    where,
+                }).then((groups) => groups.length),
             ]);
+
+            const locationIds = grouped.map((g) => g.DeliveryLocationID);
+            const locations =
+                locationIds.length > 0
+                    ? await ctx.prisma.deliveryLocations.findMany({
+                          where: {ID: {in: locationIds}},
+                          select: {ID: true, Description: true},
+                      })
+                    : [];
+            const locationMap = Object.fromEntries(locations.map((dl) => [dl.ID, dl]));
+
+            const rows = grouped.map((g) => ({
+                DeliveryLocationID: g.DeliveryLocationID,
+                lastUsed: g._max.DateUsed,
+                useCount: g._count._all,
+                DeliveryLocations: locationMap[g.DeliveryLocationID] ?? null,
+            }));
+
             return {rows, count};
         },
     })

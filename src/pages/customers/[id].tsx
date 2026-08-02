@@ -1,5 +1,5 @@
 /* eslint-disable react-hooks/rules-of-hooks */
-import React, { useState } from "react";
+import React from "react";
 import CustomerObject from "../../components/objects/Customer";
 import { GetServerSideProps } from "next";
 import { prisma } from "server/db/client";
@@ -7,8 +7,6 @@ import {
   CustomersModel,
   InvoicesModel,
   StatesModel,
-  CustomerLoadTypesModel,
-  CustomerDeliveryLocationsModel,
 } from "../../../prisma/zod";
 import { z } from "zod";
 import Grid2 from "@mui/material/Unstable_Grid2";
@@ -16,41 +14,24 @@ import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
 import GenericTable from "elements/GenericTable";
+import PaginatedAssociationTable from "elements/PaginatedAssociationTable";
+import TableCell from "@mui/material/TableCell";
 import { TableColumnOverridesType, TableColumnsType } from "utils/types";
 import {
   Invoices,
-  Customers,
   Loads,
-  DeliveryLocations,
-  Drivers,
-  LoadTypes,
-  Trucks,
-  CustomerDeliveryLocations,
-  CustomerLoadTypes,
 } from "@prisma/client";
-import { trpc } from "utils/trpc";
-import Close from "@mui/icons-material/Close";
-import { Button, Modal, Typography } from "@mui/material";
-import { toast } from "react-toastify";
 
 type StatesType = z.infer<typeof StatesModel>;
 type CustomersType = z.infer<typeof CustomersModel>;
 type InvoicesType = z.infer<typeof InvoicesModel>;
-type CustomerLoadTypesType = z.infer<typeof CustomerLoadTypesModel>;
-type CustomerDeliveryLocationsType = z.infer<
-  typeof CustomerDeliveryLocationsModel
->;
 
-const style = {
-  position: "absolute",
-  top: "50%",
-  left: "50%",
-  transform: "translate(-50%, -50%)",
-  width: 800,
-  bgcolor: "background.paper",
-  border: "2px solid #000",
-  boxShadow: 24,
-};
+function formatAssociationDate(value: unknown) {
+  if (!value) {
+    return "—";
+  }
+  return new Date(String(value)).toLocaleDateString();
+}
 
 const columns: TableColumnsType = [
   { name: "InvoiceDate", as: "Invoice Date" },
@@ -105,85 +86,19 @@ const Customer = ({
   ltcount: number;
   dlcount: number;
 }) => {
-  const ltcolumns: TableColumnsType = [
-    { name: "LoadTypes.Description", as: "Description" },
-    { name: "LoadTypes.Notes", as: "Notes" },
-    { name: "Remove", as: "" },
-  ];
-
-  const ltoverrides: TableColumnOverridesType = [
-    {
-      name: "Remove",
-      type: "action",
-      callback: handleDeleteLoadType,
-      icon: <Close />,
-    },
-  ];
-
-  const dlcolumns: TableColumnsType = [
-    { name: "DeliveryLocations.Description", as: "Description" },
-    { name: "Remove", as: "" },
-  ];
-
-  const dloverrides: TableColumnOverridesType = [
-    {
-      name: "Remove",
-      type: "action",
-      callback: handleDeleteDeliveryLocation,
-      icon: <Close />,
-    },
-  ];
-
-  const [deletedItem, setDeletedItem] = useState<
-    CustomerDeliveryLocationsType | CustomerLoadTypesType | null
-  >(null);
-
-  function handleDeleteLoadType(item: CustomerLoadTypesType) {
-    setMethod("customerloadtypes.delete");
-    setDeletedItem(item);
-    handleOpen();
-  }
-
-  function handleDeleteDeliveryLocation(item: CustomerDeliveryLocationsType) {
-    setMethod("customerdeliverylocations.delete");
-    setDeletedItem(item);
-    handleOpen();
-  }
-
   const [tabValue, setTabValue] = React.useState(0);
 
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
   };
 
-  const [open, setOpen] = useState(false);
-
   const customerId = initialCustomer.ID;
   const invoiceTableInput = { customer: customerId };
   const loadTableInput = { customer: customerId };
-  const loadTypeTableInput = { CustomerID: customerId };
-  const deliveryLocationTableInput = { CustomerID: customerId };
-
-  const [method, setMethod] = useState<
-    "customerdeliverylocations.delete" | "customerloadtypes.delete"
-  >("customerdeliverylocations.delete");
-
-  const handleOpen = () => setOpen(true);
-
-  const handleClose = () => {
-    setOpen(false);
-    setDeletedItem(null);
-  };
-
-  const deleteRelated = trpc.useMutation([method], {
-    async onSuccess() {
-      window.location.reload();
-    },
-  });
 
   return (
-    <Grid2 container>
-      <Grid2 xs={12} sx={{ paddingRight: 2.5 }}>
+    <Grid2 container sx={{width: "100%"}}>
+      <Grid2 xs={12}>
         <Box sx={{ borderBottom: 1, borderColor: "divider", marginBottom: 2 }}>
           <Tabs value={tabValue} onChange={handleChange}>
             <Tab label="Details" />
@@ -199,47 +114,60 @@ const Customer = ({
                 initialCustomer={initialCustomer}
               />
             </Grid2>
-            <Grid2 container xs={12}>
-              <Grid2 xs={6} sx={{ paddingRight: 1.25 }}>
-                {/* <Box
-                  sx={{
-                    backgroundColor: "#757575",
-                    borderRadius: 1.5,
-                    marginBottom: 2,
-                  }}
-                > */}
-                <Typography sx={{ padding: 1 }} variant="h5">
-                  Associated Load Types
-                </Typography>
-                {/* </Box> */}
-                <GenericTable
-                  trpcQuery="customerloadtypes.getAllPage"
-                  trpcInput={loadTypeTableInput}
-                  resultShape="paginated"
-                  initialRows={[]}
+            <Grid2
+              container
+              spacing={2}
+              sx={{width: "100%", px: 2.5, display: "flex"}}
+            >
+              <Grid2 xs={12} lg={6} sx={{minWidth: 0, flex: {xs: "1 1 100%", lg: "1 1 50%"}, maxWidth: {xs: "100%", lg: "50%"}}}>
+                <PaginatedAssociationTable
+                  title="Associated Load Types"
+                  procedure="customerloadtypes.getAllPage"
+                  customerId={customerId}
                   initialCount={ltcount}
-                  fetchOnMount={ltcount > 0}
-                  defaultOrderBy="LoadTypeID"
-                  defaultOrder="asc"
-                  columns={ltcolumns}
-                  overrides={ltoverrides}
+                  orderBy="LoadTypeID"
+                  emptyMessage="No load types on file for this customer."
+                  headCells={["Last hauled", "Load type", "Notes", "Times hauled"]}
+                  getRowKey={(row) => String(row.LoadTypeID)}
+                  renderCells={(row) => {
+                    const loadTypes = row.LoadTypes as
+                      | {Description?: string; Notes?: string | null}
+                      | undefined;
+                    return (
+                      <>
+                        <TableCell>{formatAssociationDate(row.lastUsed)}</TableCell>
+                        <TableCell>{loadTypes?.Description ?? "—"}</TableCell>
+                        <TableCell>{loadTypes?.Notes ?? "N/A"}</TableCell>
+                        <TableCell align="right">{String(row.useCount ?? 0)}</TableCell>
+                      </>
+                    );
+                  }}
                 />
               </Grid2>
-              <Grid2 xs={6} sx={{ paddingLeft: 1.25 }}>
-                <Typography sx={{ padding: 1 }} variant="h5">
-                  Associated Delivery Locations
-                </Typography>
-                <GenericTable
-                  trpcQuery="customerdeliverylocations.getAllPage"
-                  trpcInput={deliveryLocationTableInput}
-                  resultShape="paginated"
-                  initialRows={[]}
+              <Grid2 xs={12} lg={6} sx={{minWidth: 0, flex: {xs: "1 1 100%", lg: "1 1 50%"}, maxWidth: {xs: "100%", lg: "50%"}}}>
+                <PaginatedAssociationTable
+                  title="Associated Delivery Locations"
+                  procedure="customerdeliverylocations.getAllPage"
+                  customerId={customerId}
                   initialCount={dlcount}
-                  fetchOnMount={dlcount > 0}
-                  defaultOrderBy="DeliveryLocationID"
-                  defaultOrder="asc"
-                  columns={dlcolumns}
-                  overrides={dloverrides}
+                  orderBy="DeliveryLocationID"
+                  emptyMessage="No delivery locations on file for this customer."
+                  headCells={["Last used", "Location", "Times used"]}
+                  getRowKey={(row) => String(row.DeliveryLocationID)}
+                  renderCells={(row) => {
+                    const deliveryLocations = row.DeliveryLocations as
+                      | {Description?: string}
+                      | undefined;
+                    return (
+                      <>
+                        <TableCell>{formatAssociationDate(row.lastUsed)}</TableCell>
+                        <TableCell>
+                          {deliveryLocations?.Description ?? "—"}
+                        </TableCell>
+                        <TableCell align="right">{String(row.useCount ?? 0)}</TableCell>
+                      </>
+                    );
+                  }}
                 />
               </Grid2>
             </Grid2>
@@ -271,60 +199,6 @@ const Customer = ({
             overrides={loverrides}
           />
         )}
-        <Modal open={open} onClose={handleClose}>
-          <Box sx={style}>
-            <Box sx={{ bgcolor: "secondary.main" }}>
-              <Typography color="white" variant="h6" style={{ padding: 4 }}>
-                Confirm Deletion
-              </Typography>
-            </Box>
-
-            <Typography variant="h6" style={{ textAlign: "center" }}>
-              Are you sure you want to delete this associated record? It will no
-              longer be recommended on future load creation.
-            </Typography>
-            <Grid2 container columnSpacing={2} justifyContent={"space-between"}>
-              <Grid2 xs={6} style={{ paddingTop: 5 }}>
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  onClick={async () => {
-                    handleClose();
-                  }}
-                >
-                  Cancel
-                </Button>
-              </Grid2>
-
-              <Grid2
-                xs={6}
-                style={{
-                  paddingTop: 5,
-                  display: "flex",
-                  justifyContent: "end",
-                }}
-              >
-                <Button
-                  variant="contained"
-                  color="error"
-                  onClick={async () => {
-                    if (deletedItem) {
-                      toast("Deleting...", {
-                        autoClose: 2000,
-                        type: "warning",
-                      });
-                      await deleteRelated.mutateAsync({ ...deletedItem });
-                    }
-
-                    handleClose();
-                  }}
-                >
-                  Delete
-                </Button>
-              </Grid2>
-            </Grid2>
-          </Box>
-        </Modal>
       </Grid2>
     </Grid2>
   );
@@ -415,13 +289,19 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       },
     });
 
-    dlcount = await prisma.customerDeliveryLocations.count({
-      where: { CustomerID: parseInt(id) },
-    });
+    dlcount = (
+        await prisma.customerDeliveryLocations.groupBy({
+            by: ["DeliveryLocationID"],
+            where: {CustomerID: parseInt(id)},
+        })
+    ).length;
 
-    ltcount = await prisma.customerLoadTypes.count({
-      where: { CustomerID: parseInt(id) },
-    });
+    ltcount = (
+        await prisma.customerLoadTypes.groupBy({
+            by: ["LoadTypeID"],
+            where: {CustomerID: parseInt(id)},
+        })
+    ).length;
   }
 
   if (!initialCustomer) {

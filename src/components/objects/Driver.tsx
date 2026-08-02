@@ -198,7 +198,7 @@ const Driver = ({
             sx={{
                 px: 2.5,
                 py: 1,
-                maxWidth: 960,
+                width: "100%",
             }}
         >
             <GenericForm

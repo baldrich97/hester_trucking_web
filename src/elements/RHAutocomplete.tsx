@@ -350,7 +350,11 @@ const RHAutocomplete = ({
                         fullWidth={true}
                         disabled={disabled}
                         onOpen={() => setMenuOpen(true)}
-                        onClose={() => setMenuOpen(false)}
+                        onClose={() => {
+                            setMenuOpen(false);
+                            setSearch("");
+                            setDebouncedSearch("");
+                        }}
                         isOptionEqualToValue={(option, v) => {
                             return (
                                 (option as Record<string, unknown>)[optionValue] ===
@@ -385,8 +389,13 @@ const RHAutocomplete = ({
                         onInputChange={(_, inputValue, reason) => {
                             if (reason === "input") {
                                 setSearch(inputValue);
-                            } else if (reason === "clear") {
+                            } else if (
+                                reason === "clear" ||
+                                reason === "reset" ||
+                                reason === "blur"
+                            ) {
                                 setSearch("");
+                                setDebouncedSearch("");
                                 if (clientProvidedOptions) {
                                     setOptions(withNewOption(data ?? []));
                                 }

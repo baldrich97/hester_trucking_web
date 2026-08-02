@@ -1,7 +1,8 @@
 /**
  * Sweeps orphaned test rows from the dev DB (leftovers from crashed/killed test runs
  * whose afterAll cleanup never ran). Everything deleted here is unambiguously
- * test data: [TEST] name prefixes, 2099-W* weeks, 999xxx tickets, 999800+ invoice numbers.
+ * test data: [TEST] name prefixes, 2099-W* weeks, 999xxx tickets, 999001+ invoice numbers,
+ * and invoices dated in 2099 (test sentinel dates).
  *
  * Usage: npm run test:cleanup
  */
@@ -104,7 +105,13 @@ add(
     "invoices",
     (
         await p.invoices.deleteMany({
-            where: {OR: [{CustomerID: {in: custIds}}, {Number: {gte: 999800, lte: 999999}}]},
+            where: {
+                OR: [
+                    {CustomerID: {in: custIds}},
+                    {Number: {gte: 999001, lte: 999999}},
+                    {InvoiceDate: {gte: new Date("2099-01-01T00:00:00.000Z")}},
+                ],
+            },
         })
     ).count,
 );
@@ -166,7 +173,14 @@ const remaining = {
     weeklies2099: await p.weeklies.count({where: {Week: {startsWith: "2099-W"}}}),
     dailies2099: await p.dailies.count({where: {Week: {startsWith: "2099-W"}}}),
     loads999: await p.loads.count({where: {TicketNumber: {gte: 999001, lte: 999999}}}),
-    invoices9998: await p.invoices.count({where: {Number: {gte: 999800, lte: 999999}}}),
+    invoices999: await p.invoices.count({
+        where: {
+            OR: [
+                {Number: {gte: 999001, lte: 999999}},
+                {InvoiceDate: {gte: new Date("2099-01-01T00:00:00.000Z")}},
+            ],
+        },
+    }),
 };
 console.log("remaining:", remaining);
 await p.$disconnect();

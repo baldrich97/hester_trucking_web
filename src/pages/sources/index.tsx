@@ -14,6 +14,7 @@ type SourcesType = z.infer<typeof SourcesModel>;
 
 const columns: TableColumnsType = [
   { name: "Name" },
+  { name: "ShortName", as: "Short Name" },
   { name: "ID", as: "", navigateTo: "/sources/" },
 ];
 

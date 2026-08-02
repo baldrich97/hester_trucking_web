@@ -22,7 +22,6 @@ import {
     DeliveryLocationsModel,
     DriversModel,
     SourcesModel,
-    CompleteTrucksDriven,
 } from "../../../prisma/zod";
 import {trpc} from "../../utils/trpc";
 import {useRouter} from "next/router";
@@ -43,7 +42,6 @@ import {FormFieldsType, SelectDataType} from "../../utils/types";
 import {
     CustomerDeliveryLocations,
     CustomerLoadTypes,
-    TrucksDriven,
 } from "@prisma/client";
 import {formatDateToWeek} from "../../utils/UtilityFunctions";
 import $ from "jquery";
@@ -130,7 +128,24 @@ function Load({
     const validationSchema = (initialLoad
         ? LoadsModel
         : LoadsModel.omit({ID: true})
-    ).extend({SourceID: z.number().int().nullish()});
+    )
+        .extend({SourceID: z.number().int().nullish()})
+        .superRefine((data, ctx) => {
+            if (!data.StartDate || Number.isNaN(new Date(data.StartDate).getTime())) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "Delivered On is required.",
+                    path: ["StartDate"],
+                });
+            }
+            if (data.TicketNumber > 2_147_483_647) {
+                ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: "Ticket number is too large (max 2,147,483,647).",
+                    path: ["TicketNumber"],
+                });
+            }
+        });
 
     type ValidationSchema = z.infer<typeof validationSchema>;
 
@@ -225,10 +240,8 @@ function Load({
             dlsetShouldRefresh(true);
         } else if (fieldName === "DriverID") {
             setDriver(id);
-            tdsetShouldRefresh(true);
         } else if (fieldName === "TruckID") {
             setTruck(id);
-            tdsetShouldRefresh(true);
         }
         closeNewObjectModal();
     };
@@ -304,15 +317,11 @@ function Load({
 
     const [srctrpcData, srcsetData] = useState<any[]>([]);
 
-    const [tdtrpcData, tdsetData] = useState<CompleteTrucksDriven[]>([]);
-
     const [ltshouldRefresh, ltsetShouldRefresh] = useState(false);
 
     const [dlshouldRefresh, dlsetShouldRefresh] = useState(false);
 
     const [srcshouldRefresh, srcsetShouldRefresh] = useState(false);
-
-    const [tdshouldRefresh, tdsetShouldRefresh] = useState(false);
 
     const deleteLoad = trpc.useMutation("loads.delete", {
         async onSuccess() {
@@ -432,19 +441,6 @@ function Load({
         },
     });
 
-    trpc.useQuery(["trucksdriven.search", {TruckID: truck, DriverID: driver}], {
-        enabled: tdshouldRefresh,
-        onSuccess(data) {
-            tdsetData(JSON.parse(JSON.stringify(data)));
-            tdsetShouldRefresh(false);
-            //forceUpdate;
-        },
-        onError(error) {
-            console.warn(error.message);
-            tdsetShouldRefresh(false);
-        },
-    });
-
     React.useEffect(() => {
         const subscription = watch((value, {name, type}) => {
             if (name === "TicketNumber" && type === "change") {
@@ -526,11 +522,6 @@ function Load({
                     //setValue("TruckID", 0)
                     setDriver(value.DriverID ?? 0);
                     //setTruck(0)
-                }
-                if (value.TruckID || value.DriverID) {
-                    tdsetShouldRefresh(true);
-                } else {
-                    tdsetData([]);
                 }
             }
         });
@@ -701,14 +692,16 @@ function Load({
         },
         {
             name: "StartDate",
-            size: 4,
-            required: false,
+            size: 3,
+            required: true,
+            shouldErrorOn: ["invalid_type", "invalid_date", "custom"],
+            errorMessage: "Delivered On is required.",
             type: "date",
             label: "Delivered On",
         },
         {
             name: "Week",
-            size: 4,
+            size: 3,
             required: false,
             type: "week",
             label: "Daily Week",
@@ -717,9 +710,9 @@ function Load({
             name: "TicketNumber",
             required: true,
             type: "textfield",
-            shouldErrorOn: ['invalid_type'],
+            shouldErrorOn: ['invalid_type', 'custom'],
             errorMessage: 'Ticket number is required.',
-            size: 4,
+            size: 12,
             number: true,
             label: "Ticket Number",
         },
@@ -789,7 +782,7 @@ function Load({
             multiline: true,
         },
     ];
-    }, [showSourceField, showLegacyPath, cutoverActive, customer, loadTypeSelected, initialLoad]);
+    }, [showSourceField, showLegacyPath, cutoverActive, customer, loadTypeSelected, truck, driver, initialLoad, watchHours, watchWeight]);
 
     const fields = useMemo(() => {
         const next = [...baseFields];
@@ -815,7 +808,7 @@ function Load({
         },
         {
             key: "SourceID",
-            data: srctrpcData.length > 0 ? srctrpcData : [],
+            data: [],
             optionValue: "ID",
             optionLabel: "Name",
             defaultValue: inlineDefaultIds.SourceID,
@@ -838,30 +831,14 @@ function Load({
         },
         {
             key: "TruckID",
-            data:
-                tdtrpcData.length > 0
-                    ? tdtrpcData
-                        .map((item) => item.Trucks)
-                        .filter((item) => item !== undefined)
-                        .filter((value, index, self) => {
-                            return index === self.findIndex((t) => t.ID === value.ID);
-                        })
-                    : [],
+            data: [],
             optionValue: "ID",
             optionLabel: "Name+|+Notes",
             defaultValue: inlineDefaultIds.TruckID,
         },
         {
             key: "DriverID",
-            data:
-                tdtrpcData.length > 0
-                    ? tdtrpcData
-                        .map((item) => item.Drivers)
-                        .filter((item) => item !== undefined)
-                        .filter((value, index, self) => {
-                            return index === self.findIndex((t) => t.ID === value.ID);
-                        })
-                    : [],
+            data: [],
             optionValue: "ID",
             optionLabel: "FirstName+LastName",
             defaultValue: inlineDefaultIds.DriverID,

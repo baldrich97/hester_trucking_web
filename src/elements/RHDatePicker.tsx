@@ -64,7 +64,13 @@ const RHDatePicker = ({ name, control, required = false, defaultValue = '', shou
                                     field.onChange(dateOnlyLocalToUtcNoon((event as Date | null) ?? null));
                                 }}
                                 label={label ?? name}
-                                renderInput={(params) => <TextField {...params} size={'small'}/>}
+                                renderInput={(params) => (
+                                    <TextField
+                                        {...params}
+                                        size="small"
+                                        error={shouldError}
+                                    />
+                                )}
                             />
                             {shouldError && <FormHelperText>{errorMessage}</FormHelperText>}
                         </LocalizationProvider>

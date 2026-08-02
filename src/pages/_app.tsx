@@ -27,7 +27,7 @@ import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
 import "../css/LoadingModal.css";
 import {useEffect} from "react";
-import {get} from "react-hook-form";
+import {useRouter} from "next/router";
 import {Session} from "next-auth";
 import 'react-toastify/dist/ReactToastify.css';
 
@@ -43,6 +43,8 @@ const MyApp: AppType = ({
   };
 
   const [session, setSession] = React.useState<null | Session>(null);
+
+  const router = useRouter();
 
   useEffect(() => {
     async function getToken() {
@@ -80,7 +82,7 @@ const MyApp: AppType = ({
           >
             <Toolbar />
             <Container maxWidth={false} sx={{ mt: 4, mb: 4 }}>
-              <Component {...pageProps} />
+              <Component key={router.asPath} {...pageProps} />
             </Container>
             <Copyright
               sx={{

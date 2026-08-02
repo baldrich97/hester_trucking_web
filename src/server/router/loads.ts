@@ -585,15 +585,23 @@ export const loadsRouter = createRouter()
             const {
                 DriverID, TruckID, StartDate, CustomerID, LoadTypeID,
                 DeliveryLocationID, TruckRate, MaterialRate, Week,
-                TotalRate, DriverRate, Weight, Hours, SourceID
+                TotalRate, DriverRate, Weight, Hours, SourceID, TicketNumber,
             } = input;
+
+            if (TicketNumber > 2_147_483_647) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Ticket number is too large (max 2,147,483,647).",
+                });
+            }
 
             // 🛡️ **Validation Checks**
             const requiredFields = [
                 {value: DriverID, message: "This load is missing a driver."},
                 {value: LoadTypeID, message: "This load is missing a load type."},
                 {value: CustomerID, message: "This load is missing a customer."},
-                {value: DeliveryLocationID, message: "This load is missing a delivery location."}
+                {value: DeliveryLocationID, message: "This load is missing a delivery location."},
+                {value: StartDate, message: "This load is missing a delivered date."},
             ];
             for (const field of requiredFields) {
                 if (!field.value) {

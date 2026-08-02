@@ -2,7 +2,7 @@ import {createRouter} from "./context";
 import {z} from "zod";
 import {SourcesModel} from "../../../prisma/zod";
 import {TRPCError} from "@trpc/server";
-import {isSourcesCutoverActive} from "../../config/sourcesCutover";
+import {isSourcesCutoverActive, NEW_LOAD_TYPE_ID_THRESHOLD} from "../../config/sourcesCutover";
 
 function assertSourcesCutoverActive(): void {
     if (!isSourcesCutoverActive()) {
@@ -74,7 +74,12 @@ export const sourcesRouter = createRouter()
             orderObj[orderBy] = order;
 
             const where = search && search.trim().length > 0
-                ? {Name: {contains: search.trim()}}
+                ? {
+                      OR: [
+                          {Name: {contains: search.trim()}},
+                          {ShortName: {contains: search.trim()}},
+                      ],
+                  }
                 : {};
 
             // When a LoadTypeID is provided, surface linked sources first, sorted by UseCount desc.
@@ -181,6 +186,7 @@ export const sourcesRouter = createRouter()
             const search = input.search?.trim();
             return ctx.prisma.loadTypes.findMany({
                 where: {
+                    ID: {gte: NEW_LOAD_TYPE_ID_THRESHOLD},
                     ...activeLoadTypeWhere,
                     NOT: {
                         SourceLoadTypes: {

@@ -31,22 +31,41 @@ export const customerLoadTypesRouter = createRouter()
         }),
         async resolve({ctx, input}) {
             const where = {CustomerID: input.CustomerID};
-            const orderByField = input.orderBy ?? "LoadTypeID";
-            const orderDir = (input.order ?? "asc") as "asc" | "desc";
             const page = input.page ?? 0;
-            const [rows, count] = await Promise.all([
-                ctx.prisma.customerLoadTypes.findMany({
+
+            const [grouped, count] = await Promise.all([
+                ctx.prisma.customerLoadTypes.groupBy({
+                    by: ["LoadTypeID"],
                     where,
-                    include: {
-                        LoadTypes: {select: {Description: true, Notes: true}},
-                    },
-                    distinct: ["CustomerID", "LoadTypeID"],
-                    orderBy: {[orderByField]: orderDir},
+                    _max: {DateDelivered: true},
+                    _count: {_all: true},
+                    orderBy: {_max: {DateDelivered: "desc"}},
                     take: 10,
                     skip: page * 10,
                 }),
-                ctx.prisma.customerLoadTypes.count({where}),
+                ctx.prisma.customerLoadTypes.groupBy({
+                    by: ["LoadTypeID"],
+                    where,
+                }).then((groups) => groups.length),
             ]);
+
+            const loadTypeIds = grouped.map((g) => g.LoadTypeID);
+            const loadTypes =
+                loadTypeIds.length > 0
+                    ? await ctx.prisma.loadTypes.findMany({
+                          where: {ID: {in: loadTypeIds}},
+                          select: {ID: true, Description: true, Notes: true},
+                      })
+                    : [];
+            const loadTypeMap = Object.fromEntries(loadTypes.map((lt) => [lt.ID, lt]));
+
+            const rows = grouped.map((g) => ({
+                LoadTypeID: g.LoadTypeID,
+                lastUsed: g._max.DateDelivered,
+                useCount: g._count._all,
+                LoadTypes: loadTypeMap[g.LoadTypeID] ?? null,
+            }));
+
             return {rows, count};
         },
     })
@@ -86,4 +105,3 @@ export const customerLoadTypesRouter = createRouter()
             }})
         },
     });
-

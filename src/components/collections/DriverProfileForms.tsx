@@ -527,7 +527,7 @@ export default function DriverProfileForms({
 
     return (
         <LocalizationProvider dateAdapter={AdapterDayjs}>
-            <Box sx={{maxWidth: 900, px: 2.5, py: 1}}>
+            <Box sx={{width: "100%", px: 2.5, py: 1}}>
                 {formsBad || licBad || trucksBad ? (
                     <Alert severity="warning" sx={{mb: 2}}>
                         {missingRequiredCount > 0

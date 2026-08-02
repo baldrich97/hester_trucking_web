@@ -24,9 +24,9 @@ import TableEntityLink from "../../elements/TableEntityLink";
 type StatesType = z.infer<typeof StatesModel>;
 
 type TruckDrivenRow = {
-    ID: number;
-    DateDriven: string;
     TruckID: number;
+    lastDriven: string;
+    driveCount: number;
     Trucks: { ID: number; Name: string; VIN: string | null; LicensePlate: string | null } | null;
 };
 
@@ -117,24 +117,26 @@ const Driver = ({
                 <>
                     <DriverObject states={states} initialDriver={initialDriver}/>
                     <Typography variant="h6" sx={{ mt: 4, mb: 1, px: 2.5 }}>Trucks driven</Typography>
-                    <Table size="small" sx={{ maxWidth: 900, mx: 2.5 }}>
+                    <Box sx={{px: 2.5, width: "100%"}}>
+                        <Table size="small" sx={{width: "100%"}}>
                         <TableHead>
                             <TableRow>
-                                <TableCell>Date</TableCell>
+                                <TableCell>Last driven</TableCell>
                                 <TableCell>Truck</TableCell>
                                 <TableCell>VIN</TableCell>
                                 <TableCell>Plate</TableCell>
+                                <TableCell align="right">Times driven</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {trucksDriven.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={4}>No trucks on file for this driver.</TableCell>
+                                    <TableCell colSpan={5}>No trucks on file for this driver.</TableCell>
                                 </TableRow>
                             ) : (
                                 trucksDriven.map((row) => (
-                                    <TableRow key={row.ID}>
-                                        <TableCell>{new Date(row.DateDriven).toLocaleDateString()}</TableCell>
+                                    <TableRow key={row.TruckID}>
+                                        <TableCell>{new Date(row.lastDriven).toLocaleDateString()}</TableCell>
                                         <TableCell>
                                             {row.Trucks ? (
                                                 <TableEntityLink href={`/trucks/${row.Trucks.ID}`}>
@@ -146,11 +148,13 @@ const Driver = ({
                                         </TableCell>
                                         <TableCell>{row.Trucks?.VIN ?? "—"}</TableCell>
                                         <TableCell>{row.Trucks?.LicensePlate ?? "—"}</TableCell>
+                                        <TableCell align="right">{row.driveCount}</TableCell>
                                     </TableRow>
                                 ))
                             )}
                         </TableBody>
                     </Table>
+                    </Box>
                 </>
             ) : null}
 
@@ -186,16 +190,31 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                 DriverForms: true,
                 States: true,
                 Carriers: {include: {States: true}},
-                TrucksDriven: {
-                    include: { Trucks: true },
-                    orderBy: { DateDriven: "desc" },
-                },
             },
         });
         if (row) {
-            const {TrucksDriven, ...rest} = row;
-            initialDriver = JSON.parse(JSON.stringify(rest)) as DriverFormsDataType;
-            trucksDriven = JSON.parse(JSON.stringify(TrucksDriven)) as TruckDrivenRow[];
+            initialDriver = JSON.parse(JSON.stringify(row)) as DriverFormsDataType;
+            const driverId = parseInt(id);
+            const grouped = await prisma.trucksDriven.groupBy({
+                by: ["TruckID"],
+                where: {DriverID: driverId},
+                _max: {DateDriven: true},
+                _count: {_all: true},
+                orderBy: {_max: {DateDriven: "desc"}},
+            });
+            const truckIds = grouped.map((g) => g.TruckID);
+            const trucks =
+                truckIds.length > 0
+                    ? await prisma.trucks.findMany({where: {ID: {in: truckIds}}})
+                    : [];
+            const truckMap = Object.fromEntries(trucks.map((t) => [t.ID, t]));
+            trucksDriven = grouped.map((g) => ({
+                TruckID: g.TruckID,
+                lastDriven: g._max.DateDriven!.toISOString(),
+                driveCount: g._count._all,
+                Trucks: truckMap[g.TruckID] ?? null,
+            }));
+            trucksDriven = JSON.parse(JSON.stringify(trucksDriven)) as TruckDrivenRow[];
             mode = initialDriver.OwnerOperator ? "oo" : "w2";
 
             if (mode === "oo" && initialDriver.CarrierID != null && initialDriver.CarrierID > 0) {

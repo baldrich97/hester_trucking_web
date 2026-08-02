@@ -102,6 +102,14 @@ const Loads = ({
 
   const [tabValue, setTabValue] = React.useState(0);
 
+  const [dataFresh, setDataFresh] = useState(false);
+
+  const triggerTableRefresh = () => {
+    setDataFresh(true);
+    setPage(0);
+    setShouldRefresh(true);
+  };
+
   const handleChange = (event: React.SyntheticEvent, newValue: number) => {
     setPage(0);
     setCustomer(0);
@@ -110,7 +118,7 @@ const Loads = ({
     setLoadType(0);
     setDeliveryLocation(0);
     setSearch(null);
-    setShouldRefresh(true);
+    triggerTableRefresh();
     setTabValue(newValue);
   };
 
@@ -184,9 +192,9 @@ const Loads = ({
     ticketFilterActive;
 
   const useAllFetched =
-    newData.length >= 1 || sortsApplied || filtersActive;
+    dataFresh || sortsApplied || filtersActive;
   const useUninvFetched =
-    newUninvData.length >= 1 || sortsApplied || filtersActive;
+    dataFresh || sortsApplied || filtersActive;
 
   const filterBody = <div style={{display: "flex", flexDirection: "column"}}>
     <b style={{textAlign: "center"}}>Specify Search Terms</b>
@@ -309,21 +317,19 @@ const Loads = ({
                 setPage(page);
                 setOrderBy(orderBy);
                 setOrder(order);
-                setShouldRefresh(true);
+                triggerTableRefresh();
               }}
               doSearch={() => {
-                setPage(0);
-                setShouldRefresh(true);
+                triggerTableRefresh();
               }}
               clearFilter={() => {
-                setPage(0);
                 setCustomer(0);
                 setDriver(0);
                 setTruck(0);
                 setLoadType(0);
                 setDeliveryLocation(0);
                 setSearch(null);
-                setShouldRefresh(true);
+                triggerTableRefresh();
               }}
               filterBody={filterBody}
           />)}
@@ -337,21 +343,19 @@ const Loads = ({
                 setPage(page);
                 setOrderBy(orderBy);
                 setOrder(order);
-                setShouldRefresh(true);
+                triggerTableRefresh();
               }}
               doSearch={() => {
-                setPage(0);
-                setShouldRefresh(true);
+                triggerTableRefresh();
               }}
               clearFilter={() => {
-                setPage(0);
                 setCustomer(0);
                 setDriver(0);
                 setTruck(0);
                 setLoadType(0);
                 setDeliveryLocation(0);
                 setSearch(null);
-                setShouldRefresh(true);
+                triggerTableRefresh();
               }}
               filterBody={filterBody}
           />)}
@@ -365,9 +369,7 @@ const Loads = ({
         />
         <Grid2 xs={4}>
           <Load
-              refreshData={() => {
-                setShouldRefresh(true);
-              }}
+              refreshData={triggerTableRefresh}
           />
         </Grid2>
       </Grid2>

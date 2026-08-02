@@ -101,7 +101,8 @@ const GenericForm = ({
                                     )}
                                     errorMessage={field.errorMessage ?? ""}
                                     searchQuery={field.searchQuery ?? ""}
-                                    groupLabels={field.groupLabels}
+                                    groupBy={field.groupBy}
+                                    groupByNames={field.groupByNames}
                                     enableOptionGroups={field.enableOptionGroups}
                                     selectedCustomer={selectedCustomer}
                                     selectedSource={selectedSource}
@@ -163,10 +164,11 @@ const GenericForm = ({
                                     name={field.name}
                                     control={control}
                                     required={field.required}
-                                    shouldError={field.shouldErrorOn?.includes(
-                                        errors[field.name]?.type
-                                    )}
-                                    errorMessage={field.errorMessage}
+                                    shouldError={Boolean(errors[field.name])}
+                                    errorMessage={
+                                        errors[field.name]?.message?.toString() ??
+                                        field.errorMessage
+                                    }
                                     label={field.label}
                                 />
                             </Grid2>
