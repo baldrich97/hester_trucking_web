@@ -24,7 +24,7 @@ export const LoadsModel = z.object({
   Deleted: z.boolean().nullish(),
   JobID: z.number().int().nullish(),
   Week: z.string(),
-  DriverRate: z.number().nullish(),
+  DriverRate: z.coerce.number().nullish(),
   SourceID: z.number().int().nullish(),
 })
 

@@ -37,7 +37,7 @@ async function openJobFromTicket(page: import("@playwright/test").Page, ticket: 
     await page.getByRole("button", {name: /open filter modal/i}).click();
     await expect(page.getByText(/Specify Search Terms/i)).toBeVisible();
     await page.getByLabel(/Ticket Number/i).fill(String(ticket));
-    await page.getByRole("button", {name: "Search"}).click();
+    await page.getByRole("button", {name: "Apply"}).click();
     const row = page.locator("tbody tr").filter({hasText: String(ticket)}).first();
     await expect(row).toBeVisible({timeout: 15000});
     await row.locator("button").last().click();

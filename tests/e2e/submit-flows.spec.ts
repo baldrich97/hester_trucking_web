@@ -86,7 +86,7 @@ test.describe("Submit flows", () => {
         await expect(page.locator("main")).toBeVisible({timeout: 15000});
         await page.getByRole("button", {name: /open filter modal/i}).click();
         await page.getByLabel(/Ticket Number/i).fill(String(seed.anchorTicket));
-        await page.getByRole("button", {name: "Search"}).click();
+        await page.getByRole("button", {name: "Apply"}).click();
         const row = page.locator("tbody tr").filter({hasText: String(seed.anchorTicket)}).first();
         await expect(row).toBeVisible({timeout: 15000});
         await row.locator("button").last().click();

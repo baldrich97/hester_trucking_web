@@ -39,7 +39,8 @@ test.describe("PDF smoke", () => {
 
     test("invoice PDF endpoint responds", async ({request}) => {
         const response = await request.get("/api/getPDF/invoice/1");
-        expect([200, 404, 500]).toContain(response.status());
+        // Missing invoices must 404 cleanly, never crash the renderer.
+        expect([200, 404]).toContain(response.status());
         if (response.status() === 200) {
             expect(response.headers()["content-type"]).toContain("application/pdf");
         }
@@ -52,6 +53,10 @@ test.describe("PDF smoke", () => {
 
     test("paystub PDF endpoint responds", async ({request}) => {
         const response = await request.get("/api/getPDF/paystub/1");
-        expect([200, 404, 500]).toContain(response.status());
+        // Missing paystubs must 404 cleanly, never crash the renderer.
+        expect([200, 404]).toContain(response.status());
+        if (response.status() === 200) {
+            expect(response.headers()["content-type"]).toContain("application/pdf");
+        }
     });
 });

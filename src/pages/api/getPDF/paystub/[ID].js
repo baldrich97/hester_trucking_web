@@ -51,6 +51,11 @@ const handler = async (req, res) => {
         },
     });
 
+    if (!payStub) {
+        res.status(404).json({error: "PayStub not found"});
+        return;
+    }
+
     const stream = await renderToStream(<PayStubPrintable payStub={payStub}/>)
     res.setHeader('Content-Type', 'application/pdf');
     const filename = "Paystub-" + payStub.ID;

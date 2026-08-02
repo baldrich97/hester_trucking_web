@@ -76,6 +76,11 @@ const handler = async (req, res) => {
         }
     })
 
+    if (!invoice) {
+        res.status(404).json({error: "Invoice not found"});
+        return;
+    }
+
     let invoices = null;
 
     if (invoice.Consolidated) {
