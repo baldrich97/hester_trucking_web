@@ -13,20 +13,6 @@ import {useRouter} from "next/router";
 import PaginatedSheetNav from "../../components/PaginatedSheetNav";
 import {calendarNavButtonSx} from "../../theme/muiShared";
 import {parseGrabCount} from "../../utils/paginatedSheet";
-import {
-    CompleteJobs,
-    CompleteWeeklies,
-    CompleteCustomers,
-    CompleteDeliveryLocations,
-    CompleteLoadTypes,
-} from "../../../prisma/zod";
-
-interface CustomerSheet extends CompleteWeeklies {
-    Customers: CompleteCustomers;
-    Jobs: CompleteJobs[];
-    DeliveryLocations: CompleteDeliveryLocations;
-    LoadTypes: CompleteLoadTypes;
-}
 
 export default function WeekliesNotPrinted() {
     const router = useRouter();
@@ -111,7 +97,7 @@ export default function WeekliesNotPrinted() {
                         <hr style={{height: 1, width: "100%"}} />
                     </Grid2>
 
-                    {data.map((weekly: CustomerSheet, index: number) => (
+                    {data.map((weekly, index) => (
                         <React.Fragment key={`sheet-${weekly.ID}-${index}`}>
                             {weekly.Jobs.length > 0 && (
                                 <WeeklySheet

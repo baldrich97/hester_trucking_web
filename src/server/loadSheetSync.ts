@@ -36,10 +36,12 @@ export async function assertLoadsNotPaidOut(ctx: any, loadIds: number[]): Promis
         return;
     }
 
-    const loads = asArray(await ctx.prisma.loads.findMany({
-        where: {ID: {in: loadIds}},
-        include: {Jobs: {select: {PaidOut: true}}},
-    }));
+    const loads = asArray(
+        (await ctx.prisma.loads.findMany({
+            where: {ID: {in: loadIds}},
+            include: {Jobs: {select: {PaidOut: true}}},
+        })) as Array<{Jobs?: {PaidOut: boolean} | null}>,
+    );
 
     for (const load of loads) {
         if (load.Jobs?.PaidOut) {
@@ -57,10 +59,12 @@ export async function assertLoadsNotInvoiced(ctx: any, loadIds: number[]): Promi
         return;
     }
 
-    const loads = asArray(await ctx.prisma.loads.findMany({
-        where: {ID: {in: loadIds}},
-        select: {Invoiced: true, InvoiceID: true},
-    }));
+    const loads = asArray(
+        (await ctx.prisma.loads.findMany({
+            where: {ID: {in: loadIds}},
+            select: {Invoiced: true, InvoiceID: true},
+        })) as Array<{Invoiced: boolean | null; InvoiceID: number | null}>,
+    );
 
     for (const load of loads) {
         if (load.Invoiced === true || load.InvoiceID != null) {
@@ -86,12 +90,14 @@ export async function syncOpenSheetAmounts(ctx: any, options: SyncOpenSheetAmoun
     const jobIdSet = new Set<number>(options.jobIds ?? []);
 
     if (loadIds.length) {
-        const loads = asArray(await ctx.prisma.loads.findMany({
-            where: {ID: {in: loadIds}},
-        }));
+        const loads = asArray(
+            (await ctx.prisma.loads.findMany({
+                where: {ID: {in: loadIds}},
+            })) as Array<{ID: number; Weight: number | null; Hours: number | null; TotalRate: number | null}>,
+        );
 
         await Promise.all(
-            loads.map((load: {ID: number; Weight: number | null; Hours: number | null; TotalRate: number | null}) =>
+            loads.map((load) =>
                 ctx.prisma.loads.update({
                     where: {ID: load.ID},
                     data: {
@@ -101,10 +107,12 @@ export async function syncOpenSheetAmounts(ctx: any, options: SyncOpenSheetAmoun
             ),
         );
 
-        const loadsWithJobs = asArray(await ctx.prisma.loads.findMany({
-            where: {ID: {in: loadIds}},
-            select: {JobID: true},
-        }));
+        const loadsWithJobs = asArray(
+            (await ctx.prisma.loads.findMany({
+                where: {ID: {in: loadIds}},
+                select: {JobID: true},
+            })) as Array<{JobID: number | null}>,
+        );
         for (const row of loadsWithJobs) {
             if (row.JobID) {
                 jobIdSet.add(row.JobID);
@@ -114,30 +122,34 @@ export async function syncOpenSheetAmounts(ctx: any, options: SyncOpenSheetAmoun
 
     const weeklyIds = new Set<number>();
     if (jobIdSet.size) {
-        const jobs = asArray(await ctx.prisma.jobs.findMany({
-            where: {ID: {in: [...jobIdSet]}},
-            select: {WeeklyID: true},
-        }));
+        const jobs = asArray(
+            (await ctx.prisma.jobs.findMany({
+                where: {ID: {in: Array.from(jobIdSet)}},
+                select: {WeeklyID: true},
+            })) as Array<{WeeklyID: number}>,
+        );
         for (const job of jobs) {
             weeklyIds.add(job.WeeklyID);
         }
     }
 
-    for (const weeklyId of weeklyIds) {
+    for (const weeklyId of Array.from(weeklyIds)) {
         const weekly = await ctx.prisma.weeklies.findUnique({where: {ID: weeklyId}});
         if (!weekly || weekly.Revenue !== null || weekly.InvoiceID !== null) {
             continue;
         }
 
-        const jobsOnWeekly = asArray(await ctx.prisma.jobs.findMany({
-            where: {WeeklyID: weeklyId},
-            include: {
-                Loads: {
-                    where: activeLoadWhere,
-                    select: {Weight: true, Hours: true},
+        const jobsOnWeekly = asArray(
+            (await ctx.prisma.jobs.findMany({
+                where: {WeeklyID: weeklyId},
+                include: {
+                    Loads: {
+                        where: activeLoadWhere,
+                        select: {Weight: true, Hours: true},
+                    },
                 },
-            },
-        }));
+            })) as Array<{Loads?: Array<{Weight: number | null; Hours: number | null}>}>,
+        );
 
         let totalWeight = 0;
         for (const job of jobsOnWeekly) {

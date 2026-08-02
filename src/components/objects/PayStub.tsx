@@ -21,7 +21,7 @@ import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Button from "@mui/material/Button";
 import {toast} from "react-toastify";
-import {calculatePaystubGross} from "../../utils/paystubRevenue";
+import {calculatePaystubGross, type PaystubJobRow} from "../../utils/paystubRevenue";
 import {
     formatPaystubGrossMismatchMessage,
     paystubGrossDiffers,
@@ -33,10 +33,11 @@ import PayStubJobs from "../collections/PayStubJobs";
 type DriversType = z.infer<typeof DriversModel>;
 type PayStubsType = z.infer<typeof PayStubsModel>;
 type JobsType = z.infer<typeof JobsModel>;
+type PayStubJob = JobsType & Pick<PaystubJobRow, "Loads">;
 
 interface PayStubData extends PayStubsType {
     Drivers: DriversType,
-    Jobs: JobsType[],
+    Jobs: PayStubJob[],
 }
 
 const defaultValues = {

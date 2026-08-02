@@ -71,6 +71,7 @@ async function updateLoadAndRelations(
     let beforeLoad: Awaited<ReturnType<typeof ctx.prisma.loads.findUnique>> = null;
     let beforeMassLoads: Array<{
         ID: number;
+        JobID: number | null;
         DriverID: number | null;
         TruckID: number | null;
         StartDate: Date | null;
@@ -81,12 +82,14 @@ async function updateLoadAndRelations(
     if (affectedLoadIds.length) {
         await assertLoadsNotPaidOut(ctx, affectedLoadIds);
         await assertLoadsNotInvoiced(ctx, affectedLoadIds);
-        const existing = asArray(await ctx.prisma.loads.findMany({
-            where: {ID: {in: affectedLoadIds}},
-            select: mass_edit_ids ? loadSnapshotSelect : {JobID: true},
-        }));
+        const existing = asArray(
+            (await ctx.prisma.loads.findMany({
+                where: {ID: {in: affectedLoadIds}},
+                select: mass_edit_ids ? loadSnapshotSelect : {JobID: true},
+            })) as Array<{JobID?: number | null}>,
+        );
         sourceJobIds = existing
-            .map((row: {JobID?: number | null}) => row.JobID)
+            .map((row) => row.JobID)
             .filter(Boolean) as number[];
 
         if (mass_edit_ids) {
@@ -138,7 +141,7 @@ async function updateLoadAndRelations(
         }
         await syncOpenSheetAmounts(ctx, {
             loadIds: affectedLoadIds,
-            jobIds: [...new Set([...sourceJobIds, rematch.JobID])],
+            jobIds: Array.from(new Set([...sourceJobIds, rematch.JobID])),
         });
         const updated = await ctx.prisma.loads.findUnique({where: {ID}});
         return {data: updated, warnings: ctx.warnings};
@@ -182,7 +185,7 @@ async function updateLoadAndRelations(
 
     await syncOpenSheetAmounts(ctx, {
         loadIds: affectedLoadIds,
-        jobIds: [...new Set([...sourceJobIds, rematch.JobID])],
+        jobIds: Array.from(new Set([...sourceJobIds, rematch.JobID])),
     });
     return {ok: true, warnings: ctx.warnings};
 }

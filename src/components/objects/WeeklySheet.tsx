@@ -11,17 +11,14 @@ import {toast} from "react-toastify";
 import {z} from "zod";
 
 import {
-    CompleteJobs,
     LoadsModel,
     DriversModel,
     JobsModel,
-    CompleteCustomers,
     TrucksModel,
     LoadTypesModel, DeliveryLocationsModel,
-    InvoicesModel, CompleteWeeklies,
-    CompleteDeliveryLocations,
-    CompleteLoadTypes
+    InvoicesModel, WeekliesModel,
 } from "../../../prisma/zod";
+import type {DailySheetJob} from "./DailySheet";
 import Tooltip from '@mui/material/Tooltip';
 import {confirmDestructive, confirmProceed} from "../../utils/appConfirm";
 import {formatMaterial} from "../../utils/formatMaterial";
@@ -41,11 +38,13 @@ type DeliveryLocation = z.infer<typeof DeliveryLocationsModel>;
 
 type LoadType = z.infer<typeof LoadTypesModel>;
 
-interface CustomerSheet extends CompleteWeeklies {
-    Customers: CompleteCustomers,
-    Jobs: CompleteJobs[],
-    DeliveryLocations: CompleteDeliveryLocations,
-    LoadTypes: CompleteLoadTypes
+type Weekly = z.infer<typeof WeekliesModel>;
+
+export interface CustomerSheet extends Weekly {
+    Customers: {ID: number; Name: string},
+    Jobs: DailySheetJob[],
+    DeliveryLocations: {ID: number; Description: string},
+    LoadTypes: {ID: number; Description: string},
 }
 
 // const printDailySheet = trpc.useMutation("dailies.postPrinted", {
@@ -344,7 +343,7 @@ const Sheet = ({weekly, week}: { weekly: CustomerSheet, week: string }) => {
     weekly.Jobs.map((job) => {
         for (let i = 0; i < 7; i++) {
             sums[moment(week).add(i, "days").format("MM/DD")] = sums[moment(week).add(i, "days").format("MM/DD")] ?? 0
-            sums[moment(week).add(i, "days").format("MM/DD")] += job.Loads.filter((item) => moment.utc(item.StartDate, "YYYY-MM-DD").format("MM/DD") === moment(week).add(i, "days").format("MM/DD")).reduce((acc, obj) => {
+            sums[moment(week).add(i, "days").format("MM/DD")] += (job.Loads ?? []).filter((item) => moment.utc(item.StartDate, "YYYY-MM-DD").format("MM/DD") === moment(week).add(i, "days").format("MM/DD")).reduce((acc, obj) => {
                 return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
             }, 0)
         }
@@ -398,11 +397,12 @@ const TotalsRow = ({
     weekly: CustomerSheet,
     sums: any[],
     week: string,
-    job: CompleteJobs,
+    job: DailySheetJob,
     setSheetState: any
 }) => {
-    const [isInvoiced, setIsInvoiced] = useState(job.Loads[0]?.Invoiced);
-    const [isPaid, setIsPaid] = useState(job.Loads[0]?.Invoices?.Paid)
+    const loads = job.Loads ?? [];
+    const [isInvoiced, setIsInvoiced] = useState(loads[0]?.Invoiced);
+    const [isPaid, setIsPaid] = useState(loads[0]?.Invoices?.Paid)
     const [isClosed, setIsClosed] = useState(weekly.Revenue !== null);
     const weightSum = Object.keys(sums).reduce((acc, obj) => {
         //eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -564,8 +564,9 @@ const Job = ({
                  index,
                  week,
 
-             }: { job: CompleteJobs, index: number, week: string }) => {
-    if (!job.Loads[0]) {
+             }: { job: DailySheetJob, index: number, week: string }) => {
+    const loads = job.Loads ?? [];
+    if (!loads[0]) {
         return null;
     }
     return (
@@ -579,7 +580,7 @@ const Job = ({
                 paddingRight: 5,
                 width: 65,
                 fontSize: 16
-            }}>{job.Loads[0].Trucks?.Notes ? job.Loads[0].Trucks?.Notes.split('#').length > 1 ? job.Loads[0].Trucks?.Notes.split('#')[1] : 'N/A' : 'N/A'}</b>
+            }}>{loads[0].Trucks?.Notes ? loads[0].Trucks?.Notes.split('#').length > 1 ? loads[0].Trucks?.Notes.split('#')[1] : 'N/A' : 'N/A'}</b>
             <Grid2
                 sx={{
                     textAlign: "center",
@@ -600,7 +601,7 @@ const Job = ({
 
                     {/*                    eslint-disable-next-line @typescript-eslint/ban-ts-comment*/}
                     {/*@ts-ignore*/}
-                    <b style={{fontSize: 17}}>{(Math.round(job.Loads.filter((item) => moment.utc(item.StartDate, "YYYY-MM-DD").format("MM/DD") === moment(week).add(index, "days").format("MM/DD")).reduce((acc, obj) => {
+                    <b style={{fontSize: 17}}>{(Math.round(loads.filter((item) => moment.utc(item.StartDate, "YYYY-MM-DD").format("MM/DD") === moment(week).add(index, "days").format("MM/DD")).reduce((acc, obj) => {
                         return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
                     }, 0) * 100) / 100)}</b>
 
@@ -612,7 +613,7 @@ const Job = ({
                 xs={true}
             >
 
-                <b style={{fontSize: 17}}>{(Math.round(job.Loads.reduce((acc, obj) => {
+                <b style={{fontSize: 17}}>{(Math.round(loads.reduce((acc, obj) => {
                     return acc + (obj.Hours ? obj.Hours : obj.Weight ? obj.Weight : 0)
                 }, 0) * 100) / 100)}</b>
 

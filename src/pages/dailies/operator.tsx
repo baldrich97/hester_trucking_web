@@ -9,22 +9,11 @@ import React from "react";
 import LoadingModal from "elements/LoadingModal";
 import {trpc} from "utils/trpc";
 import DailySheet from "components/objects/DailySheet";
-import {z} from "zod";
-import {CompleteJobs, DailiesModel, DriversModel, LoadsModel} from "../../../prisma/zod";
 import {useRouter} from "next/router";
 import {toast} from "react-toastify";
 import PaginatedSheetNav from "../../components/PaginatedSheetNav";
 import {calendarNavButtonSx} from "../../theme/muiShared";
 import {parseGrabCount} from "../../utils/paginatedSheet";
-
-type Loads = z.infer<typeof LoadsModel>;
-type Driver = z.infer<typeof DriversModel>;
-type Daily = z.infer<typeof DailiesModel>;
-
-interface DriverSheet extends Daily {
-    Drivers: Driver;
-    Jobs: CompleteJobs[];
-}
 
 export default function DailiesOperator() {
     const router = useRouter();
@@ -116,7 +105,7 @@ export default function DailiesOperator() {
                         <hr style={{height: 1, width: "100%"}} />
                     </Grid2>
 
-                    {data.map((sheet: DriverSheet, index: number) => (
+                    {data.map((sheet, index) => (
                         <DailySheet
                             key={`sheet-${sheet.ID}-${index}`}
                             sheet={sheet}

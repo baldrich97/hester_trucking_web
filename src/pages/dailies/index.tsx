@@ -12,7 +12,7 @@ import DailySheet from "components/objects/DailySheet";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import Tooltip from "@mui/material/Tooltip";
 import {z} from "zod";
-import {CompleteJobs, DailiesModel, DriversModel, LoadsModel} from "../../../prisma/zod";
+import {DailiesModel} from "../../../prisma/zod";
 import {formatDateToWeek} from "../../utils/UtilityFunctions";
 import {useDebouncedWeek} from "../../hooks/useDebouncedWeek";
 import {useRouter} from "next/router";
@@ -24,16 +24,7 @@ import {
     calendarWeekLabelSx,
 } from "../../theme/muiShared";
 
-type Loads = z.infer<typeof LoadsModel>;
-
-type Driver = z.infer<typeof DriversModel>;
-
 type Daily = z.infer<typeof DailiesModel>;
-
-interface DriverSheet extends Daily {
-    Drivers: Driver,
-    Jobs: CompleteJobs[]
-}
 
 type YearWeekFormat = `${number}-W${number}`;
 
@@ -218,7 +209,7 @@ export default function Dailies() {
                 {data.map((sheet) => (
                     <DailySheet
                         key={`${week}-${sheet.DriverID}`}
-                        sheet={sheet as DriverSheet}
+                        sheet={sheet}
                         week={week}
                         forceExpand={forceExpand}
                         initialExpand={initialExpand == sheet.DriverID}

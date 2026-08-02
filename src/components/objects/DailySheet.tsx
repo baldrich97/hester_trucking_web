@@ -10,7 +10,7 @@ import React, {useEffect, useState} from "react";
 import TextField from "@mui/material/TextField";
 import {toast} from "react-toastify";
 import {z} from "zod";
-import {CompleteJobs, LoadsModel, DriversModel, DailiesModel} from "../../../prisma/zod";
+import {JobsModel, LoadsModel, DriversModel, DailiesModel} from "../../../prisma/zod";
 import Tooltip from '@mui/material/Tooltip';
 import {confirmAlert, confirmDestructive} from "../../utils/appConfirm";
 import {formatMaterial} from "../../utils/formatMaterial";
@@ -26,9 +26,27 @@ type Driver = z.infer<typeof DriversModel>;
 
 type Daily = z.infer<typeof DailiesModel>;
 
-interface DriverSheet extends Daily {
+type Jobs = z.infer<typeof JobsModel>;
+
+export type DailySheetJob = Jobs & {
+    Loads?: Array<
+        Loads & {
+            Invoiced?: boolean | null;
+            Invoices?: {Paid?: boolean | null} | null;
+            Trucks?: {Notes?: string | null} | null;
+        }
+    >;
+    Customers?: {Name?: string; ID?: number} | null;
+    LoadTypes?: {Description?: string} | null;
+    DeliveryLocations?: {Description?: string} | null;
+    Weeklies?: {InvoiceID?: number | null} | null;
+    Dailies?: unknown;
+    Drivers?: {FirstName?: string; LastName?: string} | null;
+};
+
+export interface DriverSheet extends Daily {
     Drivers: Driver,
-    Jobs: CompleteJobs[],
+    Jobs: DailySheetJob[],
     initialExpand?: any
 }
 
@@ -183,8 +201,8 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
                 }}
             >
                 <HeaderRow/>
-                {daily.Jobs?.filter((job: CompleteJobs) => (job.Loads?.length ?? 0) > 0).map(
-                    (job: CompleteJobs) =>
+                {daily.Jobs?.filter((job: DailySheetJob) => (job.Loads?.length ?? 0) > 0).map(
+                    (job: DailySheetJob) =>
                         <Job job={job} key={"job-" + job.ID} ownerOperator={daily.Drivers.OwnerOperator}
                              toInvoiceButton={toInvoiceButton}/>
                 )}
@@ -196,22 +214,24 @@ const DailySheet = ({sheet, week, forceExpand, initialExpand = null, toInvoiceBu
 export default DailySheet;
 
 const Job = ({job, ownerOperator, toInvoiceButton}: {
-    job: CompleteJobs,
+    job: DailySheetJob,
     ownerOperator: boolean,
     toInvoiceButton: boolean
 }) => {
-    const [jobState, setJobState] = useState<CompleteJobs>(job);
+    const [jobState, setJobState] = useState<DailySheetJob>(job);
+
+    const loads = jobState.Loads ?? [];
 
     let weightSum = 0;
     return (
         <div key={"job-" + job.ID}>
-            {jobState.Loads.sort((a, b) => a.StartDate.getTime() - b.StartDate.getTime()).map((load, index) => {
+            {loads.sort((a, b) => a.StartDate.getTime() - b.StartDate.getTime()).map((load, index) => {
                 weightSum += load.Weight ? load.Weight : load.Hours ? load.Hours : 0;
                 weightSum = Math.round(weightSum * 100) / 100
                 return (
                     <span key={'job-container' + load.ID}>
                            <Load load={load} job={job} index={index} key={"load-" + load.ID}/>
-                        {index === jobState.Loads.length - 1 &&
+                        {index === loads.length - 1 &&
                             <TotalsRow job={job} index={index} load={load} weightSum={weightSum}
                                        key={"totalrow-" + job.ID} ownerOperator={ownerOperator}
                                        toInvoiceButton={toInvoiceButton}/>}
@@ -232,7 +252,7 @@ const TotalsRow = ({
 
                    }: {
     index: number,
-    job: CompleteJobs,
+    job: DailySheetJob,
     load: Loads,
     weightSum: number,
     ownerOperator: boolean,
@@ -525,7 +545,7 @@ const TotalsRow = ({
     )
 }
 
-const Load = ({load, index, job}: { load: Loads, index: number, job: CompleteJobs }) => {
+const Load = ({load, index, job}: { load: Loads, index: number, job: DailySheetJob }) => {
     return (
         <>
             <Grid2

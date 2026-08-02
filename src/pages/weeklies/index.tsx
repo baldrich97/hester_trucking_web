@@ -21,16 +21,6 @@ import {
     calendarTodayButtonSx,
     calendarWeekLabelSx,
 } from "../../theme/muiShared";
-import {
-    CompleteJobs, CompleteWeeklies, CompleteCustomers, CompleteDeliveryLocations, CompleteLoadTypes
-} from "../../../prisma/zod";
-
-interface CustomerSheet extends CompleteWeeklies {
-    Customers: CompleteCustomers,
-    Jobs: CompleteJobs[],
-    DeliveryLocations: CompleteDeliveryLocations,
-    LoadTypes: CompleteLoadTypes
-}
 
 type YearWeekFormat = `${number}-W${number}`;
 
@@ -214,7 +204,7 @@ export default function Weeklies() {
                     weekly.Jobs.length > 0 ? (
                         <WeeklySheet
                             key={`${week}-${weekly.ID}`}
-                            weekly={weekly as CustomerSheet}
+                            weekly={weekly}
                             week={week}
                             forceExpand={forceExpand}
                             initialExpand={initialExpand == weekly.ID}

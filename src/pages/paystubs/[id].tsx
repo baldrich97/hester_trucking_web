@@ -2,24 +2,18 @@ import React from "react";
 import PayStubObject from "../../components/objects/PayStub";
 import {GetServerSideProps} from "next";
 import {prisma} from "server/db/client";
-import {
-    InvoicesModel,
-    CustomersModel,
-    LoadsModel,
-    WeekliesModel,
-    LoadTypesModel,
-    DriversModel, PayStubsModel, JobsModel
-} from "../../../prisma/zod";
+import {DriversModel, PayStubsModel, JobsModel} from "../../../prisma/zod";
 import {z} from "zod";
-import {Jobs} from "@prisma/client";
+import type {PaystubJobRow} from "../../utils/paystubRevenue";
 
 type DriversType = z.infer<typeof DriversModel>;
 type PayStubsType = z.infer<typeof PayStubsModel>;
 type JobsType = z.infer<typeof JobsModel>;
+type PayStubJob = JobsType & Pick<PaystubJobRow, "Loads">;
 
 interface PayStubData extends PayStubsType {
     Drivers: DriversType,
-    Jobs: JobsType[],
+    Jobs: PayStubJob[],
 }
 
 const PayStub = ({

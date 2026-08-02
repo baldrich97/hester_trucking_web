@@ -19,13 +19,13 @@ export type JobGraph = {
 };
 
 export type BaseEntities = {
-    driver: {ID: number};
-    driverB: {ID: number};
+    driver: {ID: number; FirstName: string; LastName: string};
+    driverB: {ID: number; FirstName: string; LastName: string};
     truck: {ID: number};
     truckB: {ID: number};
-    customer: {ID: number};
+    customer: {ID: number; Name: string};
     deliveryLocation: {ID: number};
-    legacyLoadType: {ID: number};
+    legacyLoadType: {ID: number; Description: string};
 };
 
 export async function getBaseEntities(prisma: PrismaClient): Promise<BaseEntities> {
