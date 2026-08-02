@@ -231,12 +231,13 @@ export async function seedOpenLegacyJob(
     const week = formatDateToWeek(new Date());
     const state = await prisma.states.findFirst({orderBy: {ID: "asc"}});
     const driver = await prisma.drivers.findFirst({where: {Active: true}, orderBy: {ID: "asc"}});
+    const truck = await prisma.trucks.findFirst({where: {Active: true}, orderBy: {ID: "asc"}});
     const legacyLoadType = await prisma.loadTypes.findFirst({
         where: {ID: {lt: NEW_LOAD_TYPE_ID_THRESHOLD}, OR: [{Deleted: false}, {Deleted: null}]},
         orderBy: {ID: "asc"},
     });
-    if (!state || !driver || !legacyLoadType) {
-        throw new Error("Dev DB missing state/driver/legacy load type for open-job seed.");
+    if (!state || !driver || !truck || !legacyLoadType) {
+        throw new Error("Dev DB missing state/driver/truck/legacy load type for open-job seed.");
     }
 
     const customerQuery = `CutCust-${token}`;
@@ -317,6 +318,28 @@ export async function seedOpenLegacyJob(
         },
     });
     tracker.track("jobs", job.ID);
+
+    const load = await prisma.loads.create({
+        data: {
+            TicketNumber: e2eSeedTicket(),
+            DriverID: driver.ID,
+            TruckID: truck.ID,
+            CustomerID: customer.ID,
+            LoadTypeID: legacyLoadType.ID,
+            DeliveryLocationID: deliveryLocation.ID,
+            Week: week,
+            StartDate: new Date(),
+            Created: new Date(),
+            JobID: job.ID,
+            Weight: 18,
+            TruckRate: 11,
+            MaterialRate: 6,
+            DriverRate: 9,
+            TotalRate: 17,
+            TotalAmount: 306,
+        },
+    });
+    tracker.track("loads", load.ID);
 
     const driverQuery = driver.FirstName?.slice(0, 4) ?? "Driv";
 

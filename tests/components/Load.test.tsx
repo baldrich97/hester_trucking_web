@@ -54,7 +54,7 @@ const openJob = {
     MaterialRate: 5,
     DriverRate: 8,
     Week: formatDateToWeek(new Date()),
-    LastStartDate: null,
+    LastStartDate: new Date(),
 };
 
 const driverWeekDefaults = {

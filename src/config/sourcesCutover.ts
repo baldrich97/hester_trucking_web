@@ -4,6 +4,9 @@ export const SOURCES_CUTOVER_DATE_DEFAULT = '2026-08-02T00:00:00-05:00';
 /** LoadTypes with ID >= this are the post-cutover clean catalog. */
 export const NEW_LOAD_TYPE_ID_THRESHOLD = 10000;
 
+/** Open legacy jobs with no ticket in this window are hidden from the load form picker. */
+export const OPEN_LEGACY_JOBS_MAX_AGE_DAYS = 365;
+
 export function getSourcesCutoverDate(): Date {
     const raw = process.env.SOURCES_CUTOVER_DATE ?? SOURCES_CUTOVER_DATE_DEFAULT;
     return new Date(raw);

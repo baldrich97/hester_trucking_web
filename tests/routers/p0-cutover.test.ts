@@ -53,7 +53,7 @@ describe("loads.openLegacyJobs", () => {
                 LoadTypes: {ID: 116, Description: "ASPHALT (FRUITLAND)"},
                 DeliveryLocations: {ID: 2, Description: "Site A"},
                 Dailies: {Week: "2026-W30"},
-                Loads: [],
+                Loads: [{StartDate: new Date("2026-07-20")}],
             },
         ] as never);
         const ctx = await createTestContext(prisma);
@@ -77,9 +77,74 @@ describe("loads.openLegacyJobs", () => {
             expect.objectContaining({
                 where: expect.objectContaining({
                     CustomerID: 5,
+                    Loads: expect.objectContaining({
+                        some: expect.objectContaining({
+                            StartDate: expect.objectContaining({gte: expect.any(Date)}),
+                        }),
+                    }),
                 }),
             }),
         );
+    });
+
+    it("excludes jobs without a recent ticket", async () => {
+        process.env.SOURCES_CUTOVER_FORCE = "true";
+        const prisma = createPrismaMock();
+        prisma.jobs.findMany.mockResolvedValue([
+            {
+                ID: 100,
+                CustomerID: 1,
+                LoadTypeID: 116,
+                DeliveryLocationID: 2,
+                TruckingRate: 10,
+                MaterialRate: 5,
+                DriverRate: 8,
+                CompanyRate: 15,
+                Customers: {ID: 1, Name: "Acme"},
+                LoadTypes: {ID: 116, Description: "ASPHALT (FRUITLAND)"},
+                DeliveryLocations: {ID: 2, Description: "Site A"},
+                Dailies: {Week: "2026-W30"},
+                Loads: [],
+            },
+            {
+                ID: 101,
+                CustomerID: 1,
+                LoadTypeID: 116,
+                DeliveryLocationID: 2,
+                TruckingRate: 10,
+                MaterialRate: 5,
+                DriverRate: 8,
+                CompanyRate: 15,
+                Customers: {ID: 1, Name: "Acme"},
+                LoadTypes: {ID: 116, Description: "ASPHALT (FRUITLAND)"},
+                DeliveryLocations: {ID: 2, Description: "Site A"},
+                Dailies: {Week: "2026-W30"},
+                Loads: [{StartDate: new Date("2020-01-01")}],
+            },
+            {
+                ID: 102,
+                CustomerID: 1,
+                LoadTypeID: 116,
+                DeliveryLocationID: 2,
+                TruckingRate: 10,
+                MaterialRate: 5,
+                DriverRate: 8,
+                CompanyRate: 15,
+                Customers: {ID: 1, Name: "Acme"},
+                LoadTypes: {ID: 116, Description: "ASPHALT (FRUITLAND)"},
+                DeliveryLocations: {ID: 2, Description: "Site A"},
+                Dailies: {Week: "2026-W30"},
+                Loads: [{StartDate: new Date("2026-07-20")}],
+            },
+        ] as never);
+        const ctx = await createTestContext(prisma);
+        const result = await callTrpcQuery<{JobID: number}[]>(
+            "loads.openLegacyJobs",
+            {DriverID: 1, Week: "2026-W30"},
+            ctx,
+        );
+        expect(result).toHaveLength(1);
+        expect(result[0]?.JobID).toBe(102);
     });
 });
 

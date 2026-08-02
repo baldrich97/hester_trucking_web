@@ -924,7 +924,7 @@ function Load({
                             ) : openJobs.length > 0 ? (
                                 <>
                                     {openJobs.length} open legacy job
-                                    {openJobs.length === 1 ? "" : "s"} matching your selections
+                                    {openJobs.length === 1 ? "" : "s"} (not paid out and weekly not invoiced) matching your selections
                                     {weekFilterActive ? "" : " (daily week not applied yet)"}.
                                     {" "}
                                     <strong>Click a row</strong> to fill the form and attach this

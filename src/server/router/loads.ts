@@ -2,7 +2,11 @@ import {createRouter} from "./context";
 import {z} from "zod";
 import {LoadsModel} from '../../../prisma/zod';
 import {TRPCError} from "@trpc/server";
-import {isSourcesCutoverActive, NEW_LOAD_TYPE_ID_THRESHOLD} from "../../config/sourcesCutover";
+import {
+    isSourcesCutoverActive,
+    NEW_LOAD_TYPE_ID_THRESHOLD,
+    OPEN_LEGACY_JOBS_MAX_AGE_DAYS,
+} from "../../config/sourcesCutover";
 import {rematchLoadToJob} from "../loadRematch";
 import {buildLoadFilters} from "../loadListFilters";
 import {assertLoadsNotInvoiced, assertLoadsNotPaidOut, asArray, syncOpenSheetAmounts} from "../loadSheetSync";
@@ -446,6 +450,10 @@ export const loadsRouter = createRouter()
                 dailiesFilter.Week = input.Week;
             }
 
+            const minLastDeliveredOn = new Date();
+            minLastDeliveredOn.setHours(0, 0, 0, 0);
+            minLastDeliveredOn.setDate(minLastDeliveredOn.getDate() - OPEN_LEGACY_JOBS_MAX_AGE_DAYS);
+
             const jobs = await ctx.prisma.jobs.findMany({
                 where: {
                     ...(input.DriverID ? {DriverID: input.DriverID} : {}),
@@ -455,6 +463,12 @@ export const loadsRouter = createRouter()
                     ...(input.DeliveryLocationID ? {DeliveryLocationID: input.DeliveryLocationID} : {}),
                     Weeklies: {InvoiceID: null},
                     ...(Object.keys(dailiesFilter).length > 0 ? {Dailies: dailiesFilter} : {}),
+                    Loads: {
+                        some: {
+                            ...activeLoadWhere,
+                            StartDate: {gte: minLastDeliveredOn},
+                        },
+                    },
                 },
                 include: {
                     Customers: {select: {ID: true, Name: true}},
@@ -471,21 +485,26 @@ export const loadsRouter = createRouter()
                 take: 50,
             });
 
-            return jobs.map((job) => ({
-                JobID: job.ID,
-                CustomerID: job.CustomerID,
-                CustomerName: job.Customers.Name,
-                LoadTypeID: job.LoadTypeID,
-                LoadTypeDescription: job.LoadTypes.Description,
-                DeliveryLocationID: job.DeliveryLocationID,
-                DeliveryLocationDescription: job.DeliveryLocations.Description,
-                TruckingRate: job.TruckingRate,
-                MaterialRate: job.MaterialRate,
-                DriverRate: job.DriverRate,
-                CompanyRate: job.CompanyRate,
-                Week: job.Dailies.Week,
-                LastStartDate: job.Loads[0]?.StartDate ?? null,
-            }));
+            return jobs
+                .filter((job) => {
+                    const lastStart = job.Loads[0]?.StartDate;
+                    return lastStart != null && lastStart >= minLastDeliveredOn;
+                })
+                .map((job) => ({
+                    JobID: job.ID,
+                    CustomerID: job.CustomerID,
+                    CustomerName: job.Customers.Name,
+                    LoadTypeID: job.LoadTypeID,
+                    LoadTypeDescription: job.LoadTypes.Description,
+                    DeliveryLocationID: job.DeliveryLocationID,
+                    DeliveryLocationDescription: job.DeliveryLocations.Description,
+                    TruckingRate: job.TruckingRate,
+                    MaterialRate: job.MaterialRate,
+                    DriverRate: job.DriverRate,
+                    CompanyRate: job.CompanyRate,
+                    Week: job.Dailies.Week,
+                    LastStartDate: job.Loads[0]!.StartDate,
+                }));
         },
     })
     .query('getCount', {

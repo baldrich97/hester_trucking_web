@@ -241,7 +241,7 @@ export type OpenLegacyJobSeed = {
     jobId: number;
 };
 
-/** Open legacy job (no load ticket yet) for the current calendar week — drives cutover UI tests. */
+/** Open legacy job with a recent ticket for the current calendar week — drives cutover UI tests. */
 export async function seedOpenLegacyJob(
     prisma: PrismaClient,
     tracker: TestRunTracker,
@@ -257,7 +257,7 @@ export async function seedOpenLegacyJob(
         loadTypeId: entities.legacyLoadType.ID,
         deliveryLocationId: entities.deliveryLocation.ID,
         truckId: entities.truck.ID,
-        createLoad: options?.createLoad ?? false,
+        createLoad: options?.createLoad ?? true,
     });
     return {
         driverId: entities.driver.ID,
