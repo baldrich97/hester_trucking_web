@@ -276,6 +276,32 @@ describe("loadtypes.search era filter", () => {
         );
         expect(extraCalls).toHaveLength(0);
     });
+
+    it("does not append source short name to load type DisplayName", async () => {
+        process.env.SOURCES_CUTOVER_FORCE = "true";
+        const prisma = createPrismaMock();
+        prisma.loadTypes.findMany.mockResolvedValue([
+            {ID: 10000, Description: "ASPHALT", Deleted: false, Notes: null},
+        ] as never);
+        prisma.customerLoadTypes.findMany.mockResolvedValue([] as never);
+        prisma.sourceLoadTypes.findMany.mockResolvedValue([
+            {
+                LoadTypeID: 10000,
+                SourceID: 1,
+                UseCount: 5,
+                Sources: {ID: 1, Name: "Robertson", ShortName: "ROB"},
+            },
+        ] as never);
+        const ctx = await createTestContext(prisma);
+        const result = await callTrpcQuery<{Description: string; DisplayName: string}[]>(
+            "loadtypes.search",
+            {era: "new"},
+            ctx,
+        );
+        expect(result[0]?.Description).toBe("ASPHALT");
+        expect(result[0]?.DisplayName).toBe("ASPHALT");
+        expect(result[0]?.DisplayName).not.toContain("ROB");
+    });
 });
 
 describe("loads.put cutover gate", () => {

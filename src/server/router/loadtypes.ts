@@ -164,7 +164,7 @@ export const loadTypesRouter = createRouter()
                 baseRows = [...baseRows, ...extras];
             }
 
-            // Pull source-link metadata for every returned row to compute UseCount + DisplayName.
+            // Pull source-link metadata for ranking source-linked rows (UseCount), not display labels.
             const allIDs = baseRows.map((row) => row.ID);
             const sourceLinks = allIDs.length > 0
                 ? await ctx.prisma.sourceLoadTypes.findMany({
@@ -189,31 +189,20 @@ export const loadTypesRouter = createRouter()
             const annotated: Annotated[] = baseRows.map((row) => {
                 const links = linksByLoadType.get(row.ID) ?? [];
 
-                // Pick the annotation source: explicit SourceID first, otherwise the highest-UseCount link.
-                let annotationSource: (typeof links)[number]["Sources"] | null = null;
                 let useCount = 0;
                 if (input.SourceID) {
                     const match = links.find((l) => l.SourceID === input.SourceID);
                     if (match) {
-                        annotationSource = match.Sources;
                         useCount = match.UseCount;
                     }
                 }
-                if (!annotationSource && links.length > 0) {
+                if (!useCount && links.length > 0) {
                     const sorted = [...links].sort((a, b) => {
                         if (b.UseCount !== a.UseCount) return b.UseCount - a.UseCount;
                         return a.SourceID - b.SourceID;
                     });
-                    annotationSource = sorted[0]?.Sources ?? null;
-                    if (!useCount) useCount = sorted[0]?.UseCount ?? 0;
+                    useCount = sorted[0]?.UseCount ?? 0;
                 }
-
-                const shortName = annotationSource
-                    ? (annotationSource.ShortName && annotationSource.ShortName.length > 0
-                        ? annotationSource.ShortName
-                        : annotationSource.Name)
-                    : null;
-                const displayName = shortName ? `${row.Description} (${shortName})` : row.Description;
 
                 let recommend: Annotated["Recommend"] = null;
                 if (openJobIDs.has(row.ID)) {
@@ -228,7 +217,7 @@ export const loadTypesRouter = createRouter()
                     ...row,
                     Recommend: recommend,
                     UseCount: useCount,
-                    DisplayName: displayName,
+                    DisplayName: row.Description,
                 };
             });
 

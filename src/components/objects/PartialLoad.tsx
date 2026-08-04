@@ -360,7 +360,7 @@ function PartialLoad({
                 label: "Source",
                 searchQuery: "sources",
                 groupBy: "Recommend",
-                groupByNames: "Linked|Other",
+                groupByNames: "Associated=Associated|Not Associated",
                 enableOptionGroups: loadTypeSelected > 0,
             }]
             : []),

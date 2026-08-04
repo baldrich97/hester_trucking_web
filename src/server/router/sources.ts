@@ -93,7 +93,7 @@ export const sourcesRouter = createRouter()
                 const linkedSources = linked
                     .map((row) => ({
                         ...row.Sources,
-                        Recommend: "Linked" as const,
+                        Recommend: "Associated" as const,
                         UseCount: row.UseCount,
                     }))
                     .filter((src) => {

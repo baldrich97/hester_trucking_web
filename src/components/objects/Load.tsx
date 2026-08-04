@@ -627,7 +627,7 @@ function Load({
                   label: "Source",
                   searchQuery: "sources",
                   groupBy: "Recommend",
-                  groupByNames: "Linked=Linked to Load Type|Other",
+                  groupByNames: "Associated=Associated|Not Associated",
                   enableOptionGroups: loadTypeSelected > 0,
                   newOptionLabel: "New Source",
                   onNewOptionClick: () => setNewObjectModalTarget("SourceID"),
@@ -819,7 +819,7 @@ function Load({
             // (legacy vs new). Parent-cached rows blocked era updates in the dropdown.
             data: cutoverActive ? [] : lttrpcData.length > 0 ? lttrpcData : [],
             optionValue: "ID",
-            optionLabel: "DisplayName",
+            optionLabel: "Description",
             defaultValue: inlineDefaultIds.LoadTypeID,
         },
         {
