@@ -111,22 +111,21 @@ async function findOrCreateOpenWeekly(
 ): Promise<WeeklyRecord> {
     const weeklies: WeeklyRecord[] = await prisma.weeklies.findMany({where: weeklyWhere});
 
-    let weekly = weeklies.find((w) => compareRates(w.CompanyRate, createData.TotalRate));
-
-    if (!weekly) {
-        weekly = await prisma.weeklies.create({
-            data: {
-                Week: createData.Week,
-                CustomerID: createData.CustomerID,
-                LoadTypeID: createData.LoadTypeID,
-                DeliveryLocationID: createData.DeliveryLocationID,
-                CompanyRate: roundRate(createData.TotalRate),
-                SourceID: createData.SourceID,
-            },
-        });
+    const existing = weeklies.find((w) => compareRates(w.CompanyRate, createData.TotalRate));
+    if (existing) {
+        return existing;
     }
 
-    return weekly;
+    return prisma.weeklies.create({
+        data: {
+            Week: createData.Week,
+            CustomerID: createData.CustomerID,
+            LoadTypeID: createData.LoadTypeID,
+            DeliveryLocationID: createData.DeliveryLocationID,
+            CompanyRate: roundRate(createData.TotalRate),
+            SourceID: createData.SourceID,
+        },
+    }) as Promise<WeeklyRecord>;
 }
 
 async function rematchWithClient(ctx: any, input: RematchInput): Promise<RematchResult> {
