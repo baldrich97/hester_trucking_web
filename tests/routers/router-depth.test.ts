@@ -408,6 +408,55 @@ describe("rematchLoadToJob with an existing daily", () => {
     });
 });
 
+describe("rematchLoadToJob with no existing daily", () => {
+    it("reuses an existing open weekly instead of creating a duplicate", async () => {
+        const prisma = createPrismaMock();
+        prisma.dailies.findFirst.mockResolvedValue(null);
+        prisma.weeklies.findMany.mockResolvedValue([{ID: 40, CompanyRate: 15}] as never);
+        prisma.dailies.create.mockResolvedValue({ID: 31, DriverID: 5, Week: "2026-W30"} as never);
+        prisma.jobs.create.mockResolvedValue({ID: 105} as never);
+
+        const result = await rematchLoadToJob({prisma}, {
+            ...rematchInput,
+            DriverID: 5,
+        });
+
+        expect(result.JobID).toBe(105);
+        expect(prisma.weeklies.findMany).toHaveBeenCalled();
+        expect(prisma.weeklies.create).not.toHaveBeenCalled();
+        expect(prisma.jobs.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({
+                    WeeklyID: 40,
+                    DailyID: 31,
+                    DriverID: 5,
+                }),
+            }),
+        );
+    });
+
+    it("creates a weekly when no matching open weekly exists", async () => {
+        const prisma = createPrismaMock();
+        prisma.dailies.findFirst.mockResolvedValue(null);
+        prisma.weeklies.findMany.mockResolvedValue([] as never);
+        prisma.weeklies.create.mockResolvedValue({ID: 43, CompanyRate: 15} as never);
+        prisma.dailies.create.mockResolvedValue({ID: 32, DriverID: 6, Week: "2026-W30"} as never);
+        prisma.jobs.create.mockResolvedValue({ID: 106} as never);
+
+        const result = await rematchLoadToJob({prisma}, {
+            ...rematchInput,
+            DriverID: 6,
+        });
+
+        expect(result.JobID).toBe(106);
+        expect(prisma.weeklies.create).toHaveBeenCalledWith(
+            expect.objectContaining({
+                data: expect.objectContaining({CompanyRate: 15, Week: "2026-W30"}),
+            }),
+        );
+    });
+});
+
 // ---------------------------------------------------------------------------
 // dailies W2 / operator queries
 // ---------------------------------------------------------------------------

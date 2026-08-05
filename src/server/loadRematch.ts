@@ -95,6 +95,40 @@ function pushClosedJobWarning(ctx: any, week: string, customerId: number): void 
     }
 }
 
+type WeeklyRecord = {ID: number; CompanyRate: number | null};
+
+async function findOrCreateOpenWeekly(
+    prisma: any,
+    weeklyWhere: Record<string, unknown>,
+    createData: {
+        Week: string;
+        CustomerID: number;
+        LoadTypeID: number;
+        DeliveryLocationID: number;
+        TotalRate: number | null | undefined;
+        SourceID: number | null;
+    },
+): Promise<WeeklyRecord> {
+    const weeklies: WeeklyRecord[] = await prisma.weeklies.findMany({where: weeklyWhere});
+
+    let weekly = weeklies.find((w) => compareRates(w.CompanyRate, createData.TotalRate));
+
+    if (!weekly) {
+        weekly = await prisma.weeklies.create({
+            data: {
+                Week: createData.Week,
+                CustomerID: createData.CustomerID,
+                LoadTypeID: createData.LoadTypeID,
+                DeliveryLocationID: createData.DeliveryLocationID,
+                CompanyRate: roundRate(createData.TotalRate),
+                SourceID: createData.SourceID,
+            },
+        });
+    }
+
+    return weekly;
+}
+
 async function rematchWithClient(ctx: any, input: RematchInput): Promise<RematchResult> {
     const prisma = ctx.prisma;
     const {
@@ -126,25 +160,17 @@ async function rematchWithClient(ctx: any, input: RematchInput): Promise<Rematch
 
     const daily = await prisma.dailies.findFirst({where: {DriverID, Week}});
 
+    const weeklyCreateData = {
+        Week,
+        CustomerID,
+        LoadTypeID,
+        DeliveryLocationID,
+        TotalRate,
+        SourceID: effectiveSourceId,
+    };
+
     if (daily) {
-        const weeklies = await prisma.weeklies.findMany({where: weeklyWhere});
-
-        let weekly = weeklies.find((w: {CompanyRate: number | null}) =>
-            compareRates(w.CompanyRate, TotalRate),
-        );
-
-        if (!weekly) {
-            weekly = await prisma.weeklies.create({
-                data: {
-                    Week,
-                    CustomerID,
-                    LoadTypeID,
-                    DeliveryLocationID,
-                    CompanyRate: roundRate(TotalRate),
-                    SourceID: effectiveSourceId,
-                },
-            });
-        }
+        const weekly = await findOrCreateOpenWeekly(prisma, weeklyWhere, weeklyCreateData);
 
         const jobWhere: Record<string, unknown> = {
             DriverID,
@@ -201,24 +227,14 @@ async function rematchWithClient(ctx: any, input: RematchInput): Promise<Rematch
         return {JobID: newJob.ID, SourceID: effectiveSourceId};
     }
 
+    const weekly = await findOrCreateOpenWeekly(prisma, weeklyWhere, weeklyCreateData);
     const newDaily = await prisma.dailies.create({data: {DriverID, Week}});
-
-    const newWeekly = await prisma.weeklies.create({
-        data: {
-            Week,
-            CustomerID,
-            LoadTypeID,
-            DeliveryLocationID,
-            CompanyRate: roundRate(TotalRate),
-            SourceID: effectiveSourceId,
-        },
-    });
 
     const newJob = await prisma.jobs.create({
         data: {
             DriverID,
             DailyID: newDaily.ID,
-            WeeklyID: newWeekly.ID,
+            WeeklyID: weekly.ID,
             CustomerID,
             LoadTypeID,
             DeliveryLocationID,
