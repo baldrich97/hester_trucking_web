@@ -133,6 +133,7 @@ export const ALL_PROCEDURES: ProcedureCase[] = [
     m("invoices.post", {ID: 1, Number: 888001, CustomerID: 1, InvoiceDate: today, TotalAmount: 100}),
     m("invoices.postPrinted", {ID: 1}),
     m("invoices.postPaid", {ID: 1, PaidDate: today, CheckNumber: "CHK1"}),
+    m("invoices.postUnpaid", {ID: 1}),
     m("invoices.delete", {ID: 1}),
 
     // customerloadtypes / customerdeliverylocations
@@ -161,12 +162,15 @@ export const ALL_PROCEDURES: ProcedureCase[] = [
     q("weeklies.getByCustomer", {customer: 1}),
     m("weeklies.post", {ID: 1, Week: week, CustomerID: 1, LoadTypeID: 116, DeliveryLocationID: 1}),
     m("weeklies.postClosed", {ID: 1}),
+    m("weeklies.postReopen", {ID: 1}),
 
     // jobs
     q("jobs.getAll"),
     q("jobs.getByDriver", {driver: 1}),
     m("jobs.postClosed", {ID: 1}),
     m("jobs.postPaid", {ID: 1}),
+    m("jobs.postReopen", {ID: 1}),
+    m("jobs.postUnpaid", {ID: 1}),
 
     // paystubs
     q("paystubs.getAll"),

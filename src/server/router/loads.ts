@@ -761,7 +761,7 @@ export const loadsRouter = createRouter()
         },
     })
     .mutation('delete', {
-        input: LoadsModel,
+        input: z.object({ID: z.number()}),
         async resolve({ctx, input}) {
             const {ID} = input;
             await assertLoadsNotPaidOut(ctx, [ID]);

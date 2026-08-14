@@ -215,7 +215,7 @@ export const paystubsRouter = createRouter()
             })
         },
     }).mutation('delete', {
-        input: PayStubsModel,
+        input: z.object({ID: z.number()}),
         async resolve({ctx, input}) {
             const {ID} = input;
 
@@ -225,7 +225,7 @@ export const paystubsRouter = createRouter()
                     data: {PaidOut: false, PayStubID: null},
                 });
                 await tx.payStubs.delete({where: {ID}});
-            });
+            }, {timeout: 15000});
 
             return true;
         },

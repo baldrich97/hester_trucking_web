@@ -28,6 +28,7 @@ import {
 } from "../../utils/paystubGrossMismatch";
 import RHAutocomplete from "elements/RHAutocomplete";
 import {confirmDestructive} from "../../utils/appConfirm";
+import {buildPaystubDeleteMessage} from "../../utils/workflowUndo";
 import PayStubJobs from "../collections/PayStubJobs";
 
 type DriversType = z.infer<typeof DriversModel>;
@@ -181,6 +182,12 @@ const PayStub = ({
         async onSuccess() {
             toast("Successfully Deleted!", {autoClose: 2000, type: "success"});
         },
+        async onError(error) {
+            toast("There was an issue deleting this pay stub. The issue was: " + error.message, {
+                autoClose: 100000,
+                type: "error",
+            });
+        },
     });
 
     const printPaystub = trpc.useMutation("paystubs.postPrinted", {
@@ -191,10 +198,14 @@ const PayStub = ({
     });
 
 
-    const onDelete = async (data: PayStubData) => {
+    const onDelete = async (paystubId: number) => {
         toast("Deleting...", {autoClose: 2000, type: "info"});
-        await deletePaystub.mutateAsync(data);
-        await router.replace("/paystubs");
+        try {
+            await deletePaystub.mutateAsync({ID: paystubId});
+            await router.replace("/paystubs");
+        } catch {
+            // onError toast already shown
+        }
     };
 
     React.useEffect(() => {
@@ -581,12 +592,17 @@ const PayStub = ({
                                 disabled={deletePaystub.isLoading}
                                 onClick={() => {
                                     confirmDestructive({
-                                        title: "Confirm deletion",
-                                        message:
-                                            "Are you sure you want to delete this pay stub? It will make any jobs associated available to be paid out again.",
+                                        title: "Delete pay stub",
+                                        message: buildPaystubDeleteMessage({
+                                            deposited: Boolean(initialPayStub.DepositDate),
+                                            printed: Boolean(initialPayStub.LastPrinted),
+                                        }),
                                         confirmLabel: "Delete",
                                         onConfirm: () => {
-                                            void onDelete(initialPayStub);
+                                            if (initialPayStub.ID == null) {
+                                                return;
+                                            }
+                                            void onDelete(initialPayStub.ID);
                                         },
                                     });
                                 }}

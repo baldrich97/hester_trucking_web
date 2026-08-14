@@ -1,7 +1,7 @@
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import ChevronRight from "@mui/icons-material/ChevronRight";
-import AttachMoney from '@mui/icons-material/AttachMoney';
 import DoneIcon from '@mui/icons-material/Done';
+import UndoIcon from '@mui/icons-material/Undo';
 import Button from "@mui/material/Button";
 import Grid2 from "@mui/material/Unstable_Grid2";
 import moment from "moment";
@@ -21,9 +21,10 @@ import {
 import type {DailySheetJob} from "./DailySheet";
 import Tooltip from '@mui/material/Tooltip';
 import {confirmDestructive, confirmProceed} from "../../utils/appConfirm";
+import {buildCloseWeeklyMessage, buildReopenWeeklyMessage} from "../../utils/workflowUndo";
 import {formatMaterial} from "../../utils/formatMaterial";
 import {trpc} from "../../utils/trpc";
-import {calendarNavButtonSx} from "../../theme/muiShared";
+import {calendarNavButtonSx, sheetUndoButtonSx} from "../../theme/muiShared";
 import NextLink from "next/link";
 import {formatDriverDisplayName} from "../../utils/entityDisplay";
 import Box from "@mui/material/Box";
@@ -404,6 +405,7 @@ const TotalsRow = ({
     const [isInvoiced, setIsInvoiced] = useState(loads[0]?.Invoiced);
     const [isPaid, setIsPaid] = useState(loads[0]?.Invoices?.Paid)
     const [isClosed, setIsClosed] = useState(weekly.Revenue !== null);
+    const revenuesLocked = isClosed || Boolean(weekly.InvoiceID);
     const weightSum = Object.keys(sums).reduce((acc, obj) => {
         //eslint-disable-next-line @typescript-eslint/ban-ts-comment
         //@ts-ignore
@@ -413,6 +415,18 @@ const TotalsRow = ({
     const postWeeklyClosed = trpc.useMutation("weeklies.postClosed", {
         async onSuccess() {
             toast("Success!", {autoClose: 2000, type: "success"});
+        },
+        async onError(error) {
+            toast(error.message, {autoClose: 10000, type: "error"});
+        },
+    });
+
+    const postWeeklyReopen = trpc.useMutation("weeklies.postReopen", {
+        async onSuccess() {
+            toast("Weekly reopened.", {autoClose: 2000, type: "success"});
+        },
+        async onError(error) {
+            toast(error.message, {autoClose: 10000, type: "error"});
         },
     });
 
@@ -428,62 +442,103 @@ const TotalsRow = ({
         >
             <b style={{width: 70, display: 'grid', alignItems: 'center', justifyItems: 'center'}}>
                 <Tooltip
-                    title={isClosed ? 'Revenue already saved.' : 'Save the revenue for this weekly.'}>
+                    title={
+                        weekly.InvoiceID
+                            ? "This weekly is invoiced. Delete the invoice first to reopen it."
+                            : isClosed
+                              ? "Reopen this weekly so matching loads can join it again."
+                              : "Save the revenue for this weekly (close it)."
+                    }>
                     <span>
                         <Button
                             variant="contained"
-                            sx={{
-                                minWidth: 30,
-                                minHeight: 30,
-                                maxWidth: 30,
-                                maxHeight: 30,
-                                bgcolor: weekly.InvoiceID
-                                    ? "success.dark"
+                            aria-label={
+                                weekly.InvoiceID
+                                    ? "Weekly is invoiced"
                                     : isClosed
-                                      ? "success.light"
-                                      : "info.main",
-                                color:
-                                    weekly.InvoiceID || !isClosed
-                                        ? "common.white"
-                                        : "text.primary",
-                                "&:hover": {
-                                    bgcolor: weekly.InvoiceID
-                                        ? "success.main"
-                                        : isClosed
-                                          ? "success.main"
-                                          : "info.dark",
-                                },
-                            }}
-                            disabled={isClosed || postWeeklyClosed.isLoading}
+                                      ? "Reopen weekly"
+                                      : "Close weekly"
+                            }
+                            sx={
+                                weekly.InvoiceID
+                                    ? {
+                                        minWidth: 30,
+                                        minHeight: 30,
+                                        maxWidth: 30,
+                                        maxHeight: 30,
+                                        bgcolor: "success.dark",
+                                        color: "common.white",
+                                        "&:hover": {bgcolor: "success.main"},
+                                    }
+                                    : isClosed
+                                      ? sheetUndoButtonSx
+                                      : {
+                                        minWidth: 30,
+                                        minHeight: 30,
+                                        maxWidth: 30,
+                                        maxHeight: 30,
+                                        bgcolor: "info.main",
+                                        color: "common.white",
+                                        "&:hover": {bgcolor: "info.dark"},
+                                      }
+                            }
+                            disabled={
+                                Boolean(weekly.InvoiceID) ||
+                                postWeeklyClosed.isLoading ||
+                                postWeeklyReopen.isLoading
+                            }
                             onClick={() => {
+                                if (isClosed) {
+                                    confirmDestructive({
+                                        title: "Reopen weekly",
+                                        message: buildReopenWeeklyMessage(),
+                                        confirmLabel: "Reopen",
+                                        onConfirm: async () => {
+                                            try {
+                                                const data = await postWeeklyReopen.mutateAsync({ID: weekly.ID});
+                                                setSheetState((prevState: any) => ({
+                                                    ...prevState,
+                                                    ...data,
+                                                }));
+                                                setIsClosed(false);
+                                            } catch {
+                                                // onError toast already shown
+                                            }
+                                        },
+                                    });
+                                    return;
+                                }
                                 confirmDestructive({
-                                    title: "Confirm Weekly Closure",
-                                    message:
-                                        "This will close the weekly. Any future loads similar to this weekly will be on their own weekly. This cannot be undone, are you sure?",
+                                    title: "Close weekly",
+                                    message: buildCloseWeeklyMessage(),
                                     confirmLabel: "Yes",
                                     cancelLabel: "No",
                                     onConfirm: async () => {
-                                        const data = await postWeeklyClosed.mutateAsync({
-                                            ...weekly,
-                                            Revenue: weekly.Revenue
-                                                ? parseFloat(weekly.Revenue.toString())
-                                                : Math.round(
-                                                      weightSum *
-                                                          (weekly.CompanyRate ? weekly.CompanyRate : 0) *
-                                                          100,
-                                                  ) / 100,
-                                            TotalWeight: Math.round(weightSum * 100) / 100,
-                                        });
-                                        setSheetState((prevState: any) => ({
-                                            ...prevState,
-                                            ...data,
-                                        }));
-                                        setIsClosed(true);
+                                        try {
+                                            const data = await postWeeklyClosed.mutateAsync({
+                                                ...weekly,
+                                                Revenue: weekly.Revenue
+                                                    ? parseFloat(weekly.Revenue.toString())
+                                                    : Math.round(
+                                                          weightSum *
+                                                              (weekly.CompanyRate ? weekly.CompanyRate : 0) *
+                                                              100,
+                                                      ) / 100,
+                                                TotalWeight: Math.round(weightSum * 100) / 100,
+                                            });
+                                            setSheetState((prevState: any) => ({
+                                                ...prevState,
+                                                ...data,
+                                            }));
+                                            setIsClosed(true);
+                                        } catch {
+                                            // onError toast already shown
+                                        }
                                     },
                                 });
                             }}
                         >
-                        {<DoneIcon/>}
+                        {isClosed ? <UndoIcon fontSize="small"/> : <DoneIcon/>}
                     </Button>
                     </span>
                 </Tooltip>
@@ -531,10 +586,13 @@ const TotalsRow = ({
             >
                 <TextField
                     variant={'standard'}
+                    disabled={revenuesLocked}
                     sx={{paddingLeft: 1, fontWeight: 'bolder'}}
                     value={weekly.Revenue !== null ? weekly.Revenue : (Math.round(weightSum * (weekly.CompanyRate ? weekly.CompanyRate : 0) * 100) / 100)}
                     onChange={(e) => {
-                        setIsClosed(false)
+                        if (revenuesLocked) {
+                            return;
+                        }
                         let value = 0;
                         if (e.currentTarget?.value) {
                             const str = e.currentTarget.value.replace(/[^0-9.]/g, '')

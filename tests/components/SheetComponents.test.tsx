@@ -103,12 +103,60 @@ describe("DailySheet", () => {
                 initialExpand={null}
             />,
         );
-        // Totals-row action button is the small icon button (not Print Week / expander).
-        const buttons = screen.getAllByRole("button");
-        const actionBtn = buttons[buttons.length - 1]!;
-        fireEvent.click(actionBtn);
+        fireEvent.click(screen.getByRole("button", {name: "Close job"}));
         expect(confirmDestructive).toHaveBeenCalledWith(
-            expect.objectContaining({title: "Confirm Job Closure"}),
+            expect.objectContaining({title: "Close job"}),
+        );
+    });
+
+    it("asks for confirmation before reopening a closed job", () => {
+        render(
+            <DailySheet
+                sheet={{...sheet, Jobs: [{...job, TruckingRevenue: 50, CompanyRevenue: 80}]} as never}
+                week="2099-01-04"
+                forceExpand={true}
+                initialExpand={null}
+            />,
+        );
+        fireEvent.click(screen.getByRole("button", {name: "Reopen job"}));
+        expect(confirmDestructive).toHaveBeenCalledWith(
+            expect.objectContaining({title: "Reopen job"}),
+        );
+    });
+
+    it("asks for confirmation before unmarking a paid-out job", () => {
+        render(
+            <DailySheet
+                sheet={{
+                    ...sheet,
+                    Jobs: [{...job, TruckingRevenue: 50, CompanyRevenue: 80, PaidOut: true}],
+                } as never}
+                week="2099-01-04"
+                forceExpand={true}
+                initialExpand={null}
+            />,
+        );
+        fireEvent.click(screen.getByRole("button", {name: "Unmark job paid out"}));
+        expect(confirmDestructive).toHaveBeenCalledWith(
+            expect.objectContaining({title: "Unmark job paid out"}),
+        );
+    });
+
+    it("uses W2 in the mark-paid-out confirm title", () => {
+        render(
+            <DailySheet
+                sheet={{
+                    ...sheet,
+                    Jobs: [{...job, TruckingRevenue: 50, CompanyRevenue: 80}],
+                } as never}
+                week="2099-01-04"
+                forceExpand={true}
+                initialExpand={null}
+            />,
+        );
+        fireEvent.click(screen.getByRole("button", {name: "Mark job paid out"}));
+        expect(confirmDestructive).toHaveBeenCalledWith(
+            expect.objectContaining({title: "Mark W2 job paid out"}),
         );
     });
 });
@@ -121,6 +169,8 @@ describe("WeeklySheet", () => {
         LoadTypeID: 2,
         DeliveryLocationID: 5,
         CompanyRate: 7,
+        Revenue: null,
+        TotalWeight: null,
         LastPrinted: null,
         InvoiceID: null,
         Customers: {ID: 4, Name: "[TEST] Customer"},
@@ -149,6 +199,22 @@ describe("WeeklySheet", () => {
         expect(screen.getByText("12")).toBeInTheDocument();
     });
 
+    it("asks for confirmation before closing a weekly", () => {
+        render(
+            <WeeklySheet
+                weekly={weekly as never}
+                week="2099-01-04"
+                forceExpand={true}
+                initialExpand={null}
+                forceRefresh={null}
+            />,
+        );
+        fireEvent.click(screen.getByRole("button", {name: "Close weekly"}));
+        expect(confirmDestructive).toHaveBeenCalledWith(
+            expect.objectContaining({title: "Close weekly"}),
+        );
+    });
+
     it("skips jobs without loads", () => {
         const emptyWeekly = {...weekly, Jobs: [{...job, ID: 21, Loads: []}]};
         render(
@@ -161,6 +227,22 @@ describe("WeeklySheet", () => {
             />,
         );
         expect(screen.queryByText("Test Driver")).not.toBeInTheDocument();
+    });
+
+    it("asks for confirmation before reopening a closed weekly", () => {
+        render(
+            <WeeklySheet
+                weekly={{...weekly, Revenue: 400} as never}
+                week="2099-01-04"
+                forceExpand={true}
+                initialExpand={null}
+                forceRefresh={null}
+            />,
+        );
+        fireEvent.click(screen.getByRole("button", {name: "Reopen weekly"}));
+        expect(confirmDestructive).toHaveBeenCalledWith(
+            expect.objectContaining({title: "Reopen weekly"}),
+        );
     });
 });
 

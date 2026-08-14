@@ -1,6 +1,7 @@
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import ChevronRight from "@mui/icons-material/ChevronRight";
 import AttachMoney from '@mui/icons-material/AttachMoney';
+import UndoIcon from '@mui/icons-material/Undo';
 import ArrowForward from '@mui/icons-material/ArrowForward';
 import DoneIcon from '@mui/icons-material/Done';
 import Button from "@mui/material/Button";
@@ -13,9 +14,15 @@ import {z} from "zod";
 import {JobsModel, LoadsModel, DriversModel, DailiesModel} from "../../../prisma/zod";
 import Tooltip from '@mui/material/Tooltip';
 import {confirmAlert, confirmDestructive} from "../../utils/appConfirm";
+import {
+    buildCloseJobMessage,
+    buildMarkJobPaidOutMessage,
+    buildReopenJobMessage,
+    buildUnmarkJobPaidOutMessage,
+} from "../../utils/workflowUndo";
 import {formatMaterial} from "../../utils/formatMaterial";
 import {trpc} from "../../utils/trpc";
-import {calendarNavButtonSx, tableTextLinkSx} from "../../theme/muiShared";
+import {calendarNavButtonSx, sheetUndoButtonSx, tableTextLinkSx} from "../../theme/muiShared";
 import Box from "@mui/material/Box";
 import NextLink from "next/link";
 import {formatDriverDisplayName} from "../../utils/entityDisplay";
@@ -261,17 +268,42 @@ const TotalsRow = ({
     const [jobState, setJobState] = useState(job);
     const [isClosed, setIsClosed] = useState(job.TruckingRevenue !== null || job.CompanyRevenue !== null);
     const [isPaidOut, setIsPaidOut] = useState(job.PaidOut)
+    const revenuesLocked = isClosed || isPaidOut;
 
 
     const postJobClosed = trpc.useMutation("jobs.postClosed", {
         async onSuccess() {
             toast("Success!", {autoClose: 2000, type: "success"});
         },
+        async onError(error) {
+            toast(error.message, {autoClose: 10000, type: "error"});
+        },
     });
 
     const postJobPaid = trpc.useMutation("jobs.postPaid", {
         async onSuccess() {
             toast("Success!", {autoClose: 2000, type: "success"});
+        },
+        async onError(error) {
+            toast(error.message, {autoClose: 10000, type: "error"});
+        },
+    });
+
+    const postJobReopen = trpc.useMutation("jobs.postReopen", {
+        async onSuccess() {
+            toast("Job reopened.", {autoClose: 2000, type: "success"});
+        },
+        async onError(error) {
+            toast(error.message, {autoClose: 10000, type: "error"});
+        },
+    });
+
+    const postJobUnpaid = trpc.useMutation("jobs.postUnpaid", {
+        async onSuccess() {
+            toast("Job marked unpaid.", {autoClose: 2000, type: "success"});
+        },
+        async onError(error) {
+            toast(error.message, {autoClose: 10000, type: "error"});
         },
     });
 
@@ -287,7 +319,7 @@ const TotalsRow = ({
             }}
         >
 
-            <b style={{width: 50, display: 'grid', alignItems: 'center', justifyItems: 'center'}}>
+            <b style={{width: 54, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, paddingTop: 4, paddingBottom: 4}}>
                 {toInvoiceButton && job.Weeklies?.InvoiceID ? <Tooltip
                     title={'Go to Invoice'}>
                     <span>
@@ -299,6 +331,7 @@ const TotalsRow = ({
                             <Button
                                 variant="contained"
                                 color="warning"
+                                aria-label="Go to invoice"
                                 sx={{minWidth: 30, minHeight: 30, maxWidth: 30, maxHeight: 30}}
                             >
                         <ArrowForward/>
@@ -307,11 +340,29 @@ const TotalsRow = ({
                     </NextLink>
 
                     </span>
-                </Tooltip> : <Tooltip
-                    title={isPaidOut ? 'This job has already been paid.' : isClosed ? 'Mark this job as paid out.' : 'Save the revenues for this job.'}>
+                </Tooltip> : <>
+                    <Tooltip
+                    title={
+                        isPaidOut
+                            ? job.PayStubID
+                                ? "This job is on a paystub. Delete the paystub to mark it unpaid."
+                                : "Unmark this job as paid out."
+                            : isClosed
+                              ? "Mark this job as paid out."
+                              : "Save the revenues for this job (close it)."
+                    }>
                     <span>
                         <Button
                             variant="contained"
+                            aria-label={
+                                isPaidOut
+                                    ? job.PayStubID
+                                        ? "Job is on a paystub"
+                                        : "Unmark job paid out"
+                                    : isClosed
+                                      ? "Mark job paid out"
+                                      : "Close job"
+                            }
                             sx={{
                                 minWidth: 30,
                                 minHeight: 30,
@@ -335,82 +386,128 @@ const TotalsRow = ({
                                 },
                             }}
                             disabled={
-                                isPaidOut ||
+                                Boolean(isPaidOut && job.PayStubID) ||
                                 postJobPaid.isLoading ||
-                                postJobClosed.isLoading
+                                postJobClosed.isLoading ||
+                                postJobUnpaid.isLoading ||
+                                postJobReopen.isLoading
                             }
                             onClick={() => {
-                                if (isClosed) {
-                                    if (ownerOperator) {
-                                        confirmDestructive({
-                                            title: "Confirm Owner Operator Payment",
-                                            message:
-                                                "Doing this will mark the job as paid out. This cannot be undone. Are you sure?",
-                                            confirmLabel: "Yes",
-                                            cancelLabel: "No",
-                                            onConfirm: async () => {
-                                                await postJobPaid.mutateAsync({
-                                                    ...jobState,
-                                                    PaidOut: true,
-                                                });
-                                                setIsPaidOut(true);
-                                            },
-                                        });
-                                    } else {
-                                        confirmDestructive({
-                                            title: "Confirm Company Employee Payment",
-                                            message:
-                                                "Doing this will mark the job as paid out. This cannot be undone. Are you sure?",
-                                            confirmLabel: "Yes",
-                                            cancelLabel: "No",
-                                            onConfirm: async () => {
-                                                await postJobPaid.mutateAsync({
-                                                    ...jobState,
-                                                    PaidOut: true,
-                                                });
-                                                setIsPaidOut(true);
-                                            },
-                                        });
+                                if (isPaidOut) {
+                                    if (job.PayStubID) {
+                                        return;
                                     }
-                                } else {
                                     confirmDestructive({
-                                        title: "Confirm Job Closure",
-                                        message:
-                                            "This will close the job. Any future loads similar to this job will be on their own job. To invoice this job, please close the weekly associated with it. This cannot be undone, are you sure?",
+                                        title: "Unmark job paid out",
+                                        message: buildUnmarkJobPaidOutMessage(),
+                                        confirmLabel: "Unpay",
+                                        onConfirm: async () => {
+                                            try {
+                                                await postJobUnpaid.mutateAsync({ID: jobState.ID});
+                                                setIsPaidOut(false);
+                                            } catch {
+                                                // onError toast already shown
+                                            }
+                                        },
+                                    });
+                                    return;
+                                }
+                                if (isClosed) {
+                                    confirmDestructive({
+                                        title: ownerOperator
+                                            ? "Mark Owner Operator job paid out"
+                                            : "Mark W2 job paid out",
+                                        message: buildMarkJobPaidOutMessage(),
                                         confirmLabel: "Yes",
                                         cancelLabel: "No",
                                         onConfirm: async () => {
-                                            const data = await postJobClosed.mutateAsync({
-                                                ...jobState,
-                                                TruckingRevenue: jobState.TruckingRevenue
-                                                    ? jobState.TruckingRevenue
-                                                    : Math.round(
-                                                          weightSum *
-                                                              (load.DriverRate !== load.TruckRate
-                                                                  ? load.DriverRate ?? 0
-                                                                  : load.TruckRate ?? 0) *
-                                                              100,
-                                                      ) / 100,
-                                                CompanyRevenue: jobState.CompanyRevenue
-                                                    ? jobState.CompanyRevenue
-                                                    : Math.round(
-                                                          weightSum * (load.TotalRate ? load.TotalRate : 0) * 100,
-                                                      ) / 100,
-                                            });
-                                            setJobState((prevState) => ({
-                                                ...prevState,
-                                                ...data,
-                                            }));
-                                            setIsClosed(true);
+                                            try {
+                                                await postJobPaid.mutateAsync({
+                                                    ...jobState,
+                                                    PaidOut: true,
+                                                });
+                                                setIsPaidOut(true);
+                                            } catch {
+                                                // onError toast already shown
+                                            }
+                                        },
+                                    });
+                                } else {
+                                    confirmDestructive({
+                                        title: "Close job",
+                                        message: buildCloseJobMessage(),
+                                        confirmLabel: "Yes",
+                                        cancelLabel: "No",
+                                        onConfirm: async () => {
+                                            try {
+                                                const data = await postJobClosed.mutateAsync({
+                                                    ...jobState,
+                                                    TruckingRevenue: jobState.TruckingRevenue
+                                                        ? jobState.TruckingRevenue
+                                                        : Math.round(
+                                                              weightSum *
+                                                                  (load.DriverRate !== load.TruckRate
+                                                                      ? load.DriverRate ?? 0
+                                                                      : load.TruckRate ?? 0) *
+                                                                  100,
+                                                          ) / 100,
+                                                    CompanyRevenue: jobState.CompanyRevenue
+                                                        ? jobState.CompanyRevenue
+                                                        : Math.round(
+                                                              weightSum * (load.TotalRate ? load.TotalRate : 0) * 100,
+                                                          ) / 100,
+                                                });
+                                                setJobState((prevState) => ({
+                                                    ...prevState,
+                                                    ...data,
+                                                }));
+                                                setIsClosed(true);
+                                            } catch {
+                                                // onError toast already shown
+                                            }
                                         },
                                     });
                                 }
                             }}
                         >
-                        {job.PaidOut || isClosed ? <AttachMoney/> : <DoneIcon/>}
+                        {isPaidOut || isClosed ? <AttachMoney/> : <DoneIcon/>}
                     </Button>
                     </span>
-                </Tooltip>}
+                </Tooltip>
+                {isClosed && !isPaidOut ? (
+                    <Tooltip title="Reopen this job so matching loads can join it again (weekly must also be open).">
+                        <span>
+                            <Button
+                                variant="contained"
+                                aria-label="Reopen job"
+                                sx={sheetUndoButtonSx}
+                                disabled={postJobReopen.isLoading}
+                                onClick={() => {
+                                    confirmDestructive({
+                                        title: "Reopen job",
+                                        message: buildReopenJobMessage(),
+                                        confirmLabel: "Reopen",
+                                        onConfirm: async () => {
+                                            try {
+                                                const data = await postJobReopen.mutateAsync({ID: jobState.ID});
+                                                setJobState((prevState) => ({
+                                                    ...prevState,
+                                                    ...data,
+                                                }));
+                                                setIsClosed(false);
+                                            } catch {
+                                                // onError toast already shown
+                                            }
+                                        },
+                                    });
+                                }}
+                            >
+                                <UndoIcon fontSize="small"/>
+                            </Button>
+                        </span>
+                    </Tooltip>
+                ) : null}
+                </>}
             </b>
             <Grid2
                 sx={{
@@ -500,9 +597,12 @@ const TotalsRow = ({
                 <Grid2 sx={{textAlign: "center", borderRight: "2px solid black",}} xs={6}>
                     <TextField
                         variant={'standard'}
+                        disabled={revenuesLocked}
                         value={jobState.CompanyRevenue ? parseFloat(jobState.CompanyRevenue.toString()) : (Math.round(weightSum * (load.TotalRate ? load.TotalRate : 0) * 100) / 100)}
                         onChange={(e) => {
-                            setIsClosed(false)
+                            if (revenuesLocked) {
+                                return;
+                            }
                             let value = 0;
                             if (e.currentTarget?.value) {
                                 value = parseFloat(e.currentTarget.value)
@@ -524,8 +624,12 @@ const TotalsRow = ({
                 >
                     <TextField
                         variant={'standard'}
+                        disabled={revenuesLocked}
                         value={jobState.TruckingRevenue ? parseFloat(jobState.TruckingRevenue.toString()) : (Math.round(weightSum * (load.DriverRate != load.TruckRate ? load.DriverRate ?? 0 : load.TruckRate ?? 0) * 100) / 100)}
                         onChange={(e) => {
+                            if (revenuesLocked) {
+                                return;
+                            }
                             let value = 0;
                             if (e.currentTarget?.value) {
                                 value = parseFloat(e.currentTarget.value)

@@ -452,7 +452,7 @@ function PartialLoad({
             : []),
         {
             key: "DeliveryLocationID",
-            data: dltrpcData.length > 0 ? dltrpcData : [],
+            data: [],
             optionValue: "ID",
             optionLabel: "Description",
             defaultValue: initialLoad ? initialLoad.DeliveryLocationID : null,

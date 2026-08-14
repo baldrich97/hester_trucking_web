@@ -25,6 +25,7 @@ import InvoiceWeeklies from "../collections/InvoiceWeeklies";
 import { toast } from "react-toastify";
 import RHAutocomplete from "elements/RHAutocomplete";
 import {confirmDestructive} from "../../utils/appConfirm";
+import {buildInvoiceDeleteMessage, buildInvoiceUnpayMessage, countInvoiceJobPayState} from "../../utils/workflowUndo";
 import ConsolidatedInvoices from "components/collections/ConsolidatedInvoices";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
@@ -162,6 +163,12 @@ const Invoice = ({
       toast("Successfully Paid!", { autoClose: 2000, type: "success" });
       await router.replace(router.asPath);
     },
+    async onError(error) {
+      toast("There was an issue paying this invoice. The issue was: " + error.message, {
+        autoClose: 100000,
+        type: "error",
+      });
+    },
   });
 
   const printInvoice = trpc.useMutation("invoices.postPrinted", {
@@ -215,12 +222,35 @@ const Invoice = ({
     async onSuccess() {
       toast("Successfully Deleted!", { autoClose: 2000, type: "success" });
     },
+    async onError(error) {
+      toast("There was an issue deleting this invoice. The issue was: " + error.message, {
+        autoClose: 100000,
+        type: "error",
+      });
+    },
   });
 
-  const onDelete = async (data: InvoicesType) => {
+  const unpayInvoice = trpc.useMutation("invoices.postUnpaid", {
+    async onSuccess() {
+      toast("Invoice marked unpaid.", { autoClose: 2000, type: "success" });
+      await router.replace(router.asPath);
+    },
+    async onError(error) {
+      toast("There was an issue marking this invoice unpaid. The issue was: " + error.message, {
+        autoClose: 100000,
+        type: "error",
+      });
+    },
+  });
+
+  const onDelete = async (invoiceId: number) => {
     toast("Deleting...", { autoClose: 2000, type: "info" });
-    await deleteInvoice.mutateAsync(data);
-    await router.replace("/invoices");
+    try {
+      await deleteInvoice.mutateAsync({ID: invoiceId});
+      await router.replace("/invoices");
+    } catch {
+      // onError toast already shown
+    }
   };
 
   React.useEffect(() => {
@@ -643,13 +673,39 @@ const Invoice = ({
                 color="error"
                 disabled={deleteInvoice.isLoading}
                 onClick={() => {
+                  const payCounts = countInvoiceJobPayState([
+                    ...(weeklies as Array<{
+                      Jobs?: Array<{PaidOut?: boolean | null; PayStubID?: number | null}>;
+                    }>),
+                    {
+                      Jobs: (
+                        loads as Array<{
+                          Jobs?: {PaidOut?: boolean | null; PayStubID?: number | null} | null;
+                        }>
+                      )
+                        .map((load) => load.Jobs)
+                        .filter(
+                          (job): job is {PaidOut?: boolean | null; PayStubID?: number | null} =>
+                            Boolean(job),
+                        ),
+                    },
+                  ]);
                   confirmDestructive({
-                    title: "Confirm deletion",
-                    message:
-                      "Are you sure you want to delete this invoice? It will make any loads associated available again.",
+                    title: "Delete invoice",
+                    message: buildInvoiceDeleteMessage({
+                      paid: initialInvoice.Paid,
+                      printed: initialInvoice.Printed,
+                      consolidated: initialInvoice.Consolidated,
+                      consolidatedId: initialInvoice.ConsolidatedID,
+                      onPaystub: payCounts.onPaystub,
+                      paidOut: payCounts.paidOut,
+                    }),
                     confirmLabel: "Delete",
                     onConfirm: () => {
-                      void onDelete(initialInvoice);
+                      if (initialInvoice.ID == null) {
+                        return;
+                      }
+                      void onDelete(initialInvoice.ID);
                     },
                   });
                 }}
@@ -687,6 +743,30 @@ const Invoice = ({
                 onClick={handleOpen}
               >
                 Pay
+              </Button>
+            </Grid2>
+            <Grid2 xs={1}>
+              <Button
+                type="button"
+                variant="contained"
+                color="warning"
+                disabled={!(initialInvoice.Paid || paid) || unpayInvoice.isLoading}
+                onClick={() => {
+                  if (initialInvoice.ID == null) {
+                    return;
+                  }
+                  const invoiceId = initialInvoice.ID;
+                  confirmDestructive({
+                    title: "Mark invoice unpaid",
+                    message: buildInvoiceUnpayMessage(),
+                    confirmLabel: "Unpay",
+                    onConfirm: () => {
+                      void unpayInvoice.mutateAsync({ID: invoiceId}).catch(() => undefined);
+                    },
+                  });
+                }}
+              >
+                Unpay
               </Button>
             </Grid2>
             <Grid2 xs={1}>

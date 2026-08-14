@@ -38,6 +38,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
                 DeliveryLocations: true,
                 Trucks: true,
                 Sources: {select: {Name: true, ShortName: true}},
+                Jobs: {select: {PaidOut: true}},
             }
         })
     }

@@ -54,3 +54,17 @@ export const tableContainedNavButtonSx: SxProps<Theme> = {
         color: "#fff !important",
     },
 };
+
+/** Shared undo control on daily/weekly sheet totals rows. */
+export const sheetUndoButtonSx: SxProps<Theme> = {
+    minWidth: 30,
+    minHeight: 30,
+    maxWidth: 30,
+    maxHeight: 30,
+    bgcolor: "success.light",
+    color: "text.primary",
+    "&:hover": {
+        bgcolor: "success.main",
+        color: "common.white",
+    },
+};

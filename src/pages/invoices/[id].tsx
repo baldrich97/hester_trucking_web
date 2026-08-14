@@ -96,6 +96,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       DeliveryLocations: true,
       Drivers: true,
       Trucks: true,
+      Jobs: {select: {PaidOut: true, PayStubID: true}},
     },
   }) : [];
 

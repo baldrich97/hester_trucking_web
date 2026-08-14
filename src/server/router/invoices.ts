@@ -1,7 +1,6 @@
 import {createRouter} from "./context";
 import {z} from "zod";
-import {InvoicesModel, LoadsModel} from '../../../prisma/zod';
-import {prisma} from "../db/client";
+import {InvoicesModel} from '../../../prisma/zod';
 import {TRPCError} from "@trpc/server";
 
 const invoiceListInput = z.object({
@@ -641,20 +640,15 @@ export const invoicesRouter = createRouter()
             const date = new Date();
             date.setHours(5)
             if (input.Consolidated) {
-                const consolidatedChildren = await ctx.prisma.invoices.findMany({where: {ConsolidatedID: ID}})
-                consolidatedChildren.forEach(async (consInv) => {
-                    await ctx.prisma.invoices.update({
-                        where: {
-                            ID: consInv.ID
-                        }, data: {
-                            Paid: true,
-                            PaymentType: PaymentType,
-                            PaidDate: date
-                        }
-                    })
-                })
+                await ctx.prisma.invoices.updateMany({
+                    where: {ConsolidatedID: ID},
+                    data: {
+                        Paid: true,
+                        PaymentType: PaymentType,
+                        PaidDate: date,
+                    },
+                });
             }
-            // use your ORM of choice
             return ctx.prisma.invoices.update({
                 where: {
                     ID: ID
@@ -665,41 +659,63 @@ export const invoicesRouter = createRouter()
                 }
             })
         },
+    }).mutation('postUnpaid', {
+        input: z.object({ID: z.number()}),
+        async resolve({ctx, input}) {
+            const {ID} = input;
+            const invoice = await ctx.prisma.invoices.findUnique({where: {ID}});
+            if (!invoice) {
+                throw new TRPCError({code: "NOT_FOUND", message: "Invoice not found."});
+            }
+            if (invoice.Consolidated) {
+                await ctx.prisma.invoices.updateMany({
+                    where: {ConsolidatedID: ID},
+                    data: {Paid: false, PaidDate: null, PaymentType: "N/A"},
+                });
+            }
+            return ctx.prisma.invoices.update({
+                where: {ID},
+                data: {Paid: false, PaidDate: null, PaymentType: "N/A"},
+            });
+        },
     })
     .mutation('delete', {
-        input: InvoicesModel,
+        input: z.object({ID: z.number()}),
         async resolve({ctx, input}) {
             const {ID} = input;
 
             await ctx.prisma.$transaction(async (tx) => {
-                if (input.Consolidated) {
-                    const consolidatedChildren = await tx.invoices.findMany({where: {ConsolidatedID: ID}});
-                    for (const consInv of consolidatedChildren) {
-                        await tx.invoices.update({
-                            where: {ID: consInv.ID},
-                            data: {ConsolidatedID: null},
-                        });
-                    }
+                const invoice = await tx.invoices.findUnique({where: {ID}});
+                if (!invoice) {
+                    throw new TRPCError({code: "NOT_FOUND", message: "Invoice not found."});
                 }
 
-                const loads = await tx.loads.findMany({where: {InvoiceID: ID}});
-                for (const load of loads) {
-                    await tx.loads.update({
-                        where: {ID: load.ID},
-                        data: {Invoiced: false, InvoiceID: null},
+                if (invoice.Consolidated) {
+                    await tx.invoices.updateMany({
+                        where: {ConsolidatedID: ID},
+                        data: {ConsolidatedID: null},
                     });
                 }
 
-                const weeklies = await tx.weeklies.findMany({where: {InvoiceID: ID}});
-                for (const weekly of weeklies) {
-                    await tx.weeklies.update({
-                        where: {ID: weekly.ID},
-                        data: {InvoiceID: null},
+                if (invoice.ConsolidatedID != null) {
+                    await tx.invoices.update({
+                        where: {ID},
+                        data: {ConsolidatedID: null},
                     });
                 }
+
+                await tx.loads.updateMany({
+                    where: {InvoiceID: ID},
+                    data: {Invoiced: false, InvoiceID: null},
+                });
+
+                await tx.weeklies.updateMany({
+                    where: {InvoiceID: ID},
+                    data: {InvoiceID: null},
+                });
 
                 await tx.invoices.delete({where: {ID}});
-            });
+            }, {timeout: 15000});
 
             return true;
         },

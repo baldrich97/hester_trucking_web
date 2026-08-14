@@ -469,14 +469,6 @@ export const jobsRouter = createRouter()
                 throw new TRPCError({code: "BAD_REQUEST", message: "Job is already closed."});
             }
 
-            const weekly = await ctx.prisma.weeklies.findFirst({
-                where: {ID: data.WeeklyID ?? existing.WeeklyID},
-            });
-
-            if (!weekly || weekly.Revenue !== null) {
-                throw new TRPCError({code: "BAD_REQUEST", message: "Weekly is already closed."});
-            }
-
             return ctx.prisma.jobs.update({
                 where: {ID},
                 data,
@@ -494,6 +486,44 @@ export const jobsRouter = createRouter()
                     ID: ID
                 }, data: data
             })
+        },
+    })
+    .mutation('postReopen', {
+        input: z.object({ID: z.number()}),
+        async resolve({ctx, input}) {
+            const job = await ctx.prisma.jobs.findUnique({where: {ID: input.ID}});
+            if (!job) {
+                throw new TRPCError({code: "NOT_FOUND", message: "Job not found."});
+            }
+            if (job.PaidOut) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Unpay this job or delete its paystub first.",
+                });
+            }
+            return ctx.prisma.jobs.update({
+                where: {ID: input.ID},
+                data: {TruckingRevenue: null, CompanyRevenue: null},
+            });
+        },
+    })
+    .mutation('postUnpaid', {
+        input: z.object({ID: z.number()}),
+        async resolve({ctx, input}) {
+            const job = await ctx.prisma.jobs.findUnique({where: {ID: input.ID}});
+            if (!job) {
+                throw new TRPCError({code: "NOT_FOUND", message: "Job not found."});
+            }
+            if (job.PayStubID != null) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Delete the paystub first to mark this job unpaid.",
+                });
+            }
+            return ctx.prisma.jobs.update({
+                where: {ID: input.ID},
+                data: {PaidOut: false},
+            });
         },
     })
 // .mutation('post', {

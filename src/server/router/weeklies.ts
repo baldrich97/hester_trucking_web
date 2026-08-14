@@ -43,6 +43,25 @@ export const weekliesRouter = createRouter()
             })
         },
     })
+    .mutation('postReopen', {
+        input: z.object({ID: z.number()}),
+        async resolve({ctx, input}) {
+            const weekly = await ctx.prisma.weeklies.findUnique({where: {ID: input.ID}});
+            if (!weekly) {
+                throw new TRPCError({code: "NOT_FOUND", message: "Weekly not found."});
+            }
+            if (weekly.InvoiceID != null) {
+                throw new TRPCError({
+                    code: "BAD_REQUEST",
+                    message: "Delete the invoice first to reopen this weekly.",
+                });
+            }
+            return ctx.prisma.weeklies.update({
+                where: {ID: input.ID},
+                data: {Revenue: null, TotalWeight: null},
+            });
+        },
+    })
     .query('getNotPrinted', {
         input: z.object({
             page: z.number()

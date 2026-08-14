@@ -42,7 +42,7 @@ export function confirmProceed({
                 label: confirmLabel,
                 className: "rca-btn-confirm-primary",
                 onClick: () => {
-                    void onConfirm();
+                    void Promise.resolve(onConfirm()).catch(() => undefined);
                 },
             },
         ],
@@ -69,7 +69,7 @@ export function confirmDestructive({
                 label: confirmLabel,
                 className: "rca-btn-confirm-destructive",
                 onClick: () => {
-                    void onConfirm();
+                    void Promise.resolve(onConfirm()).catch(() => undefined);
                 },
             },
         ],

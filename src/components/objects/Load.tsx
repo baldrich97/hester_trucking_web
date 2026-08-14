@@ -28,6 +28,7 @@ import {useRouter} from "next/router";
 import GenericForm from "../../elements/GenericForm";
 import {toast} from "react-toastify";
 import {confirmDestructive} from "../../utils/appConfirm";
+import {buildLoadDeleteMessage} from "../../utils/workflowUndo";
 import {showLoadWarnings} from "../../utils/loadWarningToasts";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
@@ -327,13 +328,23 @@ function Load({
         async onSuccess() {
             toast("Successfully Deleted!", {autoClose: 2000, type: "success"});
         },
+        async onError(error) {
+            toast("There was an issue deleting this load. The issue was: " + error.message, {
+                autoClose: 100000,
+                type: "error",
+            });
+        },
     });
 
     const onDelete = async (data: LoadsType) => {
         toggleOverride(false)
         toast("Deleting...", {autoClose: 2000, type: "info"});
-        await deleteLoad.mutateAsync(data);
-        await router.replace("/loads");
+        try {
+            await deleteLoad.mutateAsync({ID: data.ID});
+            await router.replace("/loads");
+        } catch {
+            // onError toast already shown
+        }
     };
 
     const watchWeek = watch("Week");
@@ -824,7 +835,7 @@ function Load({
         },
         {
             key: "DeliveryLocationID",
-            data: dltrpcData.length > 0 ? dltrpcData : [],
+            data: [],
             optionValue: "ID",
             optionLabel: "Description",
             defaultValue: inlineDefaultIds.DeliveryLocationID,
@@ -895,11 +906,20 @@ function Load({
                     onDelete={
                         initialLoad
                             ? () => {
+                                const invoiced =
+                                    initialLoad.Invoiced === true || initialLoad.InvoiceID != null;
+                                const paidOut = Boolean(
+                                    (initialLoad as LoadsType & {Jobs?: {PaidOut?: boolean} | null}).Jobs
+                                        ?.PaidOut,
+                                );
                                 confirmDestructive({
-                                    title: "Confirm deletion",
-                                    message: "Are you sure you want to delete this load?",
-                                    confirmLabel: "Delete",
+                                    title: "Delete load",
+                                    message: buildLoadDeleteMessage({invoiced, paidOut}),
+                                    confirmLabel: invoiced || paidOut ? "OK" : "Delete",
                                     onConfirm: () => {
+                                        if (invoiced || paidOut) {
+                                            return;
+                                        }
                                         void onDelete(initialLoad);
                                     },
                                 });
