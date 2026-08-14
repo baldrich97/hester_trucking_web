@@ -1,6 +1,6 @@
 {
   "name": "hester_trucking_web",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -19,6 +19,9 @@
     "test:timings": "node scripts/collect-test-timings.mjs record",
     "test:timings:check": "node scripts/collect-test-timings.mjs check",
     "test:all": "npm test && npm run test:db && npm run test:e2e",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version",
     "postinstall": "prisma generate",
     "vercel-build": "npm run postinstall && next build"
   },

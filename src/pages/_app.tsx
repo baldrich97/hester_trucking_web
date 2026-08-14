@@ -90,7 +90,7 @@ const MyApp: AppType = ({
                 position: "fixed",
                 bottom: 0,
                 width: "100%",
-                height: 20,
+                height: 22,
                 textAlign: "right",
                 right: 15,
                 paddingTop: 0,
