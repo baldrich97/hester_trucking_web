@@ -2,6 +2,7 @@ import React from 'react';
 import TruckObject from '../../components/objects/Truck';
 import { GetServerSideProps } from 'next'
 import { prisma } from 'server/db/client'
+import { parseRouteId } from "utils/parseRouteId";
 import { TrucksModel } from '../../../prisma/zod';
 import {z} from "zod";
 
@@ -20,16 +21,16 @@ const Truck = ({initialTruck}: {initialTruck: TrucksType}) => {
 export default Truck;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    const id = context.params?.id;
+    const id = parseRouteId(context.params?.id);
 
     let initialTruck;
 
     
 
-    if (id && typeof(id) === "string") {
+    if (id) {
         initialTruck = await prisma.trucks.findFirst({
             where: {
-                ID: parseInt(id)
+                ID: id
             }
         })
     }

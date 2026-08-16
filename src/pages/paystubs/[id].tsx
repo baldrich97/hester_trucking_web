@@ -2,6 +2,7 @@ import React from "react";
 import PayStubObject from "../../components/objects/PayStub";
 import {GetServerSideProps} from "next";
 import {prisma} from "server/db/client";
+import {parseRouteId} from "utils/parseRouteId";
 import {DriversModel, PayStubsModel, JobsModel} from "../../../prisma/zod";
 import {z} from "zod";
 import type {PaystubJobRow} from "../../utils/paystubRevenue";
@@ -31,14 +32,14 @@ const PayStub = ({
 export default PayStub;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    const id = context.params?.id;
+    const id = parseRouteId(context.params?.id);
 
     let initialPaystub;
 
-    if (id && typeof id === "string") {
+    if (id) {
         initialPaystub = await prisma.payStubs.findFirst({
             where: {
-                ID: parseInt(id),
+                ID: id,
             },
             include: {
                 Drivers: true,

@@ -33,6 +33,7 @@ import NextLink from "next/link";
 import { TableColumnsType, TableColumnOverridesType } from "../utils/types";
 import { tableContainedNavButtonSx } from "../theme/muiShared";
 import TableEntityLink from "./TableEntityLink";
+import { entityNavHref } from "../utils/parseRouteId";
 import { trpc } from "../utils/trpc";
 
 /** Rows per page — must match skip/take on the server (10). */
@@ -252,31 +253,36 @@ function TableRowCells({ row, rowIndex, columns, overrides }: TableRowCellsProps
 
         if (override) {
           switch (override.type) {
-            case "button":
+            case "button": {
+              const href = entityNavHref(column.navigateTo, row[column.name]);
               return (
                 <StyledTableCell
                   align={column.align ?? "right"}
                   key={`row-${rowIndex}-${column.name}`}
                 >
-                  <NextLink
-                    href={column.navigateTo + row[column.name].toString()}
-                    passHref
-                    legacyBehavior
-                  >
-                    <Button
-                      component="a"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      color="primary"
-                      variant="contained"
-                      size="small"
-                      sx={tableContainedNavButtonSx}
+                  {href ? (
+                    <NextLink
+                      href={href}
+                      passHref
+                      legacyBehavior
+                      prefetch={false}
                     >
-                      Edit
-                    </Button>
-                  </NextLink>
+                      <Button
+                        component="a"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        color="primary"
+                        variant="contained"
+                        size="small"
+                        sx={tableContainedNavButtonSx}
+                      >
+                        Edit
+                      </Button>
+                    </NextLink>
+                  ) : null}
                 </StyledTableCell>
               );
+            }
             case "action":
               return (
                 <StyledTableCell
@@ -319,20 +325,21 @@ function TableRowCells({ row, rowIndex, columns, overrides }: TableRowCellsProps
                 </StyledTableCell>
               );
             case "link": {
-              let href = column.navigateTo ?? "";
-              if (column.navigateTo?.includes("[ID]")) {
-                const linkRoot = column.name.split(".")[0]!;
-                const linkId = column.name.includes(".")
-                  ? row[linkRoot]?.ID
-                  : row[column.name];
-                href = column.navigateTo.replace("[ID]", linkId?.toString() ?? "");
-              }
+              const linkRoot = column.name.split(".")[0]!;
+              const linkId = column.name.includes(".")
+                ? row[linkRoot]?.ID
+                : row[column.name];
+              const href = entityNavHref(column.navigateTo, linkId);
               return (
                 <StyledTableCell
                   align={column.align ?? "left"}
                   key={`row-${rowIndex}-${column.name}`}
                 >
-                            <TableEntityLink href={href}>{raw as React.ReactNode}</TableEntityLink>
+                  {href ? (
+                    <TableEntityLink href={href}>{raw as React.ReactNode}</TableEntityLink>
+                  ) : (
+                    (raw as React.ReactNode)
+                  )}
                 </StyledTableCell>
               );
             }

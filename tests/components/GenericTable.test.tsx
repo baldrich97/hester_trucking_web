@@ -108,4 +108,19 @@ describe("GenericTable", () => {
         fireEvent.click(prev);
         expect(refreshData).toHaveBeenCalledWith(0, "ID", "desc");
     });
+
+    it("does not emit /loads/undefined when a row has no id", () => {
+        render(
+            <GenericTable
+                data={[{TicketNumber: 1001, Customers: {Name: "Alpha"}}]}
+                columns={[...columns]}
+                overrides={[...overrides]}
+                count={1}
+                refreshData={vi.fn()}
+            />,
+        );
+
+        expect(screen.queryByRole("link", {name: /edit/i})).not.toBeInTheDocument();
+        expect(document.querySelector('a[href="/loads/undefined"]')).toBeNull();
+    });
 });

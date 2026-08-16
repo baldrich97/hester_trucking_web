@@ -1,5 +1,6 @@
 import React, {useEffect, useMemo, useState} from "react";
 import {useRouter} from "next/router";
+import {parseRouteId} from "utils/parseRouteId";
 import {trpc} from "../../utils/trpc";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
@@ -33,9 +34,9 @@ const emptyForm: CarrierForm = {
 export default function CarrierDetail() {
     const router = useRouter();
     const rawId = router.query.id;
-    const id = typeof rawId === "string" ? parseInt(rawId, 10) : NaN;
-    const enabled = Number.isFinite(id);
-    const {data, refetch} = trpc.useQuery(["carriers.getOne", {ID: id}], {enabled});
+    const id = parseRouteId(rawId);
+    const enabled = id != null;
+    const {data, refetch} = trpc.useQuery(["carriers.getOne", {ID: id ?? 0}], {enabled});
     const {data: states = []} = trpc.useQuery(["states.getAll"]);
 
     const [draft, setDraft] = useState<CarrierForm>(emptyForm);

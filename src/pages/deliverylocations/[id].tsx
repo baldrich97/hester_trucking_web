@@ -2,6 +2,7 @@ import React from 'react';
 import DeliveryLocationObject from '../../components/objects/DeliveryLocation';
 import { GetServerSideProps } from 'next'
 import { prisma } from 'server/db/client'
+import { parseRouteId } from "utils/parseRouteId";
 import { DeliveryLocationsModel } from '../../../prisma/zod';
 import {z} from "zod";
 
@@ -20,16 +21,16 @@ const DeliveryLocation = ({initialDeliveryLocation}: {initialDeliveryLocation: D
 export default DeliveryLocation;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    const id = context.params?.id;
+    const id = parseRouteId(context.params?.id);
 
     let initialDeliveryLocation;
 
     
 
-    if (id && typeof(id) === "string") {
+    if (id) {
         initialDeliveryLocation = await prisma.deliveryLocations.findFirst({
             where: {
-                ID: parseInt(id)
+                ID: id
             }
         })
     }

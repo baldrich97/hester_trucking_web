@@ -26,6 +26,7 @@ import {calendarNavButtonSx, sheetUndoButtonSx, tableTextLinkSx} from "../../the
 import Box from "@mui/material/Box";
 import NextLink from "next/link";
 import {formatDriverDisplayName} from "../../utils/entityDisplay";
+import {parseRouteId} from "../../utils/parseRouteId";
 
 type Loads = z.infer<typeof LoadsModel>;
 
@@ -650,6 +651,7 @@ const TotalsRow = ({
 }
 
 const Load = ({load, index, job}: { load: Loads, index: number, job: DailySheetJob }) => {
+    const loadHref = parseRouteId(load.ID) ? `/loads/${load.ID}` : undefined;
     return (
         <>
             <Grid2
@@ -705,8 +707,8 @@ const Load = ({load, index, job}: { load: Loads, index: number, job: DailySheetJ
                     xs={1}
                 >
                     <Box
-                        component="a"
-                        href={`/loads/${load.ID}`}
+                        component={loadHref ? "a" : "span"}
+                        href={loadHref}
                         target="_blank"
                         rel="noreferrer"
                         sx={{...tableTextLinkSx, fontWeight: "bold"}}

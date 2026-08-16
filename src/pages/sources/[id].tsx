@@ -1,6 +1,7 @@
 import React, {useMemo, useState} from "react";
 import {GetServerSideProps} from "next";
 import {prisma} from "server/db/client";
+import {parseRouteId} from "utils/parseRouteId";
 import {SourcesModel} from "../../../prisma/zod";
 import {z} from "zod";
 import SourceObject from "../../components/objects/Source";
@@ -251,13 +252,13 @@ const SourceDetail = ({initialSource}: {initialSource: SourcesType}) => {
 export default SourceDetail;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    const id = context.params?.id;
+    const id = parseRouteId(context.params?.id);
     let initialSource = null;
     const prismaAny = prisma as any;
 
-    if (id && typeof id === "string") {
+    if (id) {
         initialSource = await prismaAny.sources.findFirst({
-            where: {ID: parseInt(id, 10)},
+            where: {ID: id},
         });
     }
 

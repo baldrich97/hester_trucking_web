@@ -2,7 +2,7 @@
 import { httpBatchLink } from "@trpc/client/links/httpBatchLink";
 import { loggerLink } from "@trpc/client/links/loggerLink";
 import { withTRPC } from "@trpc/next";
-import {getSession, SessionProvider} from "next-auth/react";
+import {SessionProvider, useSession} from "next-auth/react";
 import type { AppType } from "next/dist/shared/lib/utils";
 import superjson from "superjson";
 import type { AppRouter } from "../server/router";
@@ -26,79 +26,76 @@ import Copyright from "../components/layout/Copyright";
 import "react-toastify/dist/ReactToastify.css";
 import { ToastContainer } from "react-toastify";
 import "../css/LoadingModal.css";
-import {useEffect} from "react";
 import {useRouter} from "next/router";
-import {Session} from "next-auth";
 import 'react-toastify/dist/ReactToastify.css';
 
 const mdTheme = createAppTheme();
+
+function AppShell({
+  Component,
+  pageProps,
+}: {
+  Component: React.ComponentType<Record<string, unknown>>;
+  pageProps: Record<string, unknown>;
+}) {
+  const [open, setOpen] = React.useState(true);
+  const toggleDrawer = () => {
+    setOpen(!open);
+  };
+  const router = useRouter();
+  const {data: session} = useSession();
+
+  return (
+    <ThemeProvider theme={mdTheme}>
+      <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+        <CssBaseline />
+        <ToastContainer
+        />
+        <AppBar toggleDrawer={toggleDrawer} open={open} user={session?.user}/>
+        <Sidenav toggleDrawer={toggleDrawer} open={open} />
+        <Box
+          component="main"
+          sx={{
+            backgroundColor: (theme) =>
+              theme.palette.mode === "light"
+                ? theme.palette.grey[100]
+                : theme.palette.grey[900],
+            flexGrow: 1,
+            height: "100vh",
+            minHeight: 0,
+            overflowY: "auto",
+            overflowX: "hidden",
+          }}
+        >
+          <Toolbar />
+          <Container maxWidth={false} sx={{ mt: 4, mb: 4 }}>
+            <Component key={router.asPath} {...pageProps} />
+          </Container>
+          <Copyright
+            sx={{
+              pt: 4,
+              position: "fixed",
+              bottom: 0,
+              width: "100%",
+              height: 22,
+              textAlign: "right",
+              right: 15,
+              paddingTop: 0,
+            }}
+          />
+        </Box>
+      </Box>
+    </ThemeProvider>
+  );
+}
 
 const MyApp: AppType = ({
   Component,
   pageProps: { ...pageProps },
 }) => {
-  const [open, setOpen] = React.useState(true);
-  const toggleDrawer = () => {
-    setOpen(!open);
-  };
-
-  const [session, setSession] = React.useState<null | Session>(null);
-
-  const router = useRouter();
-
-  useEffect(() => {
-    async function getToken() {
-      const sess = await getSession();
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-      // @ts-ignore
-      setSession(sess)
-    }
-
-    getToken().then();
-
-  }, []);
   return (
-    <SessionProvider session={session}>
-      <ThemeProvider theme={mdTheme}>
-        <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
-          <CssBaseline />
-          <ToastContainer
-          />
-          <AppBar toggleDrawer={toggleDrawer} open={open} user={session?.user}/>
-          <Sidenav toggleDrawer={toggleDrawer} open={open} />
-          <Box
-            component="main"
-            sx={{
-              backgroundColor: (theme) =>
-                theme.palette.mode === "light"
-                  ? theme.palette.grey[100]
-                  : theme.palette.grey[900],
-              flexGrow: 1,
-              height: "100vh",
-              minHeight: 0,
-              overflowY: "auto",
-              overflowX: "hidden",
-            }}
-          >
-            <Toolbar />
-            <Container maxWidth={false} sx={{ mt: 4, mb: 4 }}>
-              <Component key={router.asPath} {...pageProps} />
-            </Container>
-            <Copyright
-              sx={{
-                pt: 4,
-                position: "fixed",
-                bottom: 0,
-                width: "100%",
-                height: 22,
-                textAlign: "right",
-                right: 15,
-                paddingTop: 0,
-              }}
-            />
-          </Box>
-        </Box>
-      </ThemeProvider>
+    <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
+      <AppShell Component={Component} pageProps={pageProps} />
     </SessionProvider>
   );
 };

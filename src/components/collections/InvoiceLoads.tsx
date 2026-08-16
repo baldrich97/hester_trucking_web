@@ -366,6 +366,9 @@ export default function InvoiceLoads({
   const [total, setTotal] = React.useState<number>(0);
 
   React.useEffect(() => {
+    if (readOnly) {
+      return;
+    }
     setSelected([]);
     setTotal(0);
     updateTotal(0);

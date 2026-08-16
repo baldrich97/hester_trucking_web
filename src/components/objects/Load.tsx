@@ -1109,23 +1109,26 @@ function Load({
 }
 
 interface DuplicateCustomToastProps {
-    ID: number,
+    ID?: number | null,
     onClickTrigger: any,
 }
 
 class DuplicateCustomToast extends React.Component<DuplicateCustomToastProps> {
 
     render() {
+        const loadHref = this.props.ID && this.props.ID > 0 ? `/loads/${this.props.ID}` : null;
         return (
 
             <span>
                 This is a duplicate ticket number.&nbsp;
+                {loadHref ? (
                 <a
-                    href={`/loads/${this.props.ID}`}
+                    href={loadHref}
                     target={"_blank"} rel="noreferrer"
                 >
                     <b>Click here to open the existing load in a new tab. </b>
                 </a>
+                ) : null}
                 If you want to override this warning and make continue with the duplicate ticket number,&nbsp;
                 <b onClick={() => this.props.onClickTrigger()}>click here to override this warning. </b>
                 Then save this load again. Click anywhere else to dismiss this warning.

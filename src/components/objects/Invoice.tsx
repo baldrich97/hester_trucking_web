@@ -211,11 +211,10 @@ const Invoice = ({
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     await addOrUpdateInvoice.mutateAsync(data);
-    if (key === "invoices.put") {
-      await router.replace(router.asPath);
+    await router.replace(router.asPath);
+    if (!initialInvoice) {
+      setShouldFetchWeeklies(true);
     }
-    //setShouldFetchLoads(true);
-    setShouldFetchWeeklies(true);
   };
 
   const deleteInvoice = trpc.useMutation("invoices.delete", {

@@ -2,6 +2,7 @@ import React from 'react';
 import LoadObject from '../../components/objects/Load';
 import { GetServerSideProps } from 'next'
 import { prisma } from 'server/db/client'
+import { parseRouteId } from "utils/parseRouteId";
 import {LoadsModel} from '../../../prisma/zod';
 import {z} from "zod";
 
@@ -19,16 +20,16 @@ const Load = ({initialLoad}: {initialLoad: LoadsType}) => {
 export default Load;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    const id = context.params?.id;
+    const id = parseRouteId(context.params?.id);
 
     let initialLoad;
 
 
 
-    if (id && typeof(id) === "string") {
+    if (id) {
         initialLoad = await prisma.loads.findFirst({
             where: {
-                ID: parseInt(id)
+                ID: id
             },
             include: {
                 Customers: true,

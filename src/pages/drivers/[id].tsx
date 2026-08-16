@@ -7,6 +7,7 @@ import type {DriverFormsDataType} from '../../components/collections/DriverForms
 import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router';
 import { prisma } from 'server/db/client'
+import { parseRouteId } from "utils/parseRouteId";
 import {CompleteFormOptions, StatesModel} from '../../../prisma/zod';
 import {z} from "zod";
 import Typography from "@mui/material/Typography";
@@ -173,7 +174,7 @@ const Driver = ({
 export default Driver;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-    const id = context.params?.id;
+    const id = parseRouteId(context.params?.id);
 
     let initialDriver: DriverFormsDataType | undefined;
     let trucksDriven: TruckDrivenRow[] = [];
@@ -181,10 +182,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
     let allForms: CompleteFormOptions[] = [];
     let mode: "w2" | "oo" = "w2";
 
-    if (id && typeof(id) === "string") {
+    if (id) {
         const row = await prisma.drivers.findFirst({
             where: {
-                ID: parseInt(id)
+                ID: id
             },
             include: {
                 DriverForms: true,
@@ -194,7 +195,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
         });
         if (row) {
             initialDriver = JSON.parse(JSON.stringify(row)) as DriverFormsDataType;
-            const driverId = parseInt(id);
+            const driverId = id;
             const grouped = await prisma.trucksDriven.groupBy({
                 by: ["TruckID"],
                 where: {DriverID: driverId},

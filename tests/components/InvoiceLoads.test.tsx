@@ -20,7 +20,8 @@ describe("InvoiceLoads collection table", () => {
         expect(updateSelected).toHaveBeenCalledWith([]);
     });
 
-    it("renders ticket numbers for provided rows", () => {
+    it("does not zero the invoice total for a read-only existing invoice", () => {
+        const updateTotal = vi.fn();
         render(
             <InvoiceLoads
                 readOnly={true}
@@ -37,10 +38,11 @@ describe("InvoiceLoads collection table", () => {
                         DeliveryLocations: {Description: "Site"},
                     },
                 ]}
-                updateTotal={vi.fn()}
+                updateTotal={updateTotal}
                 updateSelected={vi.fn()}
             />,
         );
         expect(screen.getByText("999001")).toBeInTheDocument();
+        expect(updateTotal).not.toHaveBeenCalled();
     });
 });

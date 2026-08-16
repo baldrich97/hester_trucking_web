@@ -3,6 +3,7 @@ import React from "react";
 import CustomerObject from "../../components/objects/Customer";
 import { GetServerSideProps } from "next";
 import { prisma } from "server/db/client";
+import { parseRouteId } from "utils/parseRouteId";
 import {
   CustomersModel,
   InvoicesModel,
@@ -207,7 +208,7 @@ const Customer = ({
 export default Customer;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  const id = context.params?.id;
+  const id = parseRouteId(context.params?.id);
 
   let initialCustomer;
 
@@ -229,10 +230,10 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
 
   let ltcount = 0;
 
-  if (id && typeof id === "string") {
+  if (id) {
     initialCustomer = await prisma.customers.findFirst({
       where: {
-        ID: parseInt(id),
+        ID: id,
       },
     });
     invoices = await prisma.invoices.findMany({
@@ -243,7 +244,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       orderBy: {
         ID: "desc",
       },
-      where: { AND: { CustomerID: parseInt(id) } },
+      where: { AND: { CustomerID: id } },
     });
 
     loads = await prisma.loads.findMany({
@@ -266,13 +267,13 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             Deleted: null,
           },
         ],
-        AND: { CustomerID: parseInt(id) },
+        AND: { CustomerID: id },
       },
       take: 10,
     });
 
     icount = await prisma.invoices.count({
-      where: { CustomerID: parseInt(id) },
+      where: { CustomerID: id },
     });
 
     lcount = await prisma.loads.count({
@@ -285,21 +286,21 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
             Deleted: null,
           },
         ],
-        AND: { CustomerID: parseInt(id) },
+        AND: { CustomerID: id },
       },
     });
 
     dlcount = (
         await prisma.customerDeliveryLocations.groupBy({
             by: ["DeliveryLocationID"],
-            where: {CustomerID: parseInt(id)},
+            where: {CustomerID: id},
         })
     ).length;
 
     ltcount = (
         await prisma.customerLoadTypes.groupBy({
             by: ["LoadTypeID"],
-            where: {CustomerID: parseInt(id)},
+            where: {CustomerID: id},
         })
     ).length;
   }

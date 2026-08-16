@@ -134,7 +134,7 @@ function NavLinkButton({
     children: React.ReactNode;
 }) {
     return (
-        <NextLink href={href} passHref legacyBehavior>
+        <NextLink href={href} passHref legacyBehavior prefetch={false}>
             <ListItemButton component="a" selected={selected} onClick={onClick} sx={sx}>
                 {children}
             </ListItemButton>

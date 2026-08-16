@@ -358,9 +358,13 @@ function Row(props: {
                                                 <TableRow>
                                                     <TableCell align="left" padding="none" size={"small"}
                                                                sx={{width: "50%"}}>
+                                                        {job.Drivers?.ID ? (
                                                         <TableEntityLink href={`/drivers/${job.Drivers.ID}`}>
                                                             {formatDriverDisplayName(job.Drivers)}
                                                         </TableEntityLink>
+                                                        ) : (
+                                                            formatDriverDisplayName(job.Drivers)
+                                                        )}
                                                     </TableCell>
                                                     <TableCell align="left" padding="none" size={"small"}
                                                                sx={{width: "33%"}}>
@@ -451,6 +455,9 @@ export default function InvoiceWeeklies({
     }, [])
 
     React.useEffect(() => {
+        if (readOnly) {
+            return;
+        }
         setSelected([]);
         setTotal(0);
         updateTotal(0);

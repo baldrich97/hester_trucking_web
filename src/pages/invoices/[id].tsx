@@ -2,31 +2,28 @@ import React from "react";
 import InvoiceObject from "../../components/objects/Invoice";
 import { GetServerSideProps } from "next";
 import { prisma } from "server/db/client";
-import {InvoicesModel, CustomersModel, LoadsModel, WeekliesModel} from "../../../prisma/zod";
+import { parseRouteId } from "utils/parseRouteId";
+import {InvoicesModel, LoadsModel, WeekliesModel} from "../../../prisma/zod";
 import { z } from "zod";
 
 type InvoicesType = z.infer<typeof InvoicesModel>;
 type LoadsType = z.infer<typeof LoadsModel>;
-type CustomersType = z.infer<typeof CustomersModel>;
 type WeekliesType = z.infer<typeof WeekliesModel>;
 
 const Invoice = ({
   initialInvoice,
   loads,
-  customers,
   invoices = [],
     weeklies = []
 }: {
   initialInvoice: InvoicesType;
   loads: LoadsType[];
-  customers: CustomersType[];
   invoices: InvoicesType[] | [];
   weeklies: WeekliesType[] | [];
 }) => {
   return (
     <InvoiceObject
       initialInvoice={initialInvoice}
-      customers={customers}
       loads={loads}
       invoices={invoices}
       weeklies={weeklies}
@@ -37,14 +34,14 @@ const Invoice = ({
 export default Invoice;
 
 export const getServerSideProps: GetServerSideProps = async (context) => {
-  const id = context.params?.id;
+  const id = parseRouteId(context.params?.id);
 
   let initialInvoice;
 
-  if (id && typeof id === "string") {
+  if (id) {
     initialInvoice = await prisma.invoices.findFirst({
       where: {
-        ID: parseInt(id),
+        ID: id,
       },
       include: {
         Customers: true,
@@ -61,8 +58,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
       },
     };
   }
-
-  const customers = await prisma.customers.findMany({});
 
   const weeklies = await prisma.weeklies.findMany({
     where: {
@@ -118,7 +113,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   return {
     props: {
       initialInvoice: JSON.parse(JSON.stringify(initialInvoice)),
-      customers,
       loads: JSON.parse(JSON.stringify(loads)),
       invoices: JSON.parse(JSON.stringify(invoices)),
       weeklies: JSON.parse(JSON.stringify(weeklies)),
