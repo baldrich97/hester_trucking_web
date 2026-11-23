@@ -26,7 +26,7 @@
     "vercel-build": "npm run postinstall && next build"
   },
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "dependencies": {
     "@emotion/react": "^11.10.4",
