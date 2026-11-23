@@ -77,6 +77,7 @@ const handler = async (req, res) => {
         Weight: load.Weight ?? 0,
         TotalAmount: load.TotalAmount ?? 0,
         TotalRate: load.TotalRate ?? 0,
+        MaterialRate: load.MaterialRate ?? 0,
         LoadType: formatMaterial({description: load.LoadTypes?.Description, source: load.Sources}),
         Customer: load.Customers?.Name ?? "Unknown",
         DeliveryLocation: load.DeliveryLocations?.Description ?? "Unknown",
@@ -108,6 +109,7 @@ const handler = async (req, res) => {
         <SourceReportPrintable
             reportTitle="Source Audit Report"
             entityLabel="Source"
+            rateKind="material"
             sourceName={source.Name}
             startDate={startDateRaw}
             endDate={endDateRaw}

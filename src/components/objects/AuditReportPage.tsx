@@ -159,11 +159,14 @@ const AuditReportPage = ({mode}: {mode: Mode}) => {
     };
 
     const reportColumns = useMemo<TableColumnsType>(() => {
-        if (mode !== "customer") {
-            return baseReportColumns;
+        const cols = baseReportColumns.map((column) =>
+            mode === "source" && column.name === "TotalRate"
+                ? {name: "MaterialRate", as: "Material Rate"}
+                : column,
+        );
+        if (mode === "customer") {
+            cols.splice(3, 0, {name: "Source", as: "Source"});
         }
-        const cols = [...baseReportColumns];
-        cols.splice(3, 0, {name: "Source", as: "Source"});
         return cols;
     }, [mode]);
 
@@ -172,6 +175,7 @@ const AuditReportPage = ({mode}: {mode: Mode}) => {
             (report?.rows ?? []).map((row) => ({
                 ...row,
                 TotalRate: formatCurrency(row.TotalRate),
+                MaterialRate: formatCurrency(row.MaterialRate),
                 TotalAmount: formatCurrency(row.TotalAmount),
             })),
         [report],

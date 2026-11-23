@@ -8,6 +8,7 @@ type ReportRow = {
     Weight: number;
     TotalAmount: number;
     TotalRate: number;
+    MaterialRate?: number;
     LoadType: string;
     Customer: string;
     DeliveryLocation: string;
@@ -27,6 +28,8 @@ type SourceReportPrintableProps = {
     rows: ReportRow[];
     reportTitle?: string;
     entityLabel?: string;
+    /** Source material bills show MaterialRate. Customer audits keep the company rate. */
+    rateKind?: "company" | "material";
     summary: {
         totalLoads: number;
         totalTonnage: number;
@@ -130,7 +133,11 @@ const SourceReportPrintable = ({
     summary,
     reportTitle = "Source Audit Report",
     entityLabel = "Source",
+    rateKind = "company",
 }: SourceReportPrintableProps) => {
+    const rateHeader = rateKind === "material" ? "Material Rate" : "Rate";
+    const rateValue = (item: ReportRow) =>
+        rateKind === "material" ? item.MaterialRate ?? 0 : item.TotalRate;
     return (
         <Document>
             <Page size="LETTER" orientation="landscape" style={styles.page}>
@@ -184,7 +191,7 @@ const SourceReportPrintable = ({
                         <Text style={[styles.cell, {width: "9%"}]}>Ticket #</Text>
                         <Text style={[styles.cell, {width: "18%"}]}>Load Type</Text>
                         <Text style={[styles.cell, styles.alignRight, {width: "10%"}]}>Tonnage</Text>
-                        <Text style={[styles.cell, styles.alignRight, {width: "10%"}]}>Rate</Text>
+                        <Text style={[styles.cell, styles.alignRight, {width: "10%"}]}>{rateHeader}</Text>
                         <Text style={[styles.cell, styles.alignRight, {width: "10%"}]}>Amount</Text>
                         <Text style={[styles.cell, {width: "18%"}]}>Customer</Text>
                         <Text style={[styles.cell, styles.cellLast, {width: "15%"}]}>To / Delivery</Text>
@@ -200,7 +207,7 @@ const SourceReportPrintable = ({
                                 <Text style={[styles.cell, {width: "9%"}]}>{item.TicketNumber}</Text>
                                 <Text style={[styles.cell, {width: "18%"}]}>{item.LoadType}</Text>
                                 <Text style={[styles.cell, styles.alignRight, {width: "10%"}]}>{number(item.Weight)}</Text>
-                                <Text style={[styles.cell, styles.alignRight, {width: "10%"}]}>{money(item.TotalRate)}</Text>
+                                <Text style={[styles.cell, styles.alignRight, {width: "10%"}]}>{money(rateValue(item))}</Text>
                                 <Text style={[styles.cell, styles.alignRight, {width: "10%"}]}>{money(item.TotalAmount)}</Text>
                                 <Text style={[styles.cell, {width: "18%"}]}>{item.Customer}</Text>
                                 <Text style={[styles.cell, styles.cellLast, {width: "15%"}]}>{item.DeliveryLocation}</Text>
